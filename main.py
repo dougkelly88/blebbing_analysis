@@ -38,33 +38,31 @@ def file_location_chooser(default_directory):
 	return file_path, output_root;
 
 # move user-defined anchor points onto automatically-segmented membrane
-def fix_anchors_to_membrane(anchor1, anchor2, membrane_roi):
+# can do this more efficiently but probably not worth optimising...
+# use set to implicitly avoid degeneracy
+def fix_anchors_to_membrane(anchors_list, membrane_roi):
 	outline = membrane_roi.getContainedFloatPoints();
-	# debug...
-	#print("manual anchors, unfixed:");
-	#print("(" + str(anchor1.x) + ", " + str(anchor1.y) + ")");
-	#print("(" + str(anchor2.x) + ", " + str(anchor2.y) + ")");
 	xs = outline.xpoints;
 	ys = outline.ypoints;
-	fixed_anchor1 = (0, 0);
-	fixed_anchor2 = (0, 0);
-	distance1 = 1000000;
-	distance2 = 1000000;
-	
-	for idx in xrange(1,  outline.npoints):
-		d1 = math.pow((xs[idx] - anchor1.x), 2) + math.pow((ys[idx] - anchor1.y), 2);
-		if d1 < distance1:
-			distance1 = d1;
-			fixed_anchor1 = (xs[idx], ys[idx]);
-		d2 = math.pow((xs[idx] - anchor2.x), 2) + math.pow((ys[idx] - anchor2.y), 2);
-		if d2 < distance2:
-			distance2 = d2;
-			fixed_anchor2 = (xs[idx], ys[idx]);	
-	# debug...
-	#print("anchors, fixed:");
-	#print(fixed_anchor1);
-	#print(fixed_anchor2);
-	return fixed_anchor1, fixed_anchor2
+	fixed_anchors_set = set();
+	for anchor_idx, anchor in enumerate(anchors_list):
+		# debug...
+		#print("manual anchor " + str(anchor_idx) + ", unfixed:");
+		#print("(" + str(anchor.x) + ", " + str(anchor.y) + ")");
+		last_dsq = 100000;
+		for idx in xrange(1,  outline.npoints):
+
+			d2 = math.pow((xs[idx] - anchor.x), 2) + math.pow((ys[idx] - anchor.y), 2);
+			if d2 < last_dsq:
+				last_dsq = d2;
+				fixed_anchor = (xs[idx], ys[idx]);	
+		fixed_anchors_set.add(fixed_anchor);
+		# debug...
+		#print("fixed anchor " + str(anchor_idx) + ":");
+		#print("(" + str(fixed_anchor[0]) + ", " + str(fixed_anchor[1]) + ")");
+	if (len(fixed_anchors_set) < 3) :
+		raise ValueError('degeneracy between anchor points!');
+	return fixed_anchors_set;
 
 def main():
 	#print (sys.version_info) # debug
@@ -113,16 +111,17 @@ def main():
 	# binarise/segment
 	IJ.setTool("multipoint");
 	selected_points = 0;
-	while (selected_points != 2):
-		WaitForUserDialog("Select channel", "Select the membrane-label channel, and position exactly two points at extremes of membrane...").show();
+	while (selected_points != 3):
+		WaitForUserDialog("Select channel", "Select the membrane-label channel, and position exactly three points at extremes of membrane and in the middle...").show();
 		roi = imp.getRoi();
 		if roi is not None:
 			selected_points = len(roi.getContainedPoints());
-		if ((roi is None) or (selected_points != 2)):
+		if ((roi is None) or (selected_points != 3)):
 			WaitForUserDialog("Error!", "Wrong number of points selected! Please try again...").show();
 
 	anchor1 = roi.getContainedPoints()[0];
 	anchor2 = roi.getContainedPoints()[1];
+	anchor = roi.getContainedPoints();
 	
 	membrane_channel = imp.getChannel();
 	split_channels = ChannelSplitter.split(imp);
@@ -138,7 +137,7 @@ def main():
 	# 	fix anchors:
 	IJ.run(membrane_channel_imp, "Create Selection", "stack");
 	roi = membrane_channel_imp.getRoi();
-	anchors = fix_anchors_to_membrane(anchor1, anchor2, roi);
+	anchors = fix_anchors_to_membrane(anchor, roi);
 	print(anchors);
 	
 	
