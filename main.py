@@ -15,33 +15,36 @@ import javax.swing.table.TableModel
 
 # imagej imports
 from ij import IJ, WindowManager
-from ij.gui import NonBlockingGenericDialog, WaitForUserDialog
+from ij.gui import Roi, PointRoi, PolygonRoi, NonBlockingGenericDialog, WaitForUserDialog
 from ij.io import OpenDialog, DirectoryChooser
 from ij.plugin import ChannelSplitter
+from ij.process import FloatPolygon
 from loci.plugins import BF as bf
 
-# breakout file chooser UI to enable faster debug
-def file_location_chooser(default_directory):
-	# input
-	od = OpenDialog('Choose original file...', 
-				 default_directory, 
-				 '*.tif');
-	file_path = od.getPath();
 
-	# output
-	DirectoryChooser.setDefaultDirectory(default_directory);
-	dc = DirectoryChooser('Select the root folder for saving output');
-	output_root = dc.getDirectory();
-	print(output_root);
-	if output_root is None:
-		print("no output root");
-	return file_path, output_root;
+# prompt the user to provide a number of points on the image
+def prompt_for_points(imp, title, message, n_points):
+	imp.killRoi();
+	if (n_points == 1): 
+		IJ.setTool("point");
+	else:
+		IJ.setTool("multipoint");
+	selected_points = 0;
+	while (selected_points != n_points):
+		WaitForUserDialog(title, message).show();
+		roi = imp.getRoi();
+		if roi is not None:
+			selected_points = len(roi.getContainedPoints());
+		if ((roi is None) or (selected_points != n_points)):
+			WaitForUserDialog("Error!", "Wrong number of points selected! Please try again...").show();
+	return roi.getContainedPoints();
 
 # move user-defined anchor points onto automatically-segmented membrane
 # can do this more efficiently but probably not worth optimising...
-# use set to implicitly avoid degeneracy
+# use set to implicitly avoid degeneracy, convert back to list. again, 
+# inefficient, but OK for small set
 def fix_anchors_to_membrane(anchors_list, membrane_roi):
-	outline = membrane_roi.getContainedFloatPoints();
+	outline = membrane_roi.getPolygon();
 	xs = outline.xpoints;
 	ys = outline.ypoints;
 	fixed_anchors_set = set();
@@ -60,9 +63,50 @@ def fix_anchors_to_membrane(anchors_list, membrane_roi):
 		# debug...
 		#print("fixed anchor " + str(anchor_idx) + ":");
 		#print("(" + str(fixed_anchor[0]) + ", " + str(fixed_anchor[1]) + ")");
-	if (len(fixed_anchors_set) < 3) :
+	if (len(fixed_anchors_set) < (anchor_idx+1)):
 		raise ValueError('degeneracy between anchor points!');
-	return fixed_anchors_set;
+	return list(fixed_anchors_set);
+
+# figure out which edge of the roi is the membrane, since IJ might start the roi
+# from anywhere along the perimeter w.r.t. the user defined anchors
+def get_membrane_edge(roi, fixed_anchors, fixed_midpoint):
+	smth_polygon = roi.getPolygon();
+	xs = smth_polygon.xpoints;
+	ys = smth_polygon.ypoints;
+	started = False;
+	e1 = FloatPolygon();
+	e2 = FloatPolygon();
+	for idx,(x,y) in enumerate(zip(xs,ys)):
+		if (((x, y) == (fixed_anchors[0])) or ((x, y) == fixed_anchors[1])) and not started:
+			started = True;
+		elif (((x, y) == (fixed_anchors[0])) or ((x, y) == fixed_anchors[1])) and started:
+			started = False;
+		if started:
+			e1.addPoint(x, y);
+		else:
+			e2.addPoint(x, y);
+	if e1.contains(fixed_midpoint[0][0], fixed_midpoint[0][1]):
+		return PolygonRoi(e1, Roi.POLYLINE);
+	else:
+		return PolygonRoi(e2, Roi.POLYLINE);
+
+# breakout file chooser UI to enable faster debug
+def file_location_chooser(default_directory):
+	# input
+	od = OpenDialog('Choose original file...', 
+				 default_directory, 
+				 '*.tif');
+	file_path = od.getPath();
+
+	# output
+	DirectoryChooser.setDefaultDirectory(default_directory);
+	dc = DirectoryChooser('Select the root folder for saving output');
+	output_root = dc.getDirectory();
+	print(output_root);
+	if output_root is None:
+		print("no output root");
+	return file_path, output_root;
+
 
 def main():
 	#print (sys.version_info) # debug
@@ -83,10 +127,9 @@ def main():
 	stack = imp.getStack();
 	
 	## prepare output folders
-	timestamp = datetime.strftime(datetime.now(), '%Y-%m-%d %H-%M-%S');
-	output_folder = os.path.join(output_root, (timestamp + ' output'));
-	os.mkdir(output_folder);
-	
+	#timestamp = datetime.strftime(datetime.now(), '%Y-%m-%d %H-%M-%S');
+	#output_folder = os.path.join(output_root, (timestamp + ' output'));
+	#os.mkdir(output_folder);
 	
 	# handle zooming to reasonable size, assuming reasonable screen resolution...
 	h = imp.height;
@@ -109,24 +152,22 @@ def main():
 		w = imp.width;
 
 	# binarise/segment
-	IJ.setTool("multipoint");
-	selected_points = 0;
-	while (selected_points != 3):
-		WaitForUserDialog("Select channel", "Select the membrane-label channel, and position exactly three points at extremes of membrane and in the middle...").show();
-		roi = imp.getRoi();
-		if roi is not None:
-			selected_points = len(roi.getContainedPoints());
-		if ((roi is None) or (selected_points != 3)):
-			WaitForUserDialog("Error!", "Wrong number of points selected! Please try again...").show();
+	anchor = prompt_for_points(imp, 
+						"Select channel + extrema", 
+						"Select the membrane-label channel, and position \n" + 
+						"exactly TWO points at extremes of membrane", 
+						2);
 
-	anchor1 = roi.getContainedPoints()[0];
-	anchor2 = roi.getContainedPoints()[1];
-	anchor = roi.getContainedPoints();
+	midpoint = prompt_for_points(imp, 
+								"Choose midpoint", 
+								"Now select a point halfway between the extremes, along the membrane", 
+								1);
 	
 	membrane_channel = imp.getChannel();
 	split_channels = ChannelSplitter.split(imp);
 	membrane_channel_imp = split_channels[membrane_channel-1];
-	membrane_channel_imp.show();
+	#membrane_channel_imp.show(); # debug
+	
 	# perform binary manipulations
 	IJ.run(membrane_channel_imp, "Make Binary", "method=Moments background=Dark calculate");
 	IJ.run(membrane_channel_imp, "Fill Holes", "stack");
@@ -135,11 +176,17 @@ def main():
 	
 	# generate edge
 	# 	fix anchors:
-	IJ.run(membrane_channel_imp, "Create Selection", "stack");
+	IJ.run(membrane_channel_imp, "Create Selection", "");
 	roi = membrane_channel_imp.getRoi();
 	anchors = fix_anchors_to_membrane(anchor, roi);
-	print(anchors);
-	
+	midpoint = fix_anchors_to_membrane(midpoint, roi);
+
+	#	identify which side of the segmented roi to use and perform interpolation/smoothing:
+	membrane_edge = get_membrane_edge(roi, anchors, midpoint);
+	imp.setRoi(membrane_edge);
+	imp.show();
+	IJ.run(imp, "Interpolate", "interval=0.5 smooth");
+	IJ.run(imp, "Fit Spline", "");
 	
 	# generate curvature
 	# output colormapped images and kymographs 
