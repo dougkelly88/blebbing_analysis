@@ -45,20 +45,18 @@ def prompt_for_points(imp, title, message, n_points):
 # inefficient, but OK for small set
 def fix_anchors_to_membrane(anchors_list, membrane_roi):
 	outline = membrane_roi.getPolygon();
-	xs = outline.xpoints;
-	ys = outline.ypoints;
 	fixed_anchors_set = set();
 	for anchor_idx, anchor in enumerate(anchors_list):
 		# debug...
 		#print("manual anchor " + str(anchor_idx) + ", unfixed:");
 		#print("(" + str(anchor.x) + ", " + str(anchor.y) + ")");
+		fixed_anchor = anchor;
 		last_dsq = 100000;
-		for idx in xrange(1,  outline.npoints):
-
-			d2 = math.pow((xs[idx] - anchor.x), 2) + math.pow((ys[idx] - anchor.y), 2);
+		for (x,y) in zip(outline.xpoints,outline.ypoints):
+			d2 = math.pow((x - anchor.x), 2) + math.pow((y - anchor.y), 2);
 			if d2 < last_dsq:
 				last_dsq = d2;
-				fixed_anchor = (xs[idx], ys[idx]);	
+				fixed_anchor = (x, y);
 		fixed_anchors_set.add(fixed_anchor);
 		# debug...
 		#print("fixed anchor " + str(anchor_idx) + ":");
