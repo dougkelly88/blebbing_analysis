@@ -141,15 +141,15 @@ def main():
 	IJ.run("Set... ", "zoom=" + str(zoom_factor) + " x=" + str(math.floor(w/2)) + " y=" + str(math.floor(h/2)));
 	IJ.run("Scale to Fit", "");
 
-	# prompt user to select ROI
-	IJ.setTool("rect");
-	WaitForUserDialog("Crop", "If desired, select a rectangular ROI to crop to...").show();
-	roi = imp.getRoi();
-	if roi is not None:
-		IJ.run(imp, "Crop", "");
-		IJ.run("Set... ", "zoom=" + str(zoom_factor) + " x=" + str(math.floor(w/2)) + " y=" + str(math.floor(h/2)));
-		h = imp.height;
-		w = imp.width;
+	## prompt user to select ROI
+	#IJ.setTool("rect");
+	#WaitForUserDialog("Crop", "If desired, select a rectangular ROI to crop to...").show();
+	#roi = imp.getRoi();
+	#if roi is not None:
+	#	IJ.run(imp, "Crop", "");
+	#	IJ.run("Set... ", "zoom=" + str(zoom_factor) + " x=" + str(math.floor(w/2)) + " y=" + str(math.floor(h/2)));
+	#	h = imp.height;
+	#	w = imp.width;
 
 	# binarise/segment
 	anchor = prompt_for_points(imp, 
