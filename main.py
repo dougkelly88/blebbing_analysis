@@ -68,16 +68,16 @@ def fix_anchors_to_membrane(anchors_list, membrane_roi):
 # figure out which edge of the roi is the membrane, since IJ might start the roi
 # from anywhere along the perimeter w.r.t. the user defined anchors
 def get_membrane_edge(roi, fixed_anchors, fixed_midpoint):
-	smth_polygon = roi.getPolygon();
-	xs = smth_polygon.xpoints;
-	ys = smth_polygon.ypoints;
+	poly = roi.getPolygon();
 	started = False;
 	e1 = FloatPolygon();
 	e2 = FloatPolygon();
-	for idx,(x,y) in enumerate(zip(xs,ys)):
+	for idx,(x,y) in enumerate(zip(poly.xpoints,poly.ypoints)):
 		if (((x, y) == (fixed_anchors[0])) or ((x, y) == fixed_anchors[1])) and not started:
+			e2.addPoint(x, y);
 			started = True;
 		elif (((x, y) == (fixed_anchors[0])) or ((x, y) == fixed_anchors[1])) and started:
+			e1.addPoint(x, y);
 			started = False;
 		if started:
 			e1.addPoint(x, y);
