@@ -14,7 +14,7 @@ import javax.swing as swing
 import javax.swing.table.TableModel
 
 # imagej imports
-from ij import IJ, WindowManager
+from ij import IJ, WindowManager, ImagePlus
 from ij.gui import Roi, PointRoi, PolygonRoi, GenericDialog, WaitForUserDialog
 from ij.io import OpenDialog, DirectoryChooser
 from ij.plugin import ChannelSplitter
@@ -153,7 +153,28 @@ def calculate_curvature_profile(centre_curv_points, curv_points1, curv_points2, 
 			curv = 0;
 		curvature_profile.append((cp, curv));
 	return curvature_profile;
-	
+
+# display curvature colormap overlaid on membrane image
+def show_curvature_overlay(imp, membrane_channel, curvature_profile): 
+	slice_index = imp.getStackIndex(membrane_channel, 1, 1);
+	ip = imp.getStack().getProcessor(slice_index).convertToRGB();
+	overlay_base_imp = ImagePlus("Curvature base", ip);
+	overlay_base_imp.show();
+
+	overlay = IJ.createImage("Curvature", "16-bit", imp.width, imp.height, 1);
+	IJ.run(overlay, "Rainbow RGB", "");
+	pix = overlay.getProcessor().getPixels();
+	mx = max([c for ((x, y), c) in curvature_profile]);
+	for ((x, y), c) in curvature_profile:
+		pix[y * imp.width + x] = int( c * (pow(2, 15) - 1)/mx );
+	IJ.run(overlay, "RGB Color", "");
+	pix = overlay.getProcessor().getPixels();
+	base_pix = overlay_base_imp.getProcessor().getPixels();
+	for ((x, y), c) in curvature_profile:
+		if (c > 0):
+			base_pix[y * imp.width + x] = pix[y * imp.width + x];
+
+
 # breakout file chooser UI to enable faster debug
 def file_location_chooser(default_directory):
 	# input
@@ -263,7 +284,17 @@ def main():
 	print("curvature_profile:");
 	print(curvature_profile);
 	
+	show_curvature_overlay(imp, membrane_channel, curvature_profile);
+	
+
+
+	#curvature_roi = PolygonRoi([x for ((x, y), c) in curvature_profile], 
+								#[y for ((x, y), c) in curvature_profile], 
+								#Roi.POLYLINE);
+	#overlay.setRoi(curvature_roi);
+	
 	# output colormapped images and kymographs 
+
 
 # It's best practice to create a function that contains the code that is executed when running the script.
 # This enables us to stop the script by just calling return.
