@@ -15,7 +15,7 @@ import javax.swing.table.TableModel
 
 # imagej imports
 from ij import IJ, WindowManager
-from ij.gui import Roi, PointRoi, PolygonRoi, NonBlockingGenericDialog, WaitForUserDialog
+from ij.gui import Roi, PointRoi, PolygonRoi, GenericDialog, WaitForUserDialog
 from ij.io import OpenDialog, DirectoryChooser
 from ij.plugin import ChannelSplitter
 from ij.process import FloatPolygon
@@ -88,12 +88,75 @@ def get_membrane_edge(roi, fixed_anchors, fixed_midpoint):
 	else:
 		return PolygonRoi(e2, Roi.POLYLINE);
 
+# generate arrays of points along the membrane that are separated by path length l - currently in pixels
+def generate_l_spaced_points(roi, l): 
+	poly = roi.getPolygon();
+	p1, p2, p3 = ([] for i in range(3));
+	for idx,(x,y) in enumerate(zip(poly.xpoints,poly.ypoints)):
+		if ((idx > 0) and (idx < poly.npoints - 1)): # ignore first and last points: by definition these won't have anything useful on either side
+			# look backwards and calculate pathlength at successive points
+			db = 0;
+			iidx = idx - 1;
+			while ((iidx >= 0) and (db < l)):
+				dbnew = db + math.sqrt(math.pow((poly.xpoints[iidx] - poly.xpoints[iidx+1]), 2)  + 
+									math.pow((poly.ypoints[iidx] - poly.ypoints[iidx+1]), 2));
+				if (dbnew >= l):
+					xx = poly.xpoints[iidx+1] + ((l - db)/(dbnew - db))*(poly.xpoints[iidx] - poly.xpoints[iidx+1]);
+					yy = poly.ypoints[iidx+1] - ((l - db)/(dbnew - db))*(poly.ypoints[iidx] - poly.ypoints[iidx+1]);
+					dbnew = db + math.sqrt(math.pow(((l - db)/(dbnew - db))*(poly.xpoints[iidx] - poly.xpoints[iidx+1]), 2)  + 
+									math.pow(((l - db)/(dbnew - db))*(poly.ypoints[iidx] - poly.ypoints[iidx+1]), 2));
+				else:
+					iidx = iidx-1;
+				db = dbnew;
+			if (db == l):
+				pp1 = (xx, yy);
+				pp2 = (x, y);
+				# then look forwards ONLY IF backwards search was successful...
+				iidx = idx + 1;
+				df = 0;
+				while ((iidx < poly.npoints - 1) and (df < l)):
+					dfnew = df + math.sqrt(math.pow((poly.xpoints[iidx] - poly.xpoints[iidx-1]), 2)  + 
+									math.pow((poly.ypoints[iidx] - poly.ypoints[iidx-1]), 2));
+					if (dfnew >= l):
+						xx = poly.xpoints[iidx-1] + ((l - df)/(dfnew - df))*(poly.xpoints[iidx] - poly.xpoints[iidx-1]);
+						yy = poly.ypoints[iidx-1] + ((l - df)/(dfnew - df))*(poly.ypoints[iidx] - poly.ypoints[iidx-1]);
+						dfnew = df + math.sqrt(math.pow(((l - df)/(dfnew - df))*(poly.xpoints[iidx] - poly.xpoints[iidx-1]), 2)  + 
+										math.pow(((l - df)/(dfnew - df))*(poly.ypoints[iidx] - poly.ypoints[iidx-1]), 2));
+					else:
+						iidx = iidx+1;
+					df = dfnew;
+				if (df == l):
+					p1.append(pp1);
+					p2.append(pp2);
+					p3.append((xx, yy));
+	return p1, p2, p3;
+
+# generate a line profile of local curvatures using three-point method and SSS theorem
+# (see http://mathworld.wolfram.com/SSSTheorem.html)
+def calculate_curvature_profile(centre_curv_points, curv_points1, curv_points2, remove_negative_curvatures):
+	curvature_profile = [];
+	for (cp, p1, p2) in zip(centre_curv_points, curv_points1, curv_points2):
+		a = math.sqrt( math.pow((cp[0] - p1[0]), 2) + math.pow((cp[1] - p1[1]), 2) );
+		b = math.sqrt( math.pow((cp[0] - p2[0]), 2) + math.pow((cp[1] - p2[1]), 2) );
+		c = math.sqrt( math.pow((p2[0] - p1[0]), 2) + math.pow((p2[1] - p1[1]), 2) );
+		s = 0.5 * (a + b + c);
+		K = math.sqrt(s * (s - a) * (s - b) * (s - c));
+		if (K == 0):
+			curv = 0;
+		else:
+			R = (a * b * c)/(4 * K);
+			curv = 1/R;
+		if (remove_negative_curvatures and (curv < 0)):
+			curv = 0;
+		curvature_profile.append((cp, curv));
+	return curvature_profile;
+	
 # breakout file chooser UI to enable faster debug
 def file_location_chooser(default_directory):
 	# input
 	od = OpenDialog('Choose original file...', 
-				 default_directory, 
-				 '*.tif');
+					default_directory, 
+					'*.tif');
 	file_path = od.getPath();
 
 	# output
@@ -172,7 +235,7 @@ def main():
 	IJ.run(membrane_channel_imp, "Open", "stack");
 	IJ.run(membrane_channel_imp, "Close-", "stack");
 	
-	# generate edge
+	# generate edge - this needs to be looped over slices
 	# 	fix anchors:
 	IJ.run(membrane_channel_imp, "Create Selection", "");
 	roi = membrane_channel_imp.getRoi();
@@ -185,8 +248,18 @@ def main():
 	imp.show();
 	IJ.run(imp, "Interpolate", "interval=0.5 smooth");
 	IJ.run(imp, "Fit Spline", "");
+	membrane_edge = imp.getRoi();
 	
-	# generate curvature
+	# generate curvature - this needs to be looped over slices
+	curv_points1, centre_curv_points, curv_points2 = generate_l_spaced_points(membrane_edge, 5.0);
+	remove_negative_curvatures = True;
+	curvature_profile = calculate_curvature_profile(centre_curv_points, 
+													curv_points1, 
+													curv_points2, 
+													remove_negative_curvatures);
+	print("curvature_profile:");
+	print(curvature_profile);
+	
 	# output colormapped images and kymographs 
 
 # It's best practice to create a function that contains the code that is executed when running the script.
