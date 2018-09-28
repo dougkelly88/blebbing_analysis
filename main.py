@@ -145,7 +145,10 @@ def calculate_curvature_profile(centre_curv_points, curv_points1, curv_points2, 
 			curv = 0;
 		else:
 			R = (a * b * c)/(4 * K);
-			curv = 1/R;
+			c_1 = tuple(r1-rc for r1, rc in zip(p1, cp));
+			c_2 = tuple(r2-rc for r2, rc in zip(p2, cp));
+			sign = round((c_1[0]*c_2[1] - c_2[0]*c_1[1]) / (abs(c_1[0]*c_2[1] - c_2[0]*c_1[1]) + 1e-10));
+			curv = sign * 1/R;
 		if (remove_negative_curvatures and (curv < 0)):
 			curv = 0;
 		curvature_profile.append((cp, curv));
