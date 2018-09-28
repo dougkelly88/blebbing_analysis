@@ -281,8 +281,6 @@ def main():
 													curv_points1, 
 													curv_points2, 
 													remove_negative_curvatures);
-	print("curvature_profile:");
-	print(curvature_profile);
 	
 	show_curvature_overlay(imp, membrane_channel, curvature_profile);
 	
