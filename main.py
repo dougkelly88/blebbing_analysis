@@ -88,6 +88,40 @@ def get_membrane_edge(roi, fixed_anchors, fixed_midpoint):
 	else:
 		return PolygonRoi(e2, Roi.POLYLINE);
 
+# return the unit vector along the averaged perpendicular direction
+def average_perpendicular_unit_vec(roi):
+	poly = roi.getFloatPolygon();
+	angles = []
+	for idx,(x,y) in enumerate(zip(poly.xpoints,poly.ypoints)):
+		if (idx > 0):
+			angles.append(math.atan2((poly.ypoints[idx-1] - y),(poly.xpoints[idx-1] - x)));
+	mean_angle = sum(angles)/len(angles);
+	perpendicular_angle = math.pi/2 + mean_angle;
+	return math.cos(perpendicular_angle), math.sin(perpendicular_angle);
+
+# return a line profile taking the maximum value over n pixels perpendicular to roi line
+def maximum_line_profile(imp, roi, pixel_width):
+	u = average_perpendicular_unit_vec(roi);
+	profiles = [];
+	max_profile = []
+	poly = roi.getFloatPolygon();
+	for idx in range(0,pixel_width):
+		unit_vec_multiplier = (1-pixel_width)/2 + idx;
+		xs = [(x + unit_vec_multiplier * u[0]) for x in poly.xpoints];
+		ys = [(y + unit_vec_multiplier * u[1]) for y in poly.ypoints];
+		temp_roi = PolygonRoi(xs, ys, Roi.POLYLINE);
+		imp.setRoi(temp_roi);
+		profiles.append(ProfilePlot(imp).getProfile());
+		if (idx == 0):
+			max_profile = profile;
+		else:
+			for iidx,(val, new_val) in enumerate(zip(max_profile, profile)):
+				if new_val > val:
+					max_profile[iidx] = new_val;
+	imp.setRoi(roi);
+	return max_profile;
+
+
 # generate arrays of points along the membrane that are separated by path length l - currently in pixels
 def generate_l_spaced_points(roi, l): 
 	poly = roi.getPolygon();
