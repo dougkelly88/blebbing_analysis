@@ -17,7 +17,7 @@ import javax.swing.table.TableModel
 from ij import IJ, WindowManager, ImagePlus, ImageStack
 from ij.gui import Roi, PointRoi, PolygonRoi, GenericDialog, WaitForUserDialog, ProfilePlot
 from ij.io import OpenDialog, DirectoryChooser, FileSaver
-from ij.plugin import ChannelSplitter
+from ij.plugin import ChannelSplitter, Straightener
 from ij.process import FloatPolygon
 from loci.plugins import BF as bf
 
