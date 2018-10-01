@@ -47,9 +47,6 @@ def fix_anchors_to_membrane(anchors_list, membrane_roi):
 	outline = membrane_roi.getPolygon();
 	fixed_anchors_set = set();
 	for anchor_idx, anchor in enumerate(anchors_list):
-		# debug...
-		#print("manual anchor " + str(anchor_idx) + ", unfixed:");
-		#print("(" + str(anchor.x) + ", " + str(anchor.y) + ")");
 		fixed_anchor = anchor;
 		last_dsq = 100000;
 		for (x,y) in zip(outline.xpoints,outline.ypoints):
@@ -58,9 +55,6 @@ def fix_anchors_to_membrane(anchors_list, membrane_roi):
 				last_dsq = d2;
 				fixed_anchor = (x, y);
 		fixed_anchors_set.add(fixed_anchor);
-		# debug...
-		#print("fixed anchor " + str(anchor_idx) + ":");
-		#print("(" + str(fixed_anchor[0]) + ", " + str(fixed_anchor[1]) + ")");
 	if (len(fixed_anchors_set) < (anchor_idx+1)):
 		raise ValueError('degeneracy between anchor points!');
 	return list(fixed_anchors_set);
@@ -90,6 +84,7 @@ def get_membrane_edge(roi, fixed_anchors, fixed_midpoint):
 
 # return a line profile taking the maximum value over n pixels perpendicular to roi line
 def maximum_line_profile(imp, roi, pixel_width):
+	imp.setRoi(roi);
 	ip = Straightener().straightenLine(imp, pixel_width);
 	width = ip.getWidth();
 	height = ip.getHeight();
@@ -97,6 +92,7 @@ def maximum_line_profile(imp, roi, pixel_width):
 	for x in range(0, width):
 		pix = ip.getLine(x, 0, x, height);
 		max_profile.append(max(pix));
+	print("Length of maximum profile = " + str(len(max_profile)));
 	return max_profile;
 
 # generate arrays of points along the membrane that are separated by path length l - currently in pixels
@@ -166,8 +162,8 @@ def calculate_curvature_profile(centre_curv_points, curv_points1, curv_points2, 
 	return curvature_profile;
 
 # display curvature colormap overlaid on membrane image
-def show_curvature_overlay(imp, membrane_channel, curvature_profile, stack, show_image): 
-	slice_index = imp.getStackIndex(membrane_channel, 1, 1);
+def show_curvature_overlay(imp, membrane_channel, frame_number, curvature_profile, stack, show_image): 
+	slice_index = imp.getStackIndex(membrane_channel, 1, frame_number);
 	ip = imp.getStack().getProcessor(slice_index).convertToRGB();
 	overlay_base_imp = ImagePlus("Curvature base", ip);
 	if show_image:
@@ -186,6 +182,7 @@ def show_curvature_overlay(imp, membrane_channel, curvature_profile, stack, show
 		if (c > 0):
 			base_pix[y * imp.width + x] = pix[y * imp.width + x];
 	stack.addSlice(overlay_base_imp.getProcessor());
+	print(stack.getSize());
 	return stack;
 
 # breakout file chooser UI to enable faster debug
@@ -233,8 +230,8 @@ def main():
 	h = imp.height;
 	w = imp.width;
 	d = imp.getNSlices();
-	c = imp.getNChannels();
-	f = imp.getNFrames();
+	n_channels = imp.getNChannels();
+	n_frames = imp.getNFrames();
 	zoom_factor = 100* math.floor(1080 / (2 * h));
 	IJ.run("Set... ", "zoom=" + str(zoom_factor) + " x=" + str(math.floor(w/2)) + " y=" + str(math.floor(h/2)));
 	IJ.run("Scale to Fit", "");
@@ -273,45 +270,50 @@ def main():
 	IJ.run(membrane_channel_imp, "Close-", "stack");
 	
 	# generate edge - this needs to be looped over slices
-	# 	fix anchors:
-	IJ.run(membrane_channel_imp, "Create Selection", "");
-	roi = membrane_channel_imp.getRoi();
-	fixed_anchors = fix_anchors_to_membrane(anchors, roi);
-	midpoint = fix_anchors_to_membrane(midpoint, roi);
+	curvature_stack = ImageStack(w, h);
+	actin_profiles = [];
+	for fridx in range(0, n_frames):
+		imp.setPosition(membrane_channel, 1, fridx+1);
+		membrane_channel_imp.setPosition(fridx+1);
+		# 	fix anchors:
+		IJ.run(membrane_channel_imp, "Create Selection", "");
+		roi = membrane_channel_imp.getRoi();
+		fixed_anchors = fix_anchors_to_membrane(anchors, roi);
+		fixed_midpoint = fix_anchors_to_membrane(midpoint, roi);
 
-	#	identify which side of the segmented roi to use and perform interpolation/smoothing:
-	membrane_edge = get_membrane_edge(roi, fixed_anchors, midpoint);
-	imp.setRoi(membrane_edge);
-	imp.show();
-	IJ.run(imp, "Interpolate", "interval=0.5 smooth");
-	IJ.run(imp, "Fit Spline", "");
-	membrane_edge = imp.getRoi();
-	
-	# generate curvature - this needs to be looped over slices
-	curv_points1, centre_curv_points, curv_points2 = generate_l_spaced_points(membrane_edge, 5.0);
-	remove_negative_curvatures = True;
-	curvature_profile = calculate_curvature_profile(centre_curv_points, 
-													curv_points1, 
-													curv_points2, 
-													remove_negative_curvatures);
-	
-	curvature_images_stack = ImageStack(w, h);
-	curvature_stack = show_curvature_overlay(imp, 
-										  membrane_channel, 
-										  curvature_profile, 
-										  curvature_images_stack, 
-										  False);
-	curvature_stack = show_curvature_overlay(imp, membrane_channel, curvature_profile, curvature_images_stack, False);
-	stack_imp = ImagePlus("Curvature stack", curvature_stack);
-	stack_imp.show();
-	
-	# generate actin-channel line profile - assume 2-channel image...
-	actin_channel = (membrane_channel + 1) % c;
-	actin_channel_imp = split_channels[actin_channel-1];
-	actin_profile = maximum_line_profile(actin_channel_imp, membrane_edge, 3);
+		#	identify which side of the segmented roi to use and perform interpolation/smoothing:
+		membrane_edge = get_membrane_edge(roi, fixed_anchors, fixed_midpoint);
+		imp.setRoi(membrane_edge);
+		imp.show();
+		IJ.run(imp, "Interpolate", "interval=0.5 smooth");
+		IJ.run(imp, "Fit Spline", "");
+		membrane_edge = imp.getRoi();
+		
+		# generate curvature - this needs to be looped over slices
+		curv_points1, centre_curv_points, curv_points2 = generate_l_spaced_points(membrane_edge, 5.0);
+		remove_negative_curvatures = True;
+		curvature_profile = calculate_curvature_profile(centre_curv_points, 
+														curv_points1, 
+														curv_points2, 
+														remove_negative_curvatures);		
+		curvature_stack = show_curvature_overlay(imp, 
+											  membrane_channel,
+											  fridx+1, 
+											  curvature_profile, 
+											  curvature_stack, 
+											  False);
+		
+		#curvature_stack_imp.show();
+		# generate actin-channel line profile - assume 2-channel image...
+		actin_channel = (membrane_channel + 1) % n_channels;
+		actin_channel_imp = split_channels[actin_channel-1];
+		actin_profiles.append(maximum_line_profile(actin_channel_imp, membrane_edge, 3));
 	
 	# output colormapped images and kymographs 
-	FileSaver(stack_imp).saveAsTiffStack(os.path.join(output_folder, "curvature_stack.tif"));
+	curvature_stack_imp = ImagePlus("Curvature stack", curvature_stack);
+	curvature_stack_imp.show();
+	FileSaver(curvature_stack_imp).saveAsTiffStack(os.path.join(output_folder, "curvature_stack.tif"));
+	FileSaver(membrane_channel_imp).saveAsTiffStack(os.path.join(output_folder, "binary_membrane_stack.tif"));
 
 # It's best practice to create a function that contains the code that is executed when running the script.
 # This enables us to stop the script by just calling return.
