@@ -273,7 +273,7 @@ def main():
 	#	w = imp.width;
 
 	# binarise/segment
-	anchor = prompt_for_points(imp, 
+	anchors = prompt_for_points(imp, 
 						"Select channel + extrema", 
 						"Select the membrane-label channel, and position \n" + 
 						"exactly TWO points at extremes of membrane", 
@@ -299,11 +299,11 @@ def main():
 	# 	fix anchors:
 	IJ.run(membrane_channel_imp, "Create Selection", "");
 	roi = membrane_channel_imp.getRoi();
-	anchors = fix_anchors_to_membrane(anchor, roi);
+	fixed_anchors = fix_anchors_to_membrane(anchors, roi);
 	midpoint = fix_anchors_to_membrane(midpoint, roi);
 
 	#	identify which side of the segmented roi to use and perform interpolation/smoothing:
-	membrane_edge = get_membrane_edge(roi, anchors, midpoint);
+	membrane_edge = get_membrane_edge(roi, fixed_anchors, midpoint);
 	imp.setRoi(membrane_edge);
 	imp.show();
 	IJ.run(imp, "Interpolate", "interval=0.5 smooth");
