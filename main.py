@@ -155,11 +155,12 @@ def calculate_curvature_profile(centre_curv_points, curv_points1, curv_points2, 
 	return curvature_profile;
 
 # display curvature colormap overlaid on membrane image
-def show_curvature_overlay(imp, membrane_channel, curvature_profile): 
+def show_curvature_overlay(imp, membrane_channel, curvature_profile, stack, show_image): 
 	slice_index = imp.getStackIndex(membrane_channel, 1, 1);
 	ip = imp.getStack().getProcessor(slice_index).convertToRGB();
 	overlay_base_imp = ImagePlus("Curvature base", ip);
-	overlay_base_imp.show();
+	if show_image:
+		overlay_base_imp.show();
 
 	overlay = IJ.createImage("Curvature", "16-bit", imp.width, imp.height, 1);
 	IJ.run(overlay, "Rainbow RGB", "");
@@ -173,7 +174,8 @@ def show_curvature_overlay(imp, membrane_channel, curvature_profile):
 	for ((x, y), c) in curvature_profile:
 		if (c > 0):
 			base_pix[y * imp.width + x] = pix[y * imp.width + x];
-
+	stack.addSlice(overlay_base_imp.getProcessor());
+	return stack;
 
 # breakout file chooser UI to enable faster debug
 def file_location_chooser(default_directory):
@@ -212,9 +214,9 @@ def main():
 	stack = imp.getStack();
 	
 	## prepare output folders
-	#timestamp = datetime.strftime(datetime.now(), '%Y-%m-%d %H-%M-%S');
-	#output_folder = os.path.join(output_root, (timestamp + ' output'));
-	#os.mkdir(output_folder);
+	timestamp = datetime.strftime(datetime.now(), '%Y-%m-%d %H-%M-%S');
+	output_folder = os.path.join(output_root, (timestamp + ' output'));
+	os.mkdir(output_folder);
 	
 	# handle zooming to reasonable size, assuming reasonable screen resolution...
 	h = imp.height;
@@ -282,17 +284,23 @@ def main():
 													curv_points2, 
 													remove_negative_curvatures);
 	
-	show_curvature_overlay(imp, membrane_channel, curvature_profile);
+	curvature_images_stack = ImageStack(w, h);
+	curvature_stack = show_curvature_overlay(imp, 
+										  membrane_channel, 
+										  curvature_profile, 
+										  curvature_images_stack, 
+										  False);
+	curvature_stack = show_curvature_overlay(imp, membrane_channel, curvature_profile, curvature_images_stack, False);
+	stack_imp = ImagePlus("Curvature stack", curvature_stack);
+	stack_imp.show();
 	
-
-
-	#curvature_roi = PolygonRoi([x for ((x, y), c) in curvature_profile], 
-								#[y for ((x, y), c) in curvature_profile], 
-								#Roi.POLYLINE);
-	#overlay.setRoi(curvature_roi);
+	# generate actin-channel line profile - assume 2-channel image...
+	actin_channel = (membrane_channel + 1) % c;
+	actin_channel_imp = split_channels[actin_channel-1];
+	actin_profile = maximum_line_profile(actin_channel_imp, membrane_edge, 3);
 	
 	# output colormapped images and kymographs 
-
+	FileSaver(stack_imp).saveAsTiffStack(os.path.join(output_folder, "curvature_stack.tif"));
 
 # It's best practice to create a function that contains the code that is executed when running the script.
 # This enables us to stop the script by just calling return.
