@@ -92,7 +92,8 @@ def maximum_line_profile(imp, roi, pixel_width):
 	for x in range(0, width):
 		pix = ip.getLine(x, 0, x, height);
 		max_profile.append(max(pix));
-	print("Length of maximum profile = " + str(len(max_profile)));
+	#print("Length of maximum profile = " + str(len(max_profile)));
+ # debug
 	return max_profile;
 
 # generate arrays of points along the membrane that are separated by path length l - currently in pixels
@@ -161,29 +162,35 @@ def calculate_curvature_profile(centre_curv_points, curv_points1, curv_points2, 
 		curvature_profile.append((cp, curv));
 	return curvature_profile;
 
-# display curvature colormap overlaid on membrane image
-def show_curvature_overlay(imp, membrane_channel, frame_number, curvature_profile, stack, show_image): 
-	slice_index = imp.getStackIndex(membrane_channel, 1, frame_number);
-	ip = imp.getStack().getProcessor(slice_index).convertToRGB();
-	overlay_base_imp = ImagePlus("Curvature base", ip);
-	if show_image:
-		overlay_base_imp.show();
+# overlay curvature pixels on membrane image
+def overlay_curvatures(imp, curvature_stack, curvature_profiles, membrane_channel, limits):
+	overlay_base_imp = imp.clone();
+	overlay_imp = ImagePlus("Curvature stack", curvature_stack);
+	IJ.run(overlay_imp, "Orange Hot", "");
+	IJ.setMinAndMax(overlay_imp, int(limits[0]), int(limits[1]));
+	IJ.run(overlay_imp, "RGB Color", "");
+	overlaid_stack = ImageStack(overlay_imp.width, overlay_imp.height);
+	for fridx in range(1, curvature_stack.getSize()+1):
+		raw_idx = overlay_base_imp.getStackIndex(membrane_channel, 1, fridx);
+		ip = overlay_base_imp.getStack().getProcessor(raw_idx).convertToRGB();
+		pix = overlay_imp.getStack().getProcessor(fridx).getPixels();
+		base_pix = ip.getPixels();
+		for ((x, y), c) in curvature_profiles[fridx-1]:
+			if (c > 0):
+				base_pix[y * imp.width + x] = pix[y * imp.width + x];
+		overlaid_stack.addSlice(ip);
+	return ImagePlus("Overlaid curvatures", overlaid_stack);
 
-	overlay = IJ.createImage("Curvature", "16-bit", imp.width, imp.height, 1);
-	IJ.run(overlay, "Rainbow RGB", "");
+# generate overlays to display curvature
+def generate_curvature_overlays(curvature_profile, curvature_stack): 
+	w = curvature_stack.getWidth();
+	overlay = IJ.createImage("Curvature", "16-bit", w, curvature_stack.getHeight(), 1);
 	pix = overlay.getProcessor().getPixels();
 	mx = max([c for ((x, y), c) in curvature_profile]);
 	for ((x, y), c) in curvature_profile:
-		pix[y * imp.width + x] = int( c * (pow(2, 15) - 1)/mx );
-	IJ.run(overlay, "RGB Color", "");
-	pix = overlay.getProcessor().getPixels();
-	base_pix = overlay_base_imp.getProcessor().getPixels();
-	for ((x, y), c) in curvature_profile:
-		if (c > 0):
-			base_pix[y * imp.width + x] = pix[y * imp.width + x];
-	stack.addSlice(overlay_base_imp.getProcessor());
-	print(stack.getSize());
-	return stack;
+		pix[y * w + x] = int(1000 * c);
+	curvature_stack.addSlice(overlay.getProcessor());
+	return curvature_stack;
 
 # breakout file chooser UI to enable faster debug
 def file_location_chooser(default_directory):
@@ -272,6 +279,8 @@ def main():
 	# generate edge - this needs to be looped over slices
 	curvature_stack = ImageStack(w, h);
 	actin_profiles = [];
+	curvature_profiles = [];
+	curv_limits = (10E4, 0);
 	for fridx in range(0, n_frames):
 		imp.setPosition(membrane_channel, 1, fridx+1);
 		membrane_channel_imp.setPosition(fridx+1);
@@ -292,25 +301,22 @@ def main():
 		# generate curvature - this needs to be looped over slices
 		curv_points1, centre_curv_points, curv_points2 = generate_l_spaced_points(membrane_edge, 5.0);
 		remove_negative_curvatures = True;
-		curvature_profile = calculate_curvature_profile(centre_curv_points, 
+		curvature_profiles.append(calculate_curvature_profile(centre_curv_points, 
 														curv_points1, 
 														curv_points2, 
-														remove_negative_curvatures);		
-		curvature_stack = show_curvature_overlay(imp, 
-											  membrane_channel,
-											  fridx+1, 
-											  curvature_profile, 
-											  curvature_stack, 
-											  False);
+														remove_negative_curvatures));
+		curv_limits = (min(curv_limits[0], min([c[1] for c in curvature_profiles[-1]])), 
+						max(curv_limits[1], max([c[1] for c in curvature_profiles[-1]])));
+		curvature_stack = generate_curvature_overlays(curvature_profiles[-1], curvature_stack)
 		
-		#curvature_stack_imp.show();
 		# generate actin-channel line profile - assume 2-channel image...
 		actin_channel = (membrane_channel + 1) % n_channels;
 		actin_channel_imp = split_channels[actin_channel-1];
 		actin_profiles.append(maximum_line_profile(actin_channel_imp, membrane_edge, 3));
 	
 	# output colormapped images and kymographs 
-	curvature_stack_imp = ImagePlus("Curvature stack", curvature_stack);
+	print(curv_limits);
+	curvature_stack_imp = overlay_curvatures(imp, curvature_stack, curvature_profiles, membrane_channel, curv_limits);	
 	curvature_stack_imp.show();
 	FileSaver(curvature_stack_imp).saveAsTiffStack(os.path.join(output_folder, "curvature_stack.tif"));
 	FileSaver(membrane_channel_imp).saveAsTiffStack(os.path.join(output_folder, "binary_membrane_stack.tif"));
