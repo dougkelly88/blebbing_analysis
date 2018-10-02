@@ -19,6 +19,7 @@ from ij.gui import Roi, PointRoi, PolygonRoi, GenericDialog, WaitForUserDialog, 
 from ij.io import OpenDialog, DirectoryChooser, FileSaver
 from ij.plugin import ChannelSplitter, Straightener
 from ij.process import FloatPolygon
+from ij.plugin.filter import ParticleAnalyzer
 from loci.plugins import BF as bf
 
 
