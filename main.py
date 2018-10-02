@@ -59,6 +59,29 @@ def fix_anchors_to_membrane(anchors_list, membrane_roi):
 		raise ValueError('degeneracy between anchor points!');
 	return list(fixed_anchors_set);
 
+# remove all blobs other than the largest by area
+def keep_largest_blob(imp):
+	rt = ResultsTable();
+	mxsz = imp.width * imp.height;
+	#pa = ParticleAnalyzer(ParticleAnalyzer.ADD_TO_MANAGER | ParticleAnalyzer.DOES_STACKS, ParticleAnalyzer.AREA | ParticleAnalyzer.SLICE, rt, 0, mx);
+	pa = ParticleAnalyzer(ParticleAnalyzer.ADD_TO_MANAGER, ParticleAnalyzer.AREA | ParticleAnalyzer.SLICE, rt, 0, mxsz);
+
+	roim = RoiManager();
+	for idx in range(1, imp.getImageStackSize()+1):
+		roim.reset();
+		rt.reset();
+		imp.setPosition(idx);
+		pa.analyze(imp);
+		#rt_slices = [int(r) for r in rt.getColumn(rt.getColumnIndex("Slice")).tolist()]
+		rt_areas = rt.getColumn(rt.getColumnIndex("Area")).tolist();
+		#rois = roim.getRoisAsArray().tolist();
+		mx_ind = rt_areas.index(max(rt_areas))
+		indices_to_remove = [a for a in range(0,len(rt_areas)) if a != mx_ind]
+		print(indices_to_remove);
+		for rem_idx in indices_to_remove:
+			roim.select(imp, rem_idx);
+			roim.runCommand(imp, "Fill");
+	roim.close();
 # figure out which edge of the roi is the membrane, since IJ might start the roi
 # from anywhere along the perimeter w.r.t. the user defined anchors
 def get_membrane_edge(roi, fixed_anchors, fixed_midpoint):
@@ -285,6 +308,7 @@ def main():
 	IJ.run(membrane_channel_imp, "Fill Holes", "stack");
 	IJ.run(membrane_channel_imp, "Open", "stack");
 	IJ.run(membrane_channel_imp, "Close-", "stack");
+	keep_largest_blob(membrane_channel_imp);
 	
 	# generate edge - this needs to be looped over slices
 	curvature_stack = ImageStack(w, h);
