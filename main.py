@@ -5,7 +5,7 @@
 # D.J. Kelly, 2018-09-26, douglas.kelly@riken.jp
 
 # python (jython) imports
-import os, sys, math
+import os, sys, math, csv
 from datetime import datetime
 
 # java imports - aim to have UI components entirely swing, listeners and layouts awt
@@ -192,6 +192,16 @@ def generate_curvature_overlays(curvature_profile, curvature_stack):
 	curvature_stack.addSlice(overlay.getProcessor());
 	return curvature_stack;
 
+# save curvature
+def save_curvature_as_csv(curvature_profiles, file_path):
+	f = open(file_path, 'wb');
+	writer = csv.writer(f);
+	writer.writerow(['Frame', 'x', 'y', 'curvature']);
+	for idx, curvature_profile in enumerate(curvature_profiles):
+		for ((x, y), c) in curvature_profile:
+			writer.writerow([idx, x, y, c]);
+	f.close();
+
 # breakout file chooser UI to enable faster debug
 def file_location_chooser(default_directory):
 	# input
@@ -315,10 +325,10 @@ def main():
 		actin_profiles.append(maximum_line_profile(actin_channel_imp, membrane_edge, 3));
 	
 	# output colormapped images and kymographs 
-	print(curv_limits);
 	curvature_stack_imp = overlay_curvatures(imp, curvature_stack, curvature_profiles, membrane_channel, curv_limits);	
 	curvature_stack_imp.show();
 	FileSaver(curvature_stack_imp).saveAsTiffStack(os.path.join(output_folder, "curvature_stack.tif"));
+	save_curvature_as_csv(curvature_profiles, os.path.join(output_folder, "curvatures.csv"))
 	FileSaver(membrane_channel_imp).saveAsTiffStack(os.path.join(output_folder, "binary_membrane_stack.tif"));
 
 # It's best practice to create a function that contains the code that is executed when running the script.
