@@ -15,11 +15,13 @@ import javax.swing.table.TableModel
 
 # imagej imports
 from ij import IJ, WindowManager, ImagePlus, ImageStack
-from ij.gui import Roi, PointRoi, PolygonRoi, GenericDialog, WaitForUserDialog, ProfilePlot
+from ij.gui import Roi, PointRoi, PolygonRoi, GenericDialog, WaitForUserDialog
 from ij.io import OpenDialog, DirectoryChooser, FileSaver
 from ij.plugin import ChannelSplitter, Straightener
 from ij.process import FloatPolygon
 from ij.plugin.filter import ParticleAnalyzer
+from ij.plugin.frame import RoiManager
+from ij.measure import ResultsTable
 from loci.plugins import BF as bf
 
 
