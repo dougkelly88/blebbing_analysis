@@ -330,6 +330,7 @@ def main():
 	FileSaver(curvature_stack_imp).saveAsTiffStack(os.path.join(output_folder, "curvature_stack.tif"));
 	save_curvature_as_csv(curvature_profiles, os.path.join(output_folder, "curvatures.csv"))
 	FileSaver(membrane_channel_imp).saveAsTiffStack(os.path.join(output_folder, "binary_membrane_stack.tif"));
+	IJ.setTool("zoom");
 
 # It's best practice to create a function that contains the code that is executed when running the script.
 # This enables us to stop the script by just calling return.
