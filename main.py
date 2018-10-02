@@ -85,6 +85,17 @@ def keep_largest_blob(imp):
 			roim.select(imp, rem_idx);
 			roim.runCommand(imp, "Fill");
 	roim.close();
+
+# return angle between two lines
+def angle_between_vecs(u_start, u_end, v_start, v_end):
+    u = (u_end[0] - u_start[0], u_end[1] - u_start[1]);
+    v = (v_end[0] - v_start[0], v_end[1] - v_start[1]);
+    return math.atan2(v[1], v[0]) - math.atan2(u[1], u[0]);
+
+# return vector length
+def vector_length(start, end):
+	return math.sqrt(math.pow((start[0] - end[0]),2) + math.pow((start[1] - end[1]),2));
+
 # figure out which edge of the roi is the membrane, since IJ might start the roi
 # from anywhere along the perimeter w.r.t. the user defined anchors
 def get_membrane_edge(roi, fixed_anchors, fixed_midpoint):
@@ -103,11 +114,20 @@ def get_membrane_edge(roi, fixed_anchors, fixed_midpoint):
 			e1.addPoint(x, y);
 		else:
 			e2.addPoint(x, y);
-	if e1.contains(fixed_midpoint[0][0], fixed_midpoint[0][1]):
-		return PolygonRoi(e1, Roi.POLYLINE);
+	anchors_midpoint = (fixed_anchors[1][0] - fixed_anchors[0][0], 
+						fixed_anchors[1][1] - fixed_anchors[0][1]);
+	e1_mean = (sum(e1.xpoints)/e1.npoints, sum(e1.ypoints)/e1.npoints);
+	e2_mean = (sum(e2.xpoints)/e2.npoints, sum(e2.ypoints)/e2.npoints);
+	theta_e1 = angle_between_vecs(fixed_anchors[0], fixed_anchors[1], fixed_anchors[0], e1_mean);
+	theta_e2 = angle_between_vecs(fixed_anchors[0], fixed_anchors[1], fixed_anchors[0], e2_mean);
+	sign = lambda x: (1, -1)[x < 0]
+	if sign(theta_e1) is not sign(theta_e2):
+		theta_midpoint = angle_between_vecs(fixed_anchors[0], fixed_anchors[1], fixed_anchors[0], fixed_midpoint);
+		use_edge = (e1, e2)[sign(theta_midpoint) == sign(theta_e2)];
 	else:
-		return PolygonRoi(e2, Roi.POLYLINE);
-
+		use_edge = (e1, e2)[vector_length(anchors_midpoint, e1_mean) < vector_length(anchors_midpoint, e2_mean)]
+	return 	PolygonRoi(use_edge, Roi.POLYLINE);
+	
 # return a line profile taking the maximum value over n pixels perpendicular to roi line
 def maximum_line_profile(imp, roi, pixel_width):
 	imp.setRoi(roi);
@@ -326,6 +346,7 @@ def main():
 		roi = membrane_channel_imp.getRoi();
 		fixed_anchors = fix_anchors_to_membrane(anchors, roi);
 		fixed_midpoint = fix_anchors_to_membrane(midpoint, roi);
+		fixed_midpoint = (midpoint[0].x, midpoint[0].y);
 
 		#	identify which side of the segmented roi to use and perform interpolation/smoothing:
 		membrane_edge = get_membrane_edge(roi, fixed_anchors, fixed_midpoint);
