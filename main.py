@@ -107,15 +107,7 @@ def get_membrane_edge(roi, fixed_anchors, fixed_midpoint):
 	e2 = FloatPolygon();
 	term_index_1 = [(x, y) for x, y in zip(poly.xpoints,poly.ypoints)].index( fixed_anchors[0]);
 	term_index_2 = [(x, y) for x, y in zip(poly.xpoints,poly.ypoints)].index( fixed_anchors[1]);
-	print(term_index_1);
-	print((poly.xpoints[term_index_1], poly.ypoints[term_index_1]));
-	print(term_index_2);
-	print((poly.xpoints[term_index_2], poly.ypoints[term_index_2]));
-	#gd = GenericDialog("Continue?");
-	#gd.showDialog();
-	#if (gd.wasCanceled()):
-	#	raise ValueError('stop!');
-
+	
 	for idx in range(min(term_index_1, term_index_2), max(term_index_1, term_index_2)+1):
 		e1.addPoint(poly.xpoints[idx], poly.ypoints[idx]);
 	for idx in range(max(term_index_1, term_index_2), poly.npoints + min(term_index_1, term_index_2) + 1):
@@ -125,43 +117,15 @@ def get_membrane_edge(roi, fixed_anchors, fixed_midpoint):
 						fixed_anchors[1][1] - fixed_anchors[0][1]);
 	e1_mean = (sum(e1.xpoints)/e1.npoints, sum(e1.ypoints)/e1.npoints);
 	e2_mean = (sum(e2.xpoints)/e2.npoints, sum(e2.ypoints)/e2.npoints);
-	# debug 
-	ip = IJ.getImage().getProcessor();
-	e1poly = FloatPolygon();
-	e1poly.addPoint(fixed_anchors[0][0], fixed_anchors[0][1])
-	e1poly.addPoint(e1_mean[0], e1_mean[1])
-	e1roi = PolygonRoi(e1poly, Roi.POLYLINE);
-	ip.setColor(Color.WHITE);
-	e1roi.drawPixels(ip);
-	#WaitForUserDialog("pause").show();
-	#
-	e2poly = FloatPolygon();
-	e2poly.addPoint(fixed_anchors[0][0], fixed_anchors[0][1])
-	e2poly.addPoint(e2_mean[0], e2_mean[1])
-	e2roi = PolygonRoi(e2poly, Roi.POLYLINE);
-	ip.setColor(Color.BLACK);
-	e2roi.drawPixels(ip);
-	IJ.getImage().updateAndDraw();
-	#WaitForUserDialog("pause").show();
+	
 	theta_e1 = angle_between_vecs(fixed_anchors[0], fixed_anchors[1], fixed_anchors[0], e1_mean);
-	print("Theta anchorline-mean of e1, theta_e1 = " + str(180*theta_e1/math.pi));
 	theta_e2 = angle_between_vecs(fixed_anchors[0], fixed_anchors[1], fixed_anchors[0], e2_mean);
-	print("Theta anchorline-mean of e2, theta_e2 = " + str(180*theta_e2/math.pi));
 	sign = lambda x: (1, -1)[x < 0]
 	if sign(theta_e1) is not sign(theta_e2):
 		theta_midpoint = angle_between_vecs(fixed_anchors[0], fixed_anchors[1], fixed_anchors[0], fixed_midpoint);
-		print("Theta anchorline-manual midpoint, theta_midpoint = " + str(180*theta_midpoint/math.pi));
 		use_edge = (e1, e2)[sign(theta_midpoint) == sign(theta_e2)];
 	else:
-		print("length anchor line - e1 mean = " + str(vector_length(anchors_midpoint, e1_mean)));
-		print("length anchor line - e2 mean = " + str(vector_length(anchors_midpoint, e2_mean)));
 		use_edge = (e1, e2)[vector_length(anchors_midpoint, e1_mean) < vector_length(anchors_midpoint, e2_mean)]
-	print("use e1? " + str(e1 == use_edge));
-	print("use e2? " + str(e2 == use_edge));
-	gd = GenericDialog("Continue?");
-	gd.showDialog();
-	if (gd.wasCanceled()):
-		raise ValueError('stop!');
 	return 	PolygonRoi(use_edge, Roi.POLYLINE);
 	
 # return a line profile taking the maximum value over n pixels perpendicular to roi line
@@ -174,8 +138,6 @@ def maximum_line_profile(imp, roi, pixel_width):
 	for x in range(0, width):
 		pix = ip.getLine(x, 0, x, height);
 		max_profile.append(max(pix));
-	#print("Length of maximum profile = " + str(len(max_profile)));
- # debug
 	return max_profile;
 
 # generate arrays of points along the membrane that are separated by path length l - currently in pixels
@@ -351,9 +313,6 @@ def main():
 						"Select the membrane-label channel, and position \n" + 
 						"exactly TWO points at extremes of membrane", 
 						2);
-	print("user anchors = ");
-	print(anchors);
-
 	midpoint = prompt_for_points(imp, 
 								"Choose midpoint", 
 								"Now select a point halfway between the extremes, along the membrane", 
@@ -383,12 +342,7 @@ def main():
 		IJ.run(membrane_channel_imp, "Create Selection", "");
 		roi = membrane_channel_imp.getRoi();
 		fixed_anchors = fix_anchors_to_membrane(anchors, roi);
-		print("Fixed anchors for frame " + str(fridx) +": ");
-		print(fixed_anchors);
-		fixed_midpoint = fix_anchors_to_membrane(midpoint, roi);
 		fixed_midpoint = (midpoint[0].x, midpoint[0].y);
-		print("Fixed midpoint: ");
-		print(fixed_midpoint);
 
 		#	identify which side of the segmented roi to use and perform interpolation/smoothing:
 		membrane_edge = get_membrane_edge(roi, fixed_anchors, fixed_midpoint);
