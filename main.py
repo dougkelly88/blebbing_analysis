@@ -69,7 +69,6 @@ def fix_anchors_to_membrane(anchors_list, membrane_roi):
 def keep_largest_blob(imp):
 	rt = ResultsTable();
 	mxsz = imp.width * imp.height;
-	#pa = ParticleAnalyzer(ParticleAnalyzer.ADD_TO_MANAGER | ParticleAnalyzer.DOES_STACKS, ParticleAnalyzer.AREA | ParticleAnalyzer.SLICE, rt, 0, mx);
 	pa = ParticleAnalyzer(ParticleAnalyzer.ADD_TO_MANAGER, ParticleAnalyzer.AREA | ParticleAnalyzer.SLICE, rt, 0, mxsz);
 
 	roim = RoiManager();
@@ -78,15 +77,13 @@ def keep_largest_blob(imp):
 		rt.reset();
 		imp.setPosition(idx);
 		pa.analyze(imp);
-		#rt_slices = [int(r) for r in rt.getColumn(rt.getColumnIndex("Slice")).tolist()]
 		rt_areas = rt.getColumn(rt.getColumnIndex("Area")).tolist();
-		#rois = roim.getRoisAsArray().tolist();
 		mx_ind = rt_areas.index(max(rt_areas))
 		indices_to_remove = [a for a in range(0,len(rt_areas)) if a != mx_ind]
-		print(indices_to_remove);
 		for rem_idx in indices_to_remove:
 			roim.select(imp, rem_idx);
 			roim.runCommand(imp, "Fill");
+	roim.reset();
 	roim.close();
 
 # return angle between two lines
