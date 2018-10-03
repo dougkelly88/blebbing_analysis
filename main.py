@@ -40,6 +40,7 @@ def prompt_for_points(imp, title, message, n_points):
 			selected_points = len(roi.getContainedPoints());
 		if ((roi is None) or (selected_points != n_points)):
 			WaitForUserDialog("Error!", "Wrong number of points selected! Please try again...").show();
+			imp.killRoi();
 	return roi.getContainedPoints();
 
 # move user-defined anchor points onto automatically-segmented membrane
