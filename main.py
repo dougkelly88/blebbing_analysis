@@ -9,7 +9,7 @@ import os, sys, math, csv
 from datetime import datetime
 
 # java imports - aim to have UI components entirely swing, listeners and layouts awt
-from java.awt import Dimension, GridBagLayout, GridBagConstraints, GridLayout
+from java.awt import Dimension, GridBagLayout, GridBagConstraints, GridLayout, Color
 import javax.swing as swing
 import javax.swing.table.TableModel
 
@@ -60,7 +60,9 @@ def fix_anchors_to_membrane(anchors_list, membrane_roi):
 		fixed_anchors_set.add(fixed_anchor);
 	if (len(fixed_anchors_set) < (anchor_idx+1)):
 		raise ValueError('degeneracy between anchor points!');
-	return list(fixed_anchors_set);
+	sortlist = list(fixed_anchors_set);
+	vec_ls = [vector_length((0, IJ.getImage().height), v) for v in sortlist];
+	return [sortlist[vec_ls.index(min(vec_ls))], sortlist[vec_ls.index(max(vec_ls))]]
 
 # remove all blobs other than the largest by area
 def keep_largest_blob(imp):
@@ -103,29 +105,63 @@ def get_membrane_edge(roi, fixed_anchors, fixed_midpoint):
 	started = False;
 	e1 = FloatPolygon();
 	e2 = FloatPolygon();
-	for idx,(x,y) in enumerate(zip(poly.xpoints,poly.ypoints)):
-		if (((x, y) == (fixed_anchors[0])) or ((x, y) == fixed_anchors[1])) and not started:
-			e2.addPoint(x, y);
-			started = True;
-		elif (((x, y) == (fixed_anchors[0])) or ((x, y) == fixed_anchors[1])) and started:
-			e1.addPoint(x, y);
-			started = False;
-		if started:
-			e1.addPoint(x, y);
-		else:
-			e2.addPoint(x, y);
+	term_index_1 = [(x, y) for x, y in zip(poly.xpoints,poly.ypoints)].index( fixed_anchors[0]);
+	term_index_2 = [(x, y) for x, y in zip(poly.xpoints,poly.ypoints)].index( fixed_anchors[1]);
+	print(term_index_1);
+	print((poly.xpoints[term_index_1], poly.ypoints[term_index_1]));
+	print(term_index_2);
+	print((poly.xpoints[term_index_2], poly.ypoints[term_index_2]));
+	#gd = GenericDialog("Continue?");
+	#gd.showDialog();
+	#if (gd.wasCanceled()):
+	#	raise ValueError('stop!');
+
+	for idx in range(min(term_index_1, term_index_2), max(term_index_1, term_index_2)+1):
+		e1.addPoint(poly.xpoints[idx], poly.ypoints[idx]);
+	for idx in range(max(term_index_1, term_index_2), poly.npoints + min(term_index_1, term_index_2) + 1):
+		e2.addPoint(poly.xpoints[idx % (poly.npoints)], poly.ypoints[idx % (poly.npoints)]);
+
 	anchors_midpoint = (fixed_anchors[1][0] - fixed_anchors[0][0], 
 						fixed_anchors[1][1] - fixed_anchors[0][1]);
 	e1_mean = (sum(e1.xpoints)/e1.npoints, sum(e1.ypoints)/e1.npoints);
 	e2_mean = (sum(e2.xpoints)/e2.npoints, sum(e2.ypoints)/e2.npoints);
+	# debug 
+	ip = IJ.getImage().getProcessor();
+	e1poly = FloatPolygon();
+	e1poly.addPoint(fixed_anchors[0][0], fixed_anchors[0][1])
+	e1poly.addPoint(e1_mean[0], e1_mean[1])
+	e1roi = PolygonRoi(e1poly, Roi.POLYLINE);
+	ip.setColor(Color.WHITE);
+	e1roi.drawPixels(ip);
+	#WaitForUserDialog("pause").show();
+	#
+	e2poly = FloatPolygon();
+	e2poly.addPoint(fixed_anchors[0][0], fixed_anchors[0][1])
+	e2poly.addPoint(e2_mean[0], e2_mean[1])
+	e2roi = PolygonRoi(e2poly, Roi.POLYLINE);
+	ip.setColor(Color.BLACK);
+	e2roi.drawPixels(ip);
+	IJ.getImage().updateAndDraw();
+	#WaitForUserDialog("pause").show();
 	theta_e1 = angle_between_vecs(fixed_anchors[0], fixed_anchors[1], fixed_anchors[0], e1_mean);
+	print("Theta anchorline-mean of e1, theta_e1 = " + str(180*theta_e1/math.pi));
 	theta_e2 = angle_between_vecs(fixed_anchors[0], fixed_anchors[1], fixed_anchors[0], e2_mean);
+	print("Theta anchorline-mean of e2, theta_e2 = " + str(180*theta_e2/math.pi));
 	sign = lambda x: (1, -1)[x < 0]
 	if sign(theta_e1) is not sign(theta_e2):
 		theta_midpoint = angle_between_vecs(fixed_anchors[0], fixed_anchors[1], fixed_anchors[0], fixed_midpoint);
+		print("Theta anchorline-manual midpoint, theta_midpoint = " + str(180*theta_midpoint/math.pi));
 		use_edge = (e1, e2)[sign(theta_midpoint) == sign(theta_e2)];
 	else:
+		print("length anchor line - e1 mean = " + str(vector_length(anchors_midpoint, e1_mean)));
+		print("length anchor line - e2 mean = " + str(vector_length(anchors_midpoint, e2_mean)));
 		use_edge = (e1, e2)[vector_length(anchors_midpoint, e1_mean) < vector_length(anchors_midpoint, e2_mean)]
+	print("use e1? " + str(e1 == use_edge));
+	print("use e2? " + str(e2 == use_edge));
+	gd = GenericDialog("Continue?");
+	gd.showDialog();
+	if (gd.wasCanceled()):
+		raise ValueError('stop!');
 	return 	PolygonRoi(use_edge, Roi.POLYLINE);
 	
 # return a line profile taking the maximum value over n pixels perpendicular to roi line
@@ -315,6 +351,8 @@ def main():
 						"Select the membrane-label channel, and position \n" + 
 						"exactly TWO points at extremes of membrane", 
 						2);
+	print("user anchors = ");
+	print(anchors);
 
 	midpoint = prompt_for_points(imp, 
 								"Choose midpoint", 
@@ -345,8 +383,12 @@ def main():
 		IJ.run(membrane_channel_imp, "Create Selection", "");
 		roi = membrane_channel_imp.getRoi();
 		fixed_anchors = fix_anchors_to_membrane(anchors, roi);
+		print("Fixed anchors for frame " + str(fridx) +": ");
+		print(fixed_anchors);
 		fixed_midpoint = fix_anchors_to_membrane(midpoint, roi);
 		fixed_midpoint = (midpoint[0].x, midpoint[0].y);
+		print("Fixed midpoint: ");
+		print(fixed_midpoint);
 
 		#	identify which side of the segmented roi to use and perform interpolation/smoothing:
 		membrane_edge = get_membrane_edge(roi, fixed_anchors, fixed_midpoint);
