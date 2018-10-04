@@ -83,17 +83,11 @@ def generate_kymograph(data_to_plot, colormap_string, title_string):
 	ip = FloatProcessor(len(data_to_plot), kym_height);
 	# normalise such that point furthest from the anchors is in the middle of the kymograph
 	for idx, data in enumerate(data_to_plot):
-		print(data);
-		print("npoints curve: " + str(len(data)));
 		# TODO: make sure that actin intensity data is also in form [(x, y), val]
 		dist = [vector_length(data[0][0], p) *
 				vector_length(data[-1][0], p)
 				  for p in [d[0] for d in data]];
 		distal_idx = dist.index(max(dist));
-		#gd = GenericDialog("Continue?");
-		#gd.showDialog();
-		#if (gd.wasCanceled()):
-		#	raise ValueError('stop!');
 		pix = ip.getPixels();
 		for kidx, didx in zip(range(((kym_height - 1)/2 + 1), ((kym_height - 1)/2 + 1) + len(data) - distal_idx), 
 						range(distal_idx, len(data))):
