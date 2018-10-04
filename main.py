@@ -271,13 +271,13 @@ def generate_curvature_overlays(curvature_profile, curvature_stack):
 	return curvature_stack;
 
 # save curvature
-def save_curvature_as_csv(curvature_profiles, file_path):
+def save_profile_as_csv(profiles, file_path, data_name):
 	f = open(file_path, 'wb');
 	writer = csv.writer(f);
-	writer.writerow(['Frame', 'x', 'y', 'curvature']);
-	for idx, curvature_profile in enumerate(curvature_profiles):
-		for ((x, y), c) in curvature_profile:
-			writer.writerow([idx, x, y, c]);
+	writer.writerow(['Frame', 'x', 'y', data_name]);
+	for idx, profile in enumerate(profiles):
+		for ((x, y), p) in profile:
+			writer.writerow([idx, x, y, p]);
 	f.close();
 
 # save parameters used for this analysis
@@ -424,7 +424,8 @@ def main():
 	overlaid_curvature_imp.show();
 	FileSaver(overlaid_curvature_imp).saveAsTiffStack(os.path.join(output_folder, "overlaid curvature.tif"));
 	FileSaver(raw_curvature_imp).saveAsTiffStack(os.path.join(output_folder, "raw curvature.tif"));
-	save_curvature_as_csv(curvature_profiles, os.path.join(output_folder, "curvatures.csv"))
+	save_profile_as_csv(curvature_profiles, os.path.join(output_folder, "curvatures.csv"), "curvature")
+	save_profile_as_csv(actin_profiles, os.path.join(output_folder, "actin intensities.csv"), "actin intensity")
 	FileSaver(membrane_channel_imp).saveAsTiffStack(os.path.join(output_folder, "binary_membrane_stack.tif"));
 	save_parameters(params, os.path.join(output_folder, "parameters used.json"));
 	
