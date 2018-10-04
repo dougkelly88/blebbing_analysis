@@ -83,7 +83,6 @@ def generate_kymograph(data_to_plot, colormap_string, title_string):
 	ip = FloatProcessor(len(data_to_plot), kym_height);
 	# normalise such that point furthest from the anchors is in the middle of the kymograph
 	for idx, data in enumerate(data_to_plot):
-		# TODO: make sure that actin intensity data is also in form [(x, y), val]
 		dist = [vector_length(data[0][0], p) *
 				vector_length(data[-1][0], p)
 				  for p in [d[0] for d in data]];
@@ -169,9 +168,10 @@ def maximum_line_profile(imp, roi, pixel_width):
 	width = ip.getWidth();
 	height = ip.getHeight();
 	max_profile = [];
-	for x in range(0, width):
-		pix = ip.getLine(x, 0, x, height);
-		max_profile.append(max(pix));
+	poly = roi.getInterpolatedPolygon();
+	for idx,(x,y) in enumerate(zip(poly.xpoints,poly.ypoints)):
+		pix = ip.getLine(idx, 0, idx, height);
+		max_profile.append(((x, y), max(pix)));
 	return max_profile;
 
 # generate arrays of points along the membrane that are separated by path length l - currently in pixels
@@ -412,9 +412,13 @@ def main():
 		actin_profiles.append(maximum_line_profile(actin_channel_imp, membrane_edge, 3));
 	
 	# output colormapped images and kymographs 
-	norm_curv_kym = generate_kymograph(curvature_profiles, params['lut_string'], "Curvature kymograph");
-	curv_kym = generate_plain_kymograph(curvature_profiles, params['lut_string'], "Unnormalised curvature kymograph");
-	FileSaver(norm_curv_kym).saveAsTiff(os.path.join(output_folder, "normalised curvature kymograph.tif"));
+	norm_curv_kym = generate_kymograph(curvature_profiles, params['lut_string'], "Curvature kymograph - distal point at middle");
+	curv_kym = generate_plain_kymograph(curvature_profiles, params['lut_string'], "Curvature kymograph");
+	norm_actin_kym = generate_kymograph(actin_profiles, "Green", "Actin intensity - distal point at middle");
+	actin_kym = generate_plain_kymograph(actin_profiles, "Green", "Actin intensity");
+	FileSaver(actin_kym).saveAsTiff(os.path.join(output_folder, "normalised position actin kymograph.tif"));
+	FileSaver(actin_kym).saveAsTiff(os.path.join(output_folder, "raw actin kymograph.tif"));
+	FileSaver(norm_curv_kym).saveAsTiff(os.path.join(output_folder, "normalised position curvature kymograph.tif"));
 	FileSaver(curv_kym).saveAsTiff(os.path.join(output_folder, "raw curvature kymograph.tif"));
 	overlaid_curvature_imp, raw_curvature_imp = overlay_curvatures(imp, curvature_stack, curvature_profiles, membrane_channel, curv_limits, params['lut_string']);	
 	overlaid_curvature_imp.show();
