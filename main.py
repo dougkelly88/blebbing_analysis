@@ -385,7 +385,6 @@ def main():
 		IJ.run(membrane_channel_imp, "Create Selection", "");
 		roi = membrane_channel_imp.getRoi();
 		fixed_anchors = fix_anchors_to_membrane(anchors, roi);
-		# TODO: check whether updating anchors with previous iteration's fixed anchors is sensible
 		fixed_midpoint = midpoint[0];
 
 		#	identify which side of the segmented roi to use and perform interpolation/smoothing:
