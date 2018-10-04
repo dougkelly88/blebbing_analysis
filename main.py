@@ -41,7 +41,7 @@ def prompt_for_points(imp, title, message, n_points):
 		if ((roi is None) or (selected_points != n_points)):
 			WaitForUserDialog("Error!", "Wrong number of points selected! Please try again...").show();
 			imp.killRoi();
-	return roi.getContainedPoints();
+	return [(p.x, p.y) for p in roi.getContainedPoints()];
 
 # move user-defined anchor points onto automatically-segmented membrane
 # can do this more efficiently but probably not worth optimising...
@@ -54,7 +54,7 @@ def fix_anchors_to_membrane(anchors_list, membrane_roi):
 		fixed_anchor = anchor;
 		last_dsq = 100000;
 		for (x,y) in zip(outline.xpoints,outline.ypoints):
-			d2 = math.pow((x - anchor.x), 2) + math.pow((y - anchor.y), 2);
+			d2 = math.pow((x - anchor[0]), 2) + math.pow((y - anchor[1]), 2);
 			if d2 < last_dsq:
 				last_dsq = d2;
 				fixed_anchor = (x, y);
@@ -385,7 +385,8 @@ def main():
 		IJ.run(membrane_channel_imp, "Create Selection", "");
 		roi = membrane_channel_imp.getRoi();
 		fixed_anchors = fix_anchors_to_membrane(anchors, roi);
-		fixed_midpoint = (midpoint[0].x, midpoint[0].y);
+		# TODO: check whether updating anchors with previous iteration's fixed anchors is sensible
+		fixed_midpoint = midpoint[0];
 
 		#	identify which side of the segmented roi to use and perform interpolation/smoothing:
 		membrane_edge = get_membrane_edge(roi, fixed_anchors, fixed_midpoint);
