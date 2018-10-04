@@ -247,10 +247,10 @@ def calculate_curvature_profile(centre_curv_points, curv_points1, curv_points2, 
 	return curvature_profile;
 
 # overlay curvature pixels on membrane image
-def overlay_curvatures(imp, curvature_stack, curvature_profiles, membrane_channel, limits):
+def overlay_curvatures(imp, curvature_stack, curvature_profiles, membrane_channel, limits, colormap_string):
 	overlay_base_imp = imp.clone();
 	overlay_imp = ImagePlus("Curvature stack", curvature_stack);
-	IJ.run(overlay_imp, "Orange Hot", "");
+	IJ.run(overlay_imp, colormap_string, "");
 	IJ.setMinAndMax(overlay_imp, int(limits[0]), int(limits[1]));
 	IJ.run(overlay_imp, "RGB Color", "");
 	overlaid_stack = ImageStack(overlay_imp.width, overlay_imp.height);
@@ -263,7 +263,7 @@ def overlay_curvatures(imp, curvature_stack, curvature_profiles, membrane_channe
 			if (c > 0):
 				base_pix[y * imp.width + x] = pix[y * imp.width + x];
 		overlaid_stack.addSlice(ip);
-	return ImagePlus("Overlaid curvatures", overlaid_stack);
+	return ImagePlus("Overlaid curvatures", overlaid_stack), overlay_imp;
 
 # generate overlays to display curvature
 def generate_curvature_overlays(curvature_profile, curvature_stack): 
@@ -311,6 +311,8 @@ def main():
 	output_root = "D:\\data\\Inverse blebbing\\output" # debug
 	# default user params
 	lut_string = "Orange Hot";
+	curvature_length_pix = 5.0;
+	threshold_method_str = "Moments"
 
 	## prompt user for file locations
 	#default_directory = "D:\\data\\Inverse blebbing\\";
@@ -366,7 +368,7 @@ def main():
 	#membrane_channel_imp.show(); # debug
 	
 	# perform binary manipulations
-	IJ.run(membrane_channel_imp, "Make Binary", "method=Moments background=Dark calculate");
+	IJ.run(membrane_channel_imp, "Make Binary", "method=" + threshold_method_str + " background=Dark calculate");
 	IJ.run(membrane_channel_imp, "Fill Holes", "stack");
 	IJ.run(membrane_channel_imp, "Open", "stack");
 	IJ.run(membrane_channel_imp, "Close-", "stack");
@@ -395,7 +397,7 @@ def main():
 		membrane_edge = imp.getRoi();
 		
 		# generate curvature - this needs to be looped over slices
-		curv_points1, centre_curv_points, curv_points2 = generate_l_spaced_points(membrane_edge, 5.0);
+		curv_points1, centre_curv_points, curv_points2 = generate_l_spaced_points(membrane_edge, curvature_length_pix);
 		remove_negative_curvatures = True;
 		curvature_profiles.append(calculate_curvature_profile(centre_curv_points, 
 														curv_points1, 
@@ -411,15 +413,17 @@ def main():
 		actin_profiles.append(maximum_line_profile(actin_channel_imp, membrane_edge, 3));
 	
 	# output colormapped images and kymographs 
-	curvature_stack_imp = overlay_curvatures(imp, curvature_stack, curvature_profiles, membrane_channel, curv_limits);	
-	curvature_stack_imp.show();
-	FileSaver(curvature_stack_imp).saveAsTiffStack(os.path.join(output_folder, "curvature_stack.tif"));
 	norm_curv_kym = generate_kymograph(curvature_profiles, lut_string, "Curvature kymograph");
 	curv_kym = generate_plain_kymograph(curvature_profiles, lut_string, "Unnormalised curvature kymograph");
 	FileSaver(norm_curv_kym).saveAsTiff(os.path.join(output_folder, "normalised curvature kymograph.tif"));
 	FileSaver(curv_kym).saveAsTiff(os.path.join(output_folder, "raw curvature kymograph.tif"));
+	overlaid_curvature_imp, raw_curvature_imp = overlay_curvatures(imp, curvature_stack, curvature_profiles, membrane_channel, curv_limits, lut_string);	
+	overlaid_curvature_imp.show();
+	FileSaver(overlaid_curvature_imp).saveAsTiffStack(os.path.join(output_folder, "overlaid curvature.tif"));
+	FileSaver(raw_curvature_imp).saveAsTiffStack(os.path.join(output_folder, "raw curvature.tif"));
 	save_curvature_as_csv(curvature_profiles, os.path.join(output_folder, "curvatures.csv"))
 	FileSaver(membrane_channel_imp).saveAsTiffStack(os.path.join(output_folder, "binary_membrane_stack.tif"));
+	
 	IJ.setTool("zoom");
 
 # It's best practice to create a function that contains the code that is executed when running the script.
