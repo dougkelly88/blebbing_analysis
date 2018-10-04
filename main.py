@@ -309,7 +309,6 @@ def main():
 	#print(sys.path) # debug
 	file_path = "D:\\data\\Inverse blebbing\\MAX_2dpf marcksl1b-EGFP inj_TgLifeact-mCh_movie e4_split-bleb1.tif" # debug
 	output_root = "D:\\data\\Inverse blebbing\\output" # debug
-	# default user params - TODO: save as CSV or (better) xmL/json?
 	params = {'lut_string' : 'Orange Hot', 
 				'curvature_length_pix' : 5.0, 
 				'threshold_method' : 'Moments'};
