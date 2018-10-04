@@ -262,12 +262,12 @@ def overlay_curvatures(imp, curvature_stack, curvature_profiles, membrane_channe
 # generate overlays to display curvature
 def generate_curvature_overlays(curvature_profile, curvature_stack): 
 	w = curvature_stack.getWidth();
-	overlay = IJ.createImage("Curvature", "16-bit", w, curvature_stack.getHeight(), 1);
-	pix = overlay.getProcessor().getPixels();
+	ip = FloatProcessor(w, curvature_stack.getHeight());
+	pix = ip.getPixels();
 	mx = max([c for ((x, y), c) in curvature_profile]);
 	for ((x, y), c) in curvature_profile:
-		pix[y * w + x] = int(1000 * c);
-	curvature_stack.addSlice(overlay.getProcessor());
+		pix[y * w + x] = c;
+	curvature_stack.addSlice(ip);
 	return curvature_stack;
 
 # save curvature
