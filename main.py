@@ -5,7 +5,7 @@
 # D.J. Kelly, 2018-09-26, douglas.kelly@riken.jp
 
 # python (jython) imports
-import os, sys, math, csv
+import os, sys, math, csv, json
 from datetime import datetime
 
 # java imports - aim to have UI components entirely swing, listeners and layouts awt
@@ -280,6 +280,12 @@ def save_curvature_as_csv(curvature_profiles, file_path):
 			writer.writerow([idx, x, y, c]);
 	f.close();
 
+# save parameters used for this analysis
+def save_parameters(params, file_path):
+	f = open(file_path, 'w');
+	json.dump(params, f);
+	f.close();
+
 # breakout file chooser UI to enable faster debug
 def file_location_chooser(default_directory):
 	# input
@@ -303,10 +309,10 @@ def main():
 	#print(sys.path) # debug
 	file_path = "D:\\data\\Inverse blebbing\\MAX_2dpf marcksl1b-EGFP inj_TgLifeact-mCh_movie e4_split-bleb1.tif" # debug
 	output_root = "D:\\data\\Inverse blebbing\\output" # debug
-	# default user params
-	lut_string = "Orange Hot";
-	curvature_length_pix = 5.0;
-	threshold_method_str = "Moments"
+	# default user params - TODO: save as CSV or (better) xmL/json?
+	params = {'lut_string' : 'Orange Hot', 
+				'curvature_length_pix' : 5.0, 
+				'threshold_method' : 'Moments'};
 
 	## prompt user for file locations
 	#default_directory = "D:\\data\\Inverse blebbing\\";
@@ -362,7 +368,7 @@ def main():
 	#membrane_channel_imp.show(); # debug
 	
 	# perform binary manipulations
-	IJ.run(membrane_channel_imp, "Make Binary", "method=" + threshold_method_str + " background=Dark calculate");
+	IJ.run(membrane_channel_imp, "Make Binary", "method=" + params['threshold_method'] + " background=Dark calculate");
 	IJ.run(membrane_channel_imp, "Fill Holes", "stack");
 	IJ.run(membrane_channel_imp, "Open", "stack");
 	IJ.run(membrane_channel_imp, "Close-", "stack");
@@ -391,7 +397,7 @@ def main():
 		membrane_edge = imp.getRoi();
 		
 		# generate curvature - this needs to be looped over slices
-		curv_points1, centre_curv_points, curv_points2 = generate_l_spaced_points(membrane_edge, curvature_length_pix);
+		curv_points1, centre_curv_points, curv_points2 = generate_l_spaced_points(membrane_edge, params['curvature_length_pix']);
 		remove_negative_curvatures = True;
 		curvature_profiles.append(calculate_curvature_profile(centre_curv_points, 
 														curv_points1, 
@@ -407,16 +413,17 @@ def main():
 		actin_profiles.append(maximum_line_profile(actin_channel_imp, membrane_edge, 3));
 	
 	# output colormapped images and kymographs 
-	norm_curv_kym = generate_kymograph(curvature_profiles, lut_string, "Curvature kymograph");
-	curv_kym = generate_plain_kymograph(curvature_profiles, lut_string, "Unnormalised curvature kymograph");
+	norm_curv_kym = generate_kymograph(curvature_profiles, params['lut_string'], "Curvature kymograph");
+	curv_kym = generate_plain_kymograph(curvature_profiles, params['lut_string'], "Unnormalised curvature kymograph");
 	FileSaver(norm_curv_kym).saveAsTiff(os.path.join(output_folder, "normalised curvature kymograph.tif"));
 	FileSaver(curv_kym).saveAsTiff(os.path.join(output_folder, "raw curvature kymograph.tif"));
-	overlaid_curvature_imp, raw_curvature_imp = overlay_curvatures(imp, curvature_stack, curvature_profiles, membrane_channel, curv_limits, lut_string);	
+	overlaid_curvature_imp, raw_curvature_imp = overlay_curvatures(imp, curvature_stack, curvature_profiles, membrane_channel, curv_limits, params['lut_string']);	
 	overlaid_curvature_imp.show();
 	FileSaver(overlaid_curvature_imp).saveAsTiffStack(os.path.join(output_folder, "overlaid curvature.tif"));
 	FileSaver(raw_curvature_imp).saveAsTiffStack(os.path.join(output_folder, "raw curvature.tif"));
 	save_curvature_as_csv(curvature_profiles, os.path.join(output_folder, "curvatures.csv"))
 	FileSaver(membrane_channel_imp).saveAsTiffStack(os.path.join(output_folder, "binary_membrane_stack.tif"));
+	save_parameters(params, os.path.join(output_folder, "parameters used.json"));
 	
 	IJ.setTool("zoom");
 
