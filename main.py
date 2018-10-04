@@ -18,7 +18,7 @@ from ij import IJ, WindowManager, ImagePlus, ImageStack
 from ij.gui import Roi, PointRoi, PolygonRoi, GenericDialog, WaitForUserDialog
 from ij.io import OpenDialog, DirectoryChooser, FileSaver
 from ij.plugin import ChannelSplitter, Straightener
-from ij.process import FloatPolygon
+from ij.process import FloatPolygon, FloatProcessor
 from ij.plugin.filter import ParticleAnalyzer
 from ij.plugin.frame import RoiManager
 from ij.measure import ResultsTable
@@ -64,6 +64,48 @@ def fix_anchors_to_membrane(anchors_list, membrane_roi):
 	sortlist = list(fixed_anchors_set);
 	vec_ls = [vector_length((0, IJ.getImage().height), v) for v in sortlist];
 	return [sortlist[vec_ls.index(min(vec_ls))], sortlist[vec_ls.index(max(vec_ls))]]
+
+# display unnormalised kymograph
+def generate_plain_kymograph(data_to_plot, colormap_string, title_string):
+	ip = FloatProcessor(len(data_to_plot), max([len(data) for data in data_to_plot]));
+	pix = ip.getPixels();
+	for idx, data in enumerate(data_to_plot):
+		for yidx in range(0,len(data)):
+			pix[yidx * len(data_to_plot) + idx] = data[yidx][1];
+	imp = ImagePlus(title_string, ip);
+	IJ.run(imp, colormap_string, "");
+	imp.show();
+	return imp;
+	
+# display one-channel kymograph
+def generate_kymograph(data_to_plot, colormap_string, title_string):
+	kym_height = 2 * max([len(data) for data in data_to_plot]) + 1;
+	ip = FloatProcessor(len(data_to_plot), kym_height);
+	# normalise such that point furthest from the anchors is in the middle of the kymograph
+	for idx, data in enumerate(data_to_plot):
+		print(data);
+		print("npoints curve: " + str(len(data)));
+		# TODO: make sure that actin intensity data is also in form [(x, y), val]
+		dist = [vector_length(data[0][0], p) *
+				vector_length(data[-1][0], p)
+				  for p in [d[0] for d in data]];
+		distal_idx = dist.index(max(dist));
+		#gd = GenericDialog("Continue?");
+		#gd.showDialog();
+		#if (gd.wasCanceled()):
+		#	raise ValueError('stop!');
+		pix = ip.getPixels();
+		for kidx, didx in zip(range(((kym_height - 1)/2 + 1), ((kym_height - 1)/2 + 1) + len(data) - distal_idx), 
+						range(distal_idx, len(data))):
+			pix[kidx * len(data_to_plot) + idx] = data[didx][1];
+		for kidx, didx in zip(range(((kym_height - 1)/2 + 1) - distal_idx, ((kym_height - 1)/2 + 1)), 
+						range(0, distal_idx)):
+			pix[kidx * len(data_to_plot) + idx] = data[didx][1];
+	imp = ImagePlus(title_string, ip);
+	IJ.run(imp, colormap_string, "")
+	imp.show();
+	return imp;
+
 
 # remove all blobs other than the largest by area
 def keep_largest_blob(imp):
@@ -267,6 +309,8 @@ def main():
 	#print(sys.path) # debug
 	file_path = "D:\\data\\Inverse blebbing\\MAX_2dpf marcksl1b-EGFP inj_TgLifeact-mCh_movie e4_split-bleb1.tif" # debug
 	output_root = "D:\\data\\Inverse blebbing\\output" # debug
+	# default user params
+	lut_string = "Orange Hot";
 
 	## prompt user for file locations
 	#default_directory = "D:\\data\\Inverse blebbing\\";
@@ -370,6 +414,10 @@ def main():
 	curvature_stack_imp = overlay_curvatures(imp, curvature_stack, curvature_profiles, membrane_channel, curv_limits);	
 	curvature_stack_imp.show();
 	FileSaver(curvature_stack_imp).saveAsTiffStack(os.path.join(output_folder, "curvature_stack.tif"));
+	norm_curv_kym = generate_kymograph(curvature_profiles, lut_string, "Curvature kymograph");
+	curv_kym = generate_plain_kymograph(curvature_profiles, lut_string, "Unnormalised curvature kymograph");
+	FileSaver(norm_curv_kym).saveAsTiff(os.path.join(output_folder, "normalised curvature kymograph.tif"));
+	FileSaver(curv_kym).saveAsTiff(os.path.join(output_folder, "raw curvature kymograph.tif"));
 	save_curvature_as_csv(curvature_profiles, os.path.join(output_folder, "curvatures.csv"))
 	FileSaver(membrane_channel_imp).saveAsTiffStack(os.path.join(output_folder, "binary_membrane_stack.tif"));
 	IJ.setTool("zoom");
