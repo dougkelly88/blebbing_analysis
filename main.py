@@ -315,11 +315,12 @@ def main():
 				'curvature_length_pix' : 5.0, 
 				'threshold_method' : 'Moments'};
 
-	## prompt user for file locations
-	#default_directory = "D:\\data\\Inverse blebbing\\";
-	#file_path, output_root = file_location_chooser(default_directory);
-	#if ((file_path is None) or (output_root is None)): 
-	#	return;
+	# prompt user for file locations
+	default_directory = "D:\\data\\Inverse blebbing\\";
+	file_path, output_root = file_location_chooser(default_directory);
+	if ((file_path is None) or (output_root is None)): 
+		return;
+	params['file_path'] = file_path;
 
 	# get image file
 	imps = bf.openImagePlus(file_path);
@@ -342,15 +343,16 @@ def main():
 	IJ.run("Set... ", "zoom=" + str(zoom_factor) + " x=" + str(math.floor(w/2)) + " y=" + str(math.floor(h/2)));
 	IJ.run("Scale to Fit", "");
 
-	## prompt user to select ROI
-	#IJ.setTool("rect");
-	#WaitForUserDialog("Crop", "If desired, select a rectangular ROI to crop to...").show();
-	#roi = imp.getRoi();
-	#if roi is not None:
-	#	IJ.run(imp, "Crop", "");
-	#	IJ.run("Set... ", "zoom=" + str(zoom_factor) + " x=" + str(math.floor(w/2)) + " y=" + str(math.floor(h/2)));
-	#	h = imp.height;
-	#	w = imp.width;
+	# prompt user to select ROI
+	IJ.setTool("rect");
+	WaitForUserDialog("Crop", "If desired, select a rectangular ROI to crop to...").show();
+	roi = imp.getRoi();
+	if roi is not None:
+		IJ.run(imp, "Crop", "");
+		IJ.run("Set... ", "zoom=" + str(zoom_factor) + " x=" + str(math.floor(w/2)) + " y=" + str(math.floor(h/2)));
+		h = imp.height;
+		w = imp.width;
+		params['spatial_crop'] = roi.getBounds();
 
 	# binarise/segment
 	anchors = prompt_for_points(imp, 
