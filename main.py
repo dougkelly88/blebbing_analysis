@@ -17,7 +17,7 @@ import javax.swing.table.TableModel
 from ij import IJ, WindowManager, ImagePlus, ImageStack
 from ij.gui import Roi, PointRoi, PolygonRoi, GenericDialog, WaitForUserDialog
 from ij.io import OpenDialog, DirectoryChooser, FileSaver
-from ij.plugin import ChannelSplitter, Straightener
+from ij.plugin import ChannelSplitter, Straightener, RGBStackMerge
 from ij.process import FloatPolygon, FloatProcessor
 from ij.plugin.filter import ParticleAnalyzer
 from ij.plugin.frame import RoiManager
@@ -429,7 +429,10 @@ def main():
 	save_profile_as_csv(actin_profiles, os.path.join(output_folder, "actin intensities.csv"), "actin intensity")
 	FileSaver(membrane_channel_imp).saveAsTiffStack(os.path.join(output_folder, "binary_membrane_stack.tif"));
 	save_parameters(params, os.path.join(output_folder, "parameters used.json"));
-	
+	mrg_imp = RGBStackMerge().mergeChannels([norm_actin_kym, norm_curv_kym], True);
+	mrg_imp.setTitle("Merged actin intensity and curvature");
+	mrg_imp.show();
+	FileSaver(mrg_imp).saveAsTiff(os.path.join(output_folder, "merged intensity and curvature kymograph.tif"));
 	IJ.setTool("zoom");
 
 # It's best practice to create a function that contains the code that is executed when running the script.
