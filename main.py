@@ -352,7 +352,7 @@ def main():
 		IJ.run("Set... ", "zoom=" + str(zoom_factor) + " x=" + str(math.floor(w/2)) + " y=" + str(math.floor(h/2)));
 		h = imp.height;
 		w = imp.width;
-		params['spatial_crop'] = roi.getBounds();
+		params['spatial_crop'] = roi.getBounds().toString();
 
 	# binarise/segment
 	anchors = prompt_for_points(imp, 
