@@ -15,7 +15,7 @@ import javax.swing.table.TableModel
 
 # imagej imports
 from ij import IJ, WindowManager, ImagePlus, ImageStack
-from ij.gui import Roi, PointRoi, PolygonRoi, GenericDialog, WaitForUserDialog
+from ij.gui import Roi, PointRoi, PolygonRoi, GenericDialog, WaitForUserDialog, Plot
 from ij.io import OpenDialog, DirectoryChooser, FileSaver
 from ij.plugin import ChannelSplitter, Straightener, RGBStackMerge
 from ij.process import FloatPolygon, FloatProcessor
@@ -272,7 +272,17 @@ def generate_curvature_overlays(curvature_profile, curvature_stack):
 	curvature_stack.addSlice(ip);
 	return curvature_stack;
 
-# save curvature
+# plot "bleb length"
+def plot_bleb_length(membrane_edges):
+	ts = [x for x in range(0, len(membrane_edges))];
+	bleb_ls = [membrane_edge.getLength() for membrane_edge in membrane_edges];
+	plt = Plot("Crude bleb perimeter length against time", "Time, frames", "Bleb length, um");
+	plt.add("line", ts, bleb_ls)
+	plt.show();
+	plot_data = [(t, l) for t, l in zip(ts, bleb_ls)];
+	return plt.getImagePlus(), plot_data
+
+# save profiles with 2d independent variable, e.g. curvature profile
 def save_profile_as_csv(profiles, file_path, data_name):
 	f = open(file_path, 'wb');
 	writer = csv.writer(f);
@@ -280,6 +290,15 @@ def save_profile_as_csv(profiles, file_path, data_name):
 	for idx, profile in enumerate(profiles):
 		for ((x, y), p) in profile:
 			writer.writerow([idx, x, y, p]);
+	f.close();
+
+# save profiles with 1d independent variable, e.g. length against time
+def save_1d_profile_as_csv(profile, file_path, column_names):
+	f = open(file_path, 'wb');
+	writer = csv.writer(f);
+	writer.writerow([column_names[0], column_names[1]]);
+	for p in profile:
+		writer.writerow([p[0], p[1]]);
 	f.close();
 
 # save parameters used for this analysis
@@ -381,6 +400,7 @@ def main():
 	curvature_stack = ImageStack(w, h);
 	actin_profiles = [];
 	curvature_profiles = [];
+	membrane_edges = [];
 	curv_limits = (10E4, 0);
 	for fridx in range(0, n_frames):
 		imp.setPosition(membrane_channel, 1, fridx+1);
@@ -398,6 +418,7 @@ def main():
 		IJ.run(imp, "Interpolate", "interval=0.5 smooth");
 		IJ.run(imp, "Fit Spline", "");
 		membrane_edge = imp.getRoi();
+		membrane_edges.append(membrane_edge);
 		
 		# generate curvature - this needs to be looped over slices
 		curv_points = generate_l_spaced_points(membrane_edge, params['curvature_length_pix']);
@@ -417,8 +438,8 @@ def main():
 	# output colormapped images and kymographs 
 	norm_curv_kym = generate_kymograph(curvature_profiles, params['lut_string'], "Curvature kymograph - distal point at middle");
 	curv_kym = generate_plain_kymograph(curvature_profiles, params['lut_string'], "Curvature kymograph");
-	norm_actin_kym = generate_kymograph(actin_profiles, "Green", "Actin intensity - distal point at middle");
-	actin_kym = generate_plain_kymograph(actin_profiles, "Green", "Actin intensity");
+	norm_actin_kym = generate_kymograph(actin_profiles, "Cyan", "Actin intensity - distal point at middle");
+	actin_kym = generate_plain_kymograph(actin_profiles, "Cyan", "Actin intensity");
 	FileSaver(actin_kym).saveAsTiff(os.path.join(output_folder, "normalised position actin kymograph.tif"));
 	FileSaver(actin_kym).saveAsTiff(os.path.join(output_folder, "raw actin kymograph.tif"));
 	FileSaver(norm_curv_kym).saveAsTiff(os.path.join(output_folder, "normalised position curvature kymograph.tif"));
@@ -434,7 +455,10 @@ def main():
 	mrg_imp = RGBStackMerge().mergeChannels([norm_actin_kym, norm_curv_kym], True);
 	mrg_imp.setTitle("Merged actin intensity and curvature");
 	mrg_imp.show();
+	bleb_len_imp, bleb_ls = plot_bleb_length(membrane_edges);
+	FileSaver(bleb_len_imp).saveAsTiff(os.path.join(output_folder, "bleb perimeter length.tif"));
 	FileSaver(mrg_imp).saveAsTiff(os.path.join(output_folder, "merged intensity and curvature kymograph.tif"));
+	save_1d_profile_as_csv(bleb_ls, os.path.join(output_folder, "bleb perimeter length.csv"), ["Time, frames", "Length, um"]);
 	IJ.setTool("zoom");
 
 # It's best practice to create a function that contains the code that is executed when running the script.
