@@ -176,7 +176,7 @@ def maximum_line_profile(imp, roi, pixel_width):
 
 # generate arrays of points along the membrane that are separated by path length l - currently in pixels
 def generate_l_spaced_points(roi, l): 
-	poly = roi.getPolygon();
+	poly = roi.getInterpolatedPolygon();
 	p1, p2, p3 = ([] for i in range(3));
 	for idx,(x,y) in enumerate(zip(poly.xpoints,poly.ypoints)):
 		if ((idx > 0) and (idx < poly.npoints - 1)): # ignore first and last points: by definition these won't have anything useful on either side
@@ -215,13 +215,15 @@ def generate_l_spaced_points(roi, l):
 					p1.append(pp1);
 					p2.append(pp2);
 					p3.append((xx, yy));
-	return p1, p2, p3;
+	return (p1, p2, p3);
 
 # generate a line profile of local curvatures using three-point method and SSS theorem
 # (see http://mathworld.wolfram.com/SSSTheorem.html)
-def calculate_curvature_profile(centre_curv_points, curv_points1, curv_points2, remove_negative_curvatures):
-	curvature_profile = [];
-	for (cp, p1, p2) in zip(centre_curv_points, curv_points1, curv_points2):
+def calculate_curvature_profile(curv_points, roi, remove_negative_curvatures):
+	poly = roi.getInterpolatedPolygon();
+	curvature_profile = [((x,y),0) for (x,y) in zip(poly.xpoints, poly.ypoints)];
+	pos = [p for (p, c) in curvature_profile]
+	for (cp, p1, p2) in zip(curv_points[1], curv_points[0], curv_points[2]):
 		a = math.sqrt( math.pow((cp[0] - p1[0]), 2) + math.pow((cp[1] - p1[1]), 2) );
 		b = math.sqrt( math.pow((cp[0] - p2[0]), 2) + math.pow((cp[1] - p2[1]), 2) );
 		c = math.sqrt( math.pow((p2[0] - p1[0]), 2) + math.pow((p2[1] - p1[1]), 2) );
@@ -237,7 +239,7 @@ def calculate_curvature_profile(centre_curv_points, curv_points1, curv_points2, 
 			curv = sign * 1/R;
 		if (remove_negative_curvatures and (curv < 0)):
 			curv = 0;
-		curvature_profile.append((cp, curv));
+		curvature_profile[pos.index(cp)] = (cp, curv);
 	return curvature_profile;
 
 # overlay curvature pixels on membrane image
@@ -255,7 +257,7 @@ def overlay_curvatures(imp, curvature_stack, curvature_profiles, membrane_channe
 		base_pix = ip.getPixels();
 		for ((x, y), c) in curvature_profiles[fridx-1]:
 			if (c > 0):
-				base_pix[y * imp.width + x] = pix[y * imp.width + x];
+				base_pix[int(round(y)) * imp.width + int(round(x))] = pix[int(round(y)) * imp.width + int(round(x))];
 		overlaid_stack.addSlice(ip);
 	return ImagePlus("Overlaid curvatures", overlaid_stack), overlay_imp;
 
@@ -266,7 +268,7 @@ def generate_curvature_overlays(curvature_profile, curvature_stack):
 	pix = ip.getPixels();
 	mx = max([c for ((x, y), c) in curvature_profile]);
 	for ((x, y), c) in curvature_profile:
-		pix[y * w + x] = c;
+		pix[int(round(y)) * w + int(round(x))] = c;
 	curvature_stack.addSlice(ip);
 	return curvature_stack;
 
@@ -396,12 +398,11 @@ def main():
 		membrane_edge = imp.getRoi();
 		
 		# generate curvature - this needs to be looped over slices
-		curv_points1, centre_curv_points, curv_points2 = generate_l_spaced_points(membrane_edge, params['curvature_length_pix']);
+		curv_points = generate_l_spaced_points(membrane_edge, params['curvature_length_pix']);
 		remove_negative_curvatures = True;
-		curvature_profiles.append(calculate_curvature_profile(centre_curv_points, 
-														curv_points1, 
-														curv_points2, 
-														remove_negative_curvatures));
+		curvature_profiles.append(calculate_curvature_profile(curv_points,
+																membrane_edge, 
+																remove_negative_curvatures));
 		curv_limits = (min(curv_limits[0], min([c[1] for c in curvature_profiles[-1]])), 
 						max(curv_limits[1], max([c[1] for c in curvature_profiles[-1]])));
 		curvature_stack = generate_curvature_overlays(curvature_profiles[-1], curvature_stack)
