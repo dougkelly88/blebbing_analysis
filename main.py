@@ -452,14 +452,14 @@ def main():
 	save_profile_as_csv(curvature_profiles, os.path.join(output_folder, "curvatures.csv"), "curvature")
 	save_profile_as_csv(actin_profiles, os.path.join(output_folder, "actin intensities.csv"), "actin intensity")
 	FileSaver(membrane_channel_imp).saveAsTiffStack(os.path.join(output_folder, "binary_membrane_stack.tif"));
-	save_parameters(params, os.path.join(output_folder, "parameters used.json"));
 	mrg_imp = RGBStackMerge().mergeChannels([norm_actin_kym, norm_curv_kym], True);
-	mrg_imp.setTitle("Merged actin intensity and curvature");
+	mrg_imp.setTitle("Merged actin intensity and curvature kymograph");
 	mrg_imp.show();
 	bleb_len_imp, bleb_ls = plot_bleb_length(membrane_edges);
 	FileSaver(bleb_len_imp).saveAsTiff(os.path.join(output_folder, "bleb perimeter length.tif"));
 	FileSaver(mrg_imp).saveAsTiff(os.path.join(output_folder, "merged intensity and curvature kymograph.tif"));
 	save_1d_profile_as_csv(bleb_ls, os.path.join(output_folder, "bleb perimeter length.csv"), ["Time, frames", "Length, um"]);
+	save_parameters(params, os.path.join(output_folder, "parameters used.json"));
 	IJ.setTool("zoom");
 
 # It's best practice to create a function that contains the code that is executed when running the script.
