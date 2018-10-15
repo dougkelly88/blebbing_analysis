@@ -273,6 +273,25 @@ def generate_curvature_overlays(curvature_profile, curvature_stack):
 	curvature_stack.addSlice(ip);
 	return curvature_stack;
 
+# generate intensity-weighted curvature image
+def generate_intensity_weighted_curvature(curvature_overlay, curvature_profiles, intensity_channel_imp, colormap_string):
+	overlay_imp = curvature_overlay.clone();
+	base_imp = intensity_channel_imp.clone();
+	IJ.run(overlay_imp, colormap_string, "");
+	IJ.run(overlay_imp, "RGB Color", "");
+	
+	for idx, profile in enumerate(curvature_profiles):
+		overlay_imp.setPosition(idx + 1);
+		base_imp.setPosition(idx + 1);
+		overlay_pix = overlay_imp.getProcessor().getPixels();
+		base_pix = overlay_imp.getProcessor().getPixels();
+		w = overlay_imp.getWidth();
+		for ((x,y), c) in profile:
+			xyidx = int(round(y)) * w + int(round(x));
+			base_pix[xyidx] = base_pix[xyidx] * overlay_pix[xyidx];
+	return base_imp;
+
+
 # plot "bleb length"
 def plot_bleb_length(membrane_edges):
 	ts = [x for x in range(0, len(membrane_edges))];
@@ -459,6 +478,7 @@ def main():
 	FileSaver(bleb_len_imp).saveAsTiff(os.path.join(output_folder, "bleb perimeter length.tif"));
 	FileSaver(mrg_imp).saveAsTiff(os.path.join(output_folder, "merged intensity and curvature kymograph.tif"));
 	save_1d_profile_as_csv(bleb_ls, os.path.join(output_folder, "bleb perimeter length.csv"), ["Time, frames", "Length, um"]);
+	#generate_intensity_weighted_curvature(raw_curvature_imp, curvature_profiles, actin_channel_imp, "physics");
 	save_parameters(params, os.path.join(output_folder, "parameters used.json"));
 	IJ.setTool("zoom");
 
