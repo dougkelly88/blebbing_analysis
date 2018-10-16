@@ -86,9 +86,9 @@ def vector_length(start, end):
 # generate arrays of points along the membrane that are separated by path length l - currently in pixels
 def generate_l_spaced_points(roi, l): 
 	poly = roi.getInterpolatedPolygon();
-	p1, p2, p3 = ([] for i in range(3));
+	p1, cp, p2 = ([] for i in range(3));
 	for idx,(x,y) in enumerate(zip(poly.xpoints,poly.ypoints)):
-		if ((idx > 0) and (idx < poly.npoints - 1)): # ignore first and last points: by definition these won't have anything useful on either side
+		if ((idx > 0) and (idx < poly.npoints)): # ignore first and last points: by definition these won't have anything useful on either side
 			# look backwards and calculate pathlength at successive points
 			db = 0;
 			iidx = idx - 1;
@@ -97,7 +97,7 @@ def generate_l_spaced_points(roi, l):
 									math.pow((poly.ypoints[iidx] - poly.ypoints[iidx+1]), 2));
 				if (dbnew >= l):
 					xx = poly.xpoints[iidx+1] + ((l - db)/(dbnew - db))*(poly.xpoints[iidx] - poly.xpoints[iidx+1]);
-					yy = poly.ypoints[iidx+1] - ((l - db)/(dbnew - db))*(poly.ypoints[iidx] - poly.ypoints[iidx+1]);
+					yy = poly.ypoints[iidx+1] + ((l - db)/(dbnew - db))*(poly.ypoints[iidx] - poly.ypoints[iidx+1]);
 					dbnew = db + math.sqrt(math.pow(((l - db)/(dbnew - db))*(poly.xpoints[iidx] - poly.xpoints[iidx+1]), 2)  + 
 									math.pow(((l - db)/(dbnew - db))*(poly.ypoints[iidx] - poly.ypoints[iidx+1]), 2));
 				else:
@@ -105,11 +105,11 @@ def generate_l_spaced_points(roi, l):
 				db = dbnew;
 			if (db == l):
 				pp1 = (xx, yy);
-				pp2 = (x, y);
+				pcp = (x, y);
 				# then look forwards ONLY IF backwards search was successful...
 				iidx = idx + 1;
 				df = 0;
-				while ((iidx < poly.npoints - 1) and (df < l)):
+				while ((iidx < poly.npoints) and (df < l)):
 					dfnew = df + math.sqrt(math.pow((poly.xpoints[iidx] - poly.xpoints[iidx-1]), 2)  + 
 									math.pow((poly.ypoints[iidx] - poly.ypoints[iidx-1]), 2));
 					if (dfnew >= l):
@@ -122,9 +122,9 @@ def generate_l_spaced_points(roi, l):
 					df = dfnew;
 				if (df == l):
 					p1.append(pp1);
-					p2.append(pp2);
-					p3.append((xx, yy));
-	return (p1, p2, p3);
+					cp.append(pcp);
+					p2.append((xx, yy));
+	return (p1, cp, p2);
 
 # generate a line profile of local curvatures using three-point method and SSS theorem
 # (see http://mathworld.wolfram.com/SSSTheorem.html)
