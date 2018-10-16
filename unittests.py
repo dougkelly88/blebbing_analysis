@@ -36,7 +36,16 @@ class TestMbEngine(unittest.TestCase):
 		self.assertRaises(ValueError, mb.fix_anchors_to_membrane, [(1,2), (1,2)], roi)
 		imp.close();
 
-		
+	def test_generate_l_spaced_points(self):
+		ypts = [y for y in range(0, 101)];
+		xpts = [2 for y in range(0, 101)];
+		roi = PolygonRoi(xpts, ypts, Roi.POLYLINE);
+		l_spaced_points = mb.generate_l_spaced_points(roi, 5);
+		test_group1 = [l_spaced_points[0][0], l_spaced_points[1][0], l_spaced_points[2][0]];
+		test_group2 = [l_spaced_points[0][-1], l_spaced_points[1][-1], l_spaced_points[2][-1]];
+		self.assertEqual([(2,0),(2,5),(2,10)], test_group1);
+		self.assertEqual([(2,90),(2,95),(2,100)], test_group2);
+
 
 if __name__ in ['__builtin__','__main__']:
 	suite = unittest.TestLoader().loadTestsFromTestCase(TestMbEngine)
