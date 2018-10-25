@@ -37,6 +37,25 @@ def save_profile_as_csv(profiles, file_path, data_name):
 			writer.writerow([idx, x, y, p]);
 	f.close();
 
+# load profiles with 2d independent variable from csv
+def load_csv_as_profile(file_path):
+	f = open(file_path, 'r');
+	reader = csv.reader(f);
+	old_frame = 0;
+	profiles = [];
+	profile = [];
+	for idx, row in enumerate(reader):
+		if idx > 0:
+			frame = int(row[0]);
+			if frame != old_frame:
+				profiles.append(profile);
+				profile = [];
+				old_frame = frame;
+			profile.append(((float(row[1]), float(row[2])), float(row[3])));
+		profiles.append(profile);
+	return profiles;
+			 
+
 # save profiles with 1d independent variable, e.g. length against time
 def save_1d_profile_as_csv(profile, file_path, column_names):
 	f = open(file_path, 'wb');
@@ -51,3 +70,6 @@ def save_parameters(params, file_path):
 	f = open(file_path, 'w');
 	json.dump(params, f);
 	f.close();
+
+#p = load_csv_as_profile("D:\\data\\Inverse blebbing\\output\\2018-10-17 14-56-47 output\\curvatures.csv")
+#print(p[-1])
