@@ -45,6 +45,12 @@ def main():
 	imps = bf.openImagePlus(file_path);
 	imp = imps[0];
 	imp.show();
+	reader = ImageReader();
+	reader.setId(file_path);
+	frame_interval = reader.getMetadataValue("Frame Interval").value();
+	frame_interval_unit = reader.getMetadataValue("Frame Interval").unit().getSymbol();
+	pixel_size = 1/reader.getMetadataValue("YResolution");
+	pixel_size_unit = reader.getMetadataValue("Unit");
 	mbui.autoset_zoom(imp);
 
 	# prompt user to select ROI
