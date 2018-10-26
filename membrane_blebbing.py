@@ -30,8 +30,10 @@ def main():
 	output_folder = os.path.join(output_root, (timestamp + ' output')); 
 	os.mkdir(output_folder); 
 	########################################################################
-	params = {'lut_string' : 'Yellow', 
-				'curvature_length_pix' : 5.0, 
+	params = {'curvature_overlay_lut_string' : 'physics', 
+				'curvature_kymograph_lut_string' : 'Yellow', 
+				'actin_kymograph_lut_string' : 'Cyan',
+				'curvature_length_pix' : 20.0, 
 				'threshold_method' : 'Moments'};
 
 	## prompt user for file locations
@@ -66,6 +68,8 @@ def main():
 								"Choose midpoint", 
 								"Now select a point halfway between the extremes, along the membrane", 
 								1);
+	params['manual_anchor_positions'] = anchors;
+	params['manual_anchor_midpoint'] = midpoint;
 	
 	membrane_channel = imp.getChannel();
 	split_channels = ChannelSplitter.split(imp);
@@ -115,15 +119,15 @@ def main():
 		actin_profiles.append(mb.maximum_line_profile(actin_channel_imp, membrane_edge, 3));
 	
 	# output colormapped images and kymographs 
-	norm_curv_kym = mbfig.generate_kymograph(curvature_profiles, params['lut_string'], "Curvature kymograph - distal point at middle");
-	curv_kym = mbfig.generate_plain_kymograph(curvature_profiles, params['lut_string'], "Curvature kymograph");
-	norm_actin_kym = mbfig.generate_kymograph(actin_profiles, "Cyan", "Actin intensity - distal point at middle");
-	actin_kym = mbfig.generate_plain_kymograph(actin_profiles, "Cyan", "Actin intensity");
+	norm_curv_kym = mbfig.generate_kymograph(curvature_profiles, params['curvature_kymograph_lut_string'], "Curvature kymograph - distal point at middle");
+	curv_kym = mbfig.generate_plain_kymograph(curvature_profiles, params['curvature_kymograph_lut_string'], "Curvature kymograph");
+	norm_actin_kym = mbfig.generate_kymograph(actin_profiles, params['actin_kymograph_lut_string'], "Actin intensity - distal point at middle");
+	actin_kym = mbfig.generate_plain_kymograph(actin_profiles, params['actin_kymograph_lut_string'], "Actin intensity");
 	FileSaver(actin_kym).saveAsTiff(os.path.join(output_folder, "normalised position actin kymograph.tif"));
 	FileSaver(actin_kym).saveAsTiff(os.path.join(output_folder, "raw actin kymograph.tif"));
 	FileSaver(norm_curv_kym).saveAsTiff(os.path.join(output_folder, "normalised position curvature kymograph.tif"));
 	FileSaver(curv_kym).saveAsTiff(os.path.join(output_folder, "raw curvature kymograph.tif"));
-	overlaid_curvature_imp, raw_curvature_imp = mbfig.overlay_curvatures(imp, curvature_stack, curvature_profiles, membrane_channel, curv_limits, params['lut_string']);	
+	overlaid_curvature_imp, raw_curvature_imp = mbfig.overlay_curvatures(imp, curvature_stack, curvature_profiles, membrane_channel, curv_limits, params['curvature_overlay_lut_string']);	
 	overlaid_curvature_imp.show();
 	FileSaver(overlaid_curvature_imp).saveAsTiffStack(os.path.join(output_folder, "overlaid curvature.tif"));
 	FileSaver(raw_curvature_imp).saveAsTiffStack(os.path.join(output_folder, "raw curvature.tif"));
