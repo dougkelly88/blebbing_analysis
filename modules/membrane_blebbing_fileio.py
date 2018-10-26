@@ -52,7 +52,7 @@ def load_csv_as_profile(file_path):
 				profile = [];
 				old_frame = frame;
 			profile.append(((float(row[1]), float(row[2])), float(row[3])));
-		profiles.append(profile);
+	profiles.append(profile);
 	return profiles;
 			 
 
