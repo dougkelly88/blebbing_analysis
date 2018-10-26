@@ -14,11 +14,13 @@ from loci.plugins import BF as bf
 
 script_path = os.path.dirname(os.path.realpath(__file__))
 sys.path.insert(0, os.path.join(script_path, 'modules'));
+sys.path.insert(0, os.path.join(script_path, 'classes'));
 
 import membrane_blebbing_fileio as mbio;
 import membrane_blebbing_ui as mbui;
 import membrane_blebbing_engine as mb;
 import membrane_blebbing_figures as mbfig;
+from Parameters import Parameters
 
 def main():
 	### debug ###############################################################
@@ -31,16 +33,15 @@ def main():
 	output_folder = os.path.join(output_root, (timestamp + ' output')); 
 	os.mkdir(output_folder); 
 	########################################################################
-	params = {'curvature_overlay_lut_string' : 'physics', 
-				'curvature_kymograph_lut_string' : 'Yellow', 
-				'actin_kymograph_lut_string' : 'Cyan',
-				'curvature_length_pix' : 20.0, 
-				'threshold_method' : 'Moments'};
+	
+	# prompt user for file locations
+	default_directory = "D:\\data\\Inverse blebbing\\";
+	file_path, output_folder = mbio.file_location_chooser(default_directory);
 
-	## prompt user for file locations
-	#default_directory = "D:\\data\\Inverse blebbing\\";
-	#file_path, output_folder = mbio.file_location_chooser(default_directory);
-	params['file_path'] = file_path;
+	# prompt user for input parameters
+	params = mbui.analysis_parameters_gui();
+	params.setInputImagePath(file_path);
+	params.saveParametersToJson("C:\\Users\\dougk\\Desktop\\test.json")
 
 	# get image file
 	imps = bf.openImagePlus(file_path);
@@ -55,10 +56,10 @@ def main():
 	mbui.autoset_zoom(imp);
 
 	# prompt user to select ROI
-	#original_imp, crop_params = mbui.crop_to_ROI(imp);
-	#if crop_params is not None:
-	#	params['spatial_crop'] = crop_params.toString();
-	#	mbui.autoset_zoom(imp);
+	original_imp, crop_params = mbui.crop_to_ROI(imp);
+	if crop_params is not None:
+		params.setSpatialCrop(crop_params.toString());
+		mbui.autoset_zoom(imp);
 	h = imp.height;
 	w = imp.width;
 	d = imp.getNSlices();
@@ -75,8 +76,8 @@ def main():
 								"Choose midpoint", 
 								"Now select a point halfway between the extremes, along the membrane", 
 								1);
-	params['manual_anchor_positions'] = anchors;
-	params['manual_anchor_midpoint'] = midpoint;
+	params.setManualAnchorMidpoint(midpoint);
+	params.setManualAnchorPositions(anchors);
 	
 	membrane_channel = imp.getChannel();
 	split_channels = ChannelSplitter.split(imp);
@@ -84,7 +85,7 @@ def main():
 	#membrane_channel_imp.show(); # debug
 	
 	# perform binary manipulations
-	membrane_channel_imp = mb.make_and_clean_binary(membrane_channel_imp, params['threshold_method']);
+	membrane_channel_imp = mb.make_and_clean_binary(membrane_channel_imp, params.threshold_method);
 	
 	# generate edge - this needs to be looped over slices
 	curvature_stack = ImageStack(w, h);
@@ -111,7 +112,7 @@ def main():
 		membrane_edges.append(membrane_edge);
 		
 		# generate curvature - this needs to be looped over slices
-		curv_points = mb.generate_l_spaced_points(membrane_edge, params['curvature_length_pix']);
+		curv_points = mb.generate_l_spaced_points(membrane_edge, params.curvature_length_pix);
 		remove_negative_curvatures = True;
 		curvature_profiles.append(mb.calculate_curvature_profile(curv_points,
 																membrane_edge, 
@@ -126,15 +127,15 @@ def main():
 		actin_profiles.append(mb.maximum_line_profile(actin_channel_imp, membrane_edge, 3));
 	
 	# output colormapped images and kymographs 
-	norm_curv_kym = mbfig.generate_kymograph(curvature_profiles, params['curvature_kymograph_lut_string'], "Curvature kymograph - distal point at middle");
-	curv_kym = mbfig.generate_plain_kymograph(curvature_profiles, params['curvature_kymograph_lut_string'], "Curvature kymograph");
-	norm_actin_kym = mbfig.generate_kymograph(actin_profiles, params['actin_kymograph_lut_string'], "Actin intensity - distal point at middle");
-	actin_kym = mbfig.generate_plain_kymograph(actin_profiles, params['actin_kymograph_lut_string'], "Actin intensity");
+	norm_curv_kym = mbfig.generate_kymograph(curvature_profiles, params.curvature_kymograph_lut_string, "Curvature kymograph - distal point at middle");
+	curv_kym = mbfig.generate_plain_kymograph(curvature_profiles, params.curvature_kymograph_lut_string, "Curvature kymograph");
+	norm_actin_kym = mbfig.generate_kymograph(actin_profiles, params.actin_kymograph_lut_string, "Actin intensity - distal point at middle");
+	actin_kym = mbfig.generate_plain_kymograph(actin_profiles, params.actin_kymograph_lut_string, "Actin intensity");
 	FileSaver(actin_kym).saveAsTiff(os.path.join(output_folder, "normalised position actin kymograph.tif"));
 	FileSaver(actin_kym).saveAsTiff(os.path.join(output_folder, "raw actin kymograph.tif"));
 	FileSaver(norm_curv_kym).saveAsTiff(os.path.join(output_folder, "normalised position curvature kymograph.tif"));
 	FileSaver(curv_kym).saveAsTiff(os.path.join(output_folder, "raw curvature kymograph.tif"));
-	overlaid_curvature_imp, raw_curvature_imp = mbfig.overlay_curvatures(imp, curvature_stack, curvature_profiles, membrane_channel, curv_limits, params['curvature_overlay_lut_string']);	
+	overlaid_curvature_imp, raw_curvature_imp = mbfig.overlay_curvatures(imp, curvature_stack, curvature_profiles, membrane_channel, curv_limits, params.curvature_overlay_lut_string);	
 	overlaid_curvature_imp.show();
 	FileSaver(overlaid_curvature_imp).saveAsTiffStack(os.path.join(output_folder, "overlaid curvature.tif"));
 	FileSaver(raw_curvature_imp).saveAsTiffStack(os.path.join(output_folder, "raw curvature.tif"));
@@ -147,7 +148,7 @@ def main():
 	FileSaver(mrg_imp).saveAsTiff(os.path.join(output_folder, "merged intensity and curvature kymograph.tif"));
 	mbio.save_1d_profile_as_csv(bleb_ls, os.path.join(output_folder, "bleb perimeter length.csv"), ["Time, frames", "Length, um"]);
 	#mbfig.generate_intensity_weighted_curvature(raw_curvature_imp, curvature_profiles, actin_channel_imp, "physics");
-	mbio.save_parameters(params, os.path.join(output_folder, "parameters used.json"));
+	params.saveParametersToJson(os.path.join(output_folder, "parameters used.json"));
 	IJ.setTool("zoom");
 
 # It's best practice to create a function that contains the code that is executed when running the script.
