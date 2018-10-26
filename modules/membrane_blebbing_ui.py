@@ -3,9 +3,12 @@
 # D. J. Kelly, 2018-10-15, douglas.kelly@riken.jp
 
 # imports
-import math;
-from ij import IJ;
-from ij.gui import WaitForUserDialog
+import math
+from ij import IJ
+from ij.gui import WaitForUserDialog, GenericDialog
+from ij.process import AutoThresholder
+
+from Parameters import Parameters
 
 # set the zoom of the current imageplus to give a reasonable window size, 
 # based on reasonable guess at screen resolution
@@ -50,3 +53,34 @@ def prompt_for_points(imp, title, message, n_points):
 			WaitForUserDialog("Error!", "Wrong number of points selected! Please try again...").show();
 			imp.killRoi();
 	return [(p.x, p.y) for p in roi.getContainedPoints()];
+
+def analysis_parameters_gui():
+	"""GUI for setting analysis parameters at the start of a run"""
+	params = Parameters();
+	dialog = GenericDialog("Analysis parameters");
+	dialog.addNumericField("Curvature length parameter (pix):", 
+							params.curvature_length_pix, 
+							1);
+	dialog.addChoice("Threshold method: ", 
+						AutoThresholder.getMethods(),
+						params.threshold_method);
+	dialog.addChoice("Curvature overlay LUT: ", 
+						IJ.getLuts(), 
+						params.curvature_overlay_lut_string);
+	dialog.addChoice("Curvature kymograph LUT: ", 
+						IJ.getLuts(), 
+						params.curvature_kymograph_lut_string);
+	dialog.addChoice("Actin kymograph LUT: ", 
+						IJ.getLuts(), 
+						params.actin_kymograph_lut_string);
+	dialog.showDialog();
+	chc =  dialog.getChoices();
+	params.setCurvatureLengthPix(dialog.getNextNumber()); # check whether label of numeric field is contained in getNextNumber?
+	params.setThresholdMethod(chc[0].getSelectedItem());
+	params.setCurvatureOverlayLUT(chc[1].getSelectedItem());
+	params.setCurvatureKymographLUT(chc[2].getSelectedItem());
+	params.setActinKymographLUT(chc[3].getSelectedItem()); # similarly, whether getNextChoice has method to get label - this way, less dependent on order not changing...
+	return params;
+
+#out = analysis_parameters_gui();
+#print(out.__dict__);
