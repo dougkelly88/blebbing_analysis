@@ -9,6 +9,7 @@ import os, sys
 from ij import IJ, ImageStack
 from ij.io import FileSaver
 from ij.plugin import ChannelSplitter
+from loci.formats import ImageReader
 from loci.plugins import BF as bf
 
 script_path = os.path.dirname(os.path.realpath(__file__))
