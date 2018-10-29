@@ -76,6 +76,8 @@ def analysis_parameters_gui():
 	dialog.addStringField("Labelled species for intensity analysis: ", 
 							"Actin");
 	dialog.showDialog();
+	if dialog.wasCanceled():
+		raise KeyboardInterrupt("Run canceled");
 	chc =  dialog.getChoices();
 	params.setCurvatureLengthPix(dialog.getNextNumber()); # check whether label of numeric field is contained in getNextNumber?
 	params.setThresholdMethod(chc[0].getSelectedItem());
