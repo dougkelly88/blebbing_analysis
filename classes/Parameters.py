@@ -2,14 +2,17 @@
 #
 # D. J. Kelly, 2018-10-26, douglas.kelly@riken.jp
 
-import json
+import json, os, platform
 from ij import IJ
 from ij.process import AutoThresholder
 
 class Parameters:
 	"""Class to hold analysis parameters"""
 
-	def __init__(self, input_image_path = None, 
+	_persist_parameters_filename = "IJ_membrane_blebbing_params.json";
+
+	def __init__(self, load_last_params = False,
+						input_image_path = None, 
 						output_path = None, 
 						curvature_length_pix = 10.0, 
 						threshold_method = 'Moments', 
@@ -22,20 +25,23 @@ class Parameters:
 						labeled_species = 'Actin'):
 		self.__blebbingparams__ = True;
 
-		self.input_image_path = input_image_path;
-		self.output_path = output_path;
+		if load_last_params:
+			self.loadLastParams();
+		else:
+			self.input_image_path = input_image_path;
+			self.output_path = output_path;
 
-		self.curvature_length_pix = curvature_length_pix;
-		self.threshold_method = threshold_method;
-		self.spatial_crop = spatial_crop;
-		self.manual_anchor_positions = manual_anchor_positions;
-		self.manual_anchor_midpoint = manual_anchor_midpoint;
+			self.curvature_length_pix = curvature_length_pix;
+			self.threshold_method = threshold_method;
+			self.spatial_crop = spatial_crop;
+			self.manual_anchor_positions = manual_anchor_positions;
+			self.manual_anchor_midpoint = manual_anchor_midpoint;
 
-		self.curvature_overlay_lut_string = curvature_overlay_lut_string;
-		self.curvature_kymograph_lut_string = curvature_kymograph_lut_string;
-		self.actin_kymograph_lut_string = actin_kymograph_lut_string;
+			self.curvature_overlay_lut_string = curvature_overlay_lut_string;
+			self.curvature_kymograph_lut_string = curvature_kymograph_lut_string;
+			self.actin_kymograph_lut_string = actin_kymograph_lut_string;
 
-		self.labeled_species = labeled_species;
+			self.labeled_species = labeled_species;
 
 	def setLabeledSpecies(self, labeled_species):
 		if not labeled_species:
@@ -117,6 +123,33 @@ class Parameters:
 			print("IOError reading from JSON file");
 		finally:
 			f.close();
+
+	def loadLastParams(self):
+		st = platform.mac_ver()[0];
+		if not st:
+			# windows
+			temp_path = os.path.join(os.getenv('APPDATA'), "IJ_membrane_blebbing");
+		else:
+			# mac
+			temp_path = os.path.join('~/Library/', "IJ_membrane_blebbing");
+		if not os.path.isdir(temp_path):
+			os.mkdir(temp_path);
+		temp_params_path = os.path.join(temp_path, Parameters._persist_parameters_filename);
+		if os.path.isfile(temp_params_path):
+			self.loadParametersFromJson(temp_params_path);
+
+	def persistParameters(self):
+		st = platform.mac_ver()[0];
+		if not st:
+			# windows
+			temp_path = os.path.join(os.getenv('APPDATA'), "IJ_membrane_blebbing");
+		else:
+			# mac
+			temp_path = os.path.join('~/Library/', "IJ_membrane_blebbing");
+		if not os.path.isdir(temp_path):
+			os.mkdir(temp_path);
+		temp_params_path = os.path.join(temp_path, Parameters._persist_parameters_filename);
+		self.saveParametersToJson(temp_params_path);
 
 #params = Parameters();
 #print(params.__dict__);

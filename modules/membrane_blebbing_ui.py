@@ -56,7 +56,7 @@ def prompt_for_points(imp, title, message, n_points):
 
 def analysis_parameters_gui():
 	"""GUI for setting analysis parameters at the start of a run. TODO: more effectively separate model and view"""
-	params = Parameters();
+	params = Parameters(load_last_params = True);
 	dialog = GenericDialog("Analysis parameters");
 	dialog.addNumericField("Curvature length parameter (pix):", 
 							params.curvature_length_pix, 
@@ -74,7 +74,7 @@ def analysis_parameters_gui():
 						IJ.getLuts(), 
 						params.actin_kymograph_lut_string);
 	dialog.addStringField("Labelled species for intensity analysis: ", 
-							"Actin");
+							params.labeled_species);
 	dialog.showDialog();
 	if dialog.wasCanceled():
 		raise KeyboardInterrupt("Run canceled");
@@ -85,6 +85,7 @@ def analysis_parameters_gui():
 	params.setCurvatureKymographLUT(chc[2].getSelectedItem());
 	params.setActinKymographLUT(chc[3].getSelectedItem()); # similarly, whether getNextChoice has method to get label - this way, less dependent on order not changing...
 	params.setLabeledSpecies(dialog.getNextString());
+	params.persistParameters();
 	return params;
 
 #out = analysis_parameters_gui();
