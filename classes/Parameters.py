@@ -22,7 +22,8 @@ class Parameters:
 						curvature_overlay_lut_string = 'physics', 
 						curvature_kymograph_lut_string = 'Yellow', 
 						actin_kymograph_lut_string = 'Cyan', 
-						labeled_species = 'Actin'):
+						labeled_species = 'Actin', 
+						filter_negative_curvatures = True):
 		self.__blebbingparams__ = True;
 
 		success = True;
@@ -43,6 +44,11 @@ class Parameters:
 			self.actin_kymograph_lut_string = actin_kymograph_lut_string;
 
 			self.labeled_species = labeled_species;
+			
+			self.filter_negative_curvatures = filter_negative_curvatures;
+
+	def setFilterNegativeCurvatures(self, dofilter):
+		self.filter_negative_curvatures = dofilter;
 
 	def setLabeledSpecies(self, labeled_species):
 		if not labeled_species:
@@ -118,6 +124,7 @@ class Parameters:
 				self.setCurvatureKymographLUT(dct["curvature_kymograph_lut_string"]);
 				self.setActinKymographLUT(dct["actin_kymograph_lut_string"]);
 				self.setLabeledSpecies(dct["labeled_species"]);
+				self.setFilterNegativeCurvatures(dct["filter_negative_curvatures"]);
 			else:
 				raise ValueError("JSON file doesn't translate to membrane blebbing analysis parameters")
 		except IOError:

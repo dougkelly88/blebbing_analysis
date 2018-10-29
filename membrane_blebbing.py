@@ -113,10 +113,9 @@ def main():
 		
 		# generate curvature - this needs to be looped over slices
 		curv_points = mb.generate_l_spaced_points(membrane_edge, params.curvature_length_pix);
-		remove_negative_curvatures = True;
 		curvature_profiles.append(mb.calculate_curvature_profile(curv_points,
 																membrane_edge, 
-																remove_negative_curvatures));
+																params.filter_negative_curvatures));
 		curv_limits = (min(curv_limits[0], min([c[1] for c in curvature_profiles[-1]])), 
 						max(curv_limits[1], max([c[1] for c in curvature_profiles[-1]])));
 		curvature_stack = mbfig.generate_curvature_overlays(curvature_profiles[-1], curvature_stack)
@@ -135,7 +134,7 @@ def main():
 	FileSaver(actin_kym).saveAsTiff(os.path.join(output_folder, "raw " + params.labeled_species + " kymograph.tif"));
 	FileSaver(norm_curv_kym).saveAsTiff(os.path.join(output_folder, "normalised position curvature kymograph.tif"));
 	FileSaver(curv_kym).saveAsTiff(os.path.join(output_folder, "raw curvature kymograph.tif"));
-	overlaid_curvature_imp, raw_curvature_imp = mbfig.overlay_curvatures(imp, curvature_stack, curvature_profiles, membrane_channel, curv_limits, params.curvature_overlay_lut_string);	
+	overlaid_curvature_imp, raw_curvature_imp = mbfig.overlay_curvatures(imp, curvature_stack, curvature_profiles, membrane_channel, curv_limits, params);	
 	overlaid_curvature_imp.show();
 	FileSaver(overlaid_curvature_imp).saveAsTiffStack(os.path.join(output_folder, "overlaid curvature.tif"));
 	FileSaver(raw_curvature_imp).saveAsTiffStack(os.path.join(output_folder, "raw curvature.tif"));

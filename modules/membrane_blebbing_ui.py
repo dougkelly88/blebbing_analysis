@@ -75,6 +75,8 @@ def analysis_parameters_gui():
 						params.actin_kymograph_lut_string);
 	dialog.addStringField("Labelled species for intensity analysis: ", 
 							params.labeled_species);
+	dialog.addCheckbox("Filter out negative curvatures", 
+						params.filter_negative_curvatures);
 	dialog.showDialog();
 	if dialog.wasCanceled():
 		raise KeyboardInterrupt("Run canceled");
@@ -85,6 +87,7 @@ def analysis_parameters_gui():
 	params.setCurvatureKymographLUT(chc[2].getSelectedItem());
 	params.setActinKymographLUT(chc[3].getSelectedItem()); # similarly, whether getNextChoice has method to get label - this way, less dependent on order not changing...
 	params.setLabeledSpecies(dialog.getNextString());
+	params.setFilterNegativeCurvatures(dialog.getNextBoolean());
 	params.persistParameters();
 	return params;
 

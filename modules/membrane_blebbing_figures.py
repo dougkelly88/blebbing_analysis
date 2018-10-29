@@ -35,11 +35,11 @@ def generate_curvature_overlays(curvature_profile, curvature_stack):
 	curvature_stack.addSlice(ip);
 	return curvature_stack;
 
-def overlay_curvatures(imp, curvature_stack, curvature_profiles, membrane_channel, limits, colormap_string):
+def overlay_curvatures(imp, curvature_stack, curvature_profiles, membrane_channel, limits, params):
 	"""Overlay curvature pixels on membrane image"""
 	overlay_base_imp = imp.clone();
 	overlay_imp = ImagePlus("Curvature stack", curvature_stack);
-	IJ.run(overlay_imp, colormap_string, "");
+	IJ.run(overlay_imp, params.curvature_overlay_lut_string, "");
 	IJ.setMinAndMax(overlay_imp, int(limits[0]), int(limits[1]));
 	raw_overlay = overlay_imp.clone();
 	IJ.run(overlay_imp, "RGB Color", "");
@@ -50,7 +50,10 @@ def overlay_curvatures(imp, curvature_stack, curvature_profiles, membrane_channe
 		pix = overlay_imp.getStack().getProcessor(fridx).getPixels();
 		base_pix = ip.getPixels();
 		for ((x, y), c) in curvature_profiles[fridx-1]:
-			if (c > 0):
+			if params.filter_negative_curvatures:
+				if (c > 0):
+					base_pix[int(round(y)) * imp.width + int(round(x))] = pix[int(round(y)) * imp.width + int(round(x))];
+			else: 
 				base_pix[int(round(y)) * imp.width + int(round(x))] = pix[int(round(y)) * imp.width + int(round(x))];
 		overlaid_stack.addSlice(ip);
 	return ImagePlus("Overlaid curvatures", overlaid_stack), raw_overlay;
