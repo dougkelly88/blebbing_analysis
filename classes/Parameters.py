@@ -25,9 +25,10 @@ class Parameters:
 						labeled_species = 'Actin'):
 		self.__blebbingparams__ = True;
 
+		success = True;
 		if load_last_params:
-			self.loadLastParams();
-		else:
+			success = self.loadLastParams();
+		if (not load_last_params) or not success:
 			self.input_image_path = input_image_path;
 			self.output_path = output_path;
 
@@ -121,22 +122,34 @@ class Parameters:
 				raise ValueError("JSON file doesn't translate to membrane blebbing analysis parameters")
 		except IOError:
 			print("IOError reading from JSON file");
+			return False;
+		except: 
+			return False;
 		finally:
 			f.close();
+		return True;
 
 	def loadLastParams(self):
-		st = platform.mac_ver()[0];
-		if not st:
-			# windows
-			temp_path = os.path.join(os.getenv('APPDATA'), "IJ_membrane_blebbing");
-		else:
-			# mac
-			temp_path = os.path.join('~/Library/', "IJ_membrane_blebbing");
-		if not os.path.isdir(temp_path):
-			os.mkdir(temp_path);
-		temp_params_path = os.path.join(temp_path, Parameters._persist_parameters_filename);
-		if os.path.isfile(temp_params_path):
-			self.loadParametersFromJson(temp_params_path);
+		success = True;
+		try:
+			st = platform.mac_ver()[0];
+			if not st:
+				# windows
+				temp_path = os.path.join(os.getenv('APPDATA'), "IJ_membrane_blebbing");
+			else:
+				# mac
+				temp_path = os.path.join('~/Library/', "IJ_membrane_blebbing");
+			if not os.path.isdir(temp_path):
+				os.mkdir(temp_path);
+			temp_params_path = os.path.join(temp_path, Parameters._persist_parameters_filename);
+			if os.path.isfile(temp_params_path):
+				success = self.loadParametersFromJson(temp_params_path);
+		except:
+			raise Warning("Error loading previous settings, reverting to default...");
+			return False;
+		if not success:
+			raise Warning("Error loading previous settings, reverting to default...");
+		return success;
 
 	def persistParameters(self):
 		st = platform.mac_ver()[0];
