@@ -129,10 +129,10 @@ def main():
 	# output colormapped images and kymographs 
 	norm_curv_kym = mbfig.generate_kymograph(curvature_profiles, params.curvature_kymograph_lut_string, "Curvature kymograph - distal point at middle");
 	curv_kym = mbfig.generate_plain_kymograph(curvature_profiles, params.curvature_kymograph_lut_string, "Curvature kymograph");
-	norm_actin_kym = mbfig.generate_kymograph(actin_profiles, params.actin_kymograph_lut_string, "Actin intensity - distal point at middle");
-	actin_kym = mbfig.generate_plain_kymograph(actin_profiles, params.actin_kymograph_lut_string, "Actin intensity");
-	FileSaver(actin_kym).saveAsTiff(os.path.join(output_folder, "normalised position actin kymograph.tif"));
-	FileSaver(actin_kym).saveAsTiff(os.path.join(output_folder, "raw actin kymograph.tif"));
+	norm_actin_kym = mbfig.generate_kymograph(actin_profiles, params.actin_kymograph_lut_string, (params.labeled_species + " intensity - distal point at middle"));
+	actin_kym = mbfig.generate_plain_kymograph(actin_profiles, params.actin_kymograph_lut_string, (params.labeled_species + " intensity"));
+	FileSaver(actin_kym).saveAsTiff(os.path.join(output_folder, "normalised position " + params.labeled_species + " kymograph.tif"));
+	FileSaver(actin_kym).saveAsTiff(os.path.join(output_folder, "raw " + params.labeled_species + " kymograph.tif"));
 	FileSaver(norm_curv_kym).saveAsTiff(os.path.join(output_folder, "normalised position curvature kymograph.tif"));
 	FileSaver(curv_kym).saveAsTiff(os.path.join(output_folder, "raw curvature kymograph.tif"));
 	overlaid_curvature_imp, raw_curvature_imp = mbfig.overlay_curvatures(imp, curvature_stack, curvature_profiles, membrane_channel, curv_limits, params.curvature_overlay_lut_string);	
@@ -140,9 +140,9 @@ def main():
 	FileSaver(overlaid_curvature_imp).saveAsTiffStack(os.path.join(output_folder, "overlaid curvature.tif"));
 	FileSaver(raw_curvature_imp).saveAsTiffStack(os.path.join(output_folder, "raw curvature.tif"));
 	mbio.save_profile_as_csv(curvature_profiles, os.path.join(output_folder, "curvatures.csv"), "curvature")
-	mbio.save_profile_as_csv(actin_profiles, os.path.join(output_folder, "actin intensities.csv"), "actin intensity")
+	mbio.save_profile_as_csv(actin_profiles, os.path.join(output_folder, (params.labeled_species + " intensities.csv")), (params.labeled_species + " intensity"))
 	FileSaver(membrane_channel_imp).saveAsTiffStack(os.path.join(output_folder, "binary_membrane_stack.tif"));
-	mrg_imp = mbfig.merge_kymographs(norm_actin_kym, norm_curv_kym);
+	mrg_imp = mbfig.merge_kymographs(norm_actin_kym, norm_curv_kym, params);
 	bleb_len_imp, bleb_ls = mbfig.plot_bleb_evolution([t * frame_interval for t in range(0, len(membrane_edges))], 
 											[mb.roi_length(medge) * pixel_size for medge in membrane_edges], 
 											"Edge length (" + pixel_size_unit + ")");

@@ -138,16 +138,16 @@ def generate_intensity_weighted_curvature(curvature_overlay, curvature_profiles,
 def plot_bleb_evolution(ts, prop_to_plots, title):
 	"""Plot evolution of a given bleb property over time"""
 	title = title.replace("\u00B5", "u");
-	plt = Plot((title + "against time"), "Time", title);
+	plt = Plot((title + " against time"), "Time", title);
 	plt.add("line", ts, prop_to_plots);
 	plt.show();
 	plot_data = [(t, d) for t, d in zip(ts, prop_to_plots)];
 	return plt.getImagePlus(), plot_data;
 
-def merge_kymographs(kym1_imp, kym2_imp):
+def merge_kymographs(kym1_imp, kym2_imp, params):
 	"""Merge two kymographs"""
 	mrg_imp = RGBStackMerge().mergeChannels([kym1_imp, kym2_imp], True);
-	mrg_imp.setTitle("Merged actin intensity and curvature kymograph");
+	mrg_imp.setTitle("Merged " + params.labeled_species + " intensity and curvature kymograph");
 	mrg_imp.show();
 	return mrg_imp;
 

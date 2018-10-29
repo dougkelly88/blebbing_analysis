@@ -55,7 +55,7 @@ def prompt_for_points(imp, title, message, n_points):
 	return [(p.x, p.y) for p in roi.getContainedPoints()];
 
 def analysis_parameters_gui():
-	"""GUI for setting analysis parameters at the start of a run"""
+	"""GUI for setting analysis parameters at the start of a run. TODO: more effectively separate model and view"""
 	params = Parameters();
 	dialog = GenericDialog("Analysis parameters");
 	dialog.addNumericField("Curvature length parameter (pix):", 
@@ -70,9 +70,11 @@ def analysis_parameters_gui():
 	dialog.addChoice("Curvature kymograph LUT: ", 
 						IJ.getLuts(), 
 						params.curvature_kymograph_lut_string);
-	dialog.addChoice("Actin kymograph LUT: ", 
+	dialog.addChoice("Labelled species kymograph LUT: ", 
 						IJ.getLuts(), 
 						params.actin_kymograph_lut_string);
+	dialog.addStringField("Labelled species for intensity analysis: ", 
+							"Actin");
 	dialog.showDialog();
 	chc =  dialog.getChoices();
 	params.setCurvatureLengthPix(dialog.getNextNumber()); # check whether label of numeric field is contained in getNextNumber?
@@ -80,6 +82,7 @@ def analysis_parameters_gui():
 	params.setCurvatureOverlayLUT(chc[1].getSelectedItem());
 	params.setCurvatureKymographLUT(chc[2].getSelectedItem());
 	params.setActinKymographLUT(chc[3].getSelectedItem()); # similarly, whether getNextChoice has method to get label - this way, less dependent on order not changing...
+	params.setLabeledSpecies(dialog.getNextString());
 	return params;
 
 #out = analysis_parameters_gui();

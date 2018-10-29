@@ -18,7 +18,8 @@ class Parameters:
 						manual_anchor_midpoint = None, 
 						curvature_overlay_lut_string = 'physics', 
 						curvature_kymograph_lut_string = 'Yellow', 
-						actin_kymograph_lut_string = 'Cyan'):
+						actin_kymograph_lut_string = 'Cyan', 
+						labeled_species = 'Actin'):
 		self.__blebbingparams__ = True;
 
 		self.input_image_path = input_image_path;
@@ -33,6 +34,13 @@ class Parameters:
 		self.curvature_overlay_lut_string = curvature_overlay_lut_string;
 		self.curvature_kymograph_lut_string = curvature_kymograph_lut_string;
 		self.actin_kymograph_lut_string = actin_kymograph_lut_string;
+
+		self.labeled_species = labeled_species;
+
+	def setLabeledSpecies(self, labeled_species):
+		if not labeled_species:
+			labeled_species = "DefaultLabeledSpecies";
+		self.labeled_species = labeled_species;
 
 	def setOutputPath(self, path):
 		# note that validating paths isn't trivial: https://stackoverflow.com/questions/9532499/check-whether-a-path-is-valid-in-python-without-creating-a-file-at-the-paths-ta
@@ -102,6 +110,7 @@ class Parameters:
 				self.setCurvatureOverlayLUT(dct["curvature_overlay_lut_string"]);
 				self.setCurvatureKymographLUT(dct["curvature_kymograph_lut_string"]);
 				self.setActinKymographLUT(dct["actin_kymograph_lut_string"]);
+				self.setLabeledSpecies(dct["labeled_species"]);
 			else:
 				raise ValueError("JSON file doesn't translate to membrane blebbing analysis parameters")
 		except IOError:
