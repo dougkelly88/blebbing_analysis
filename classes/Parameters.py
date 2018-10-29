@@ -47,6 +47,23 @@ class Parameters:
 			
 			self.filter_negative_curvatures = filter_negative_curvatures;
 
+			self.pixel_physical_size = 1.0;
+			self.pixel_unit = "um";
+			self.frame_interval = 1.0;
+			self.interval_unit = "s";
+
+	def setPixelSizeUnit(self, pixel_unit):
+		self.pixel_unit = pixel_unit;
+
+	def setIntervalUnit(self, interval_unit):
+		self.interval_unit = interval_unit;
+
+	def setPixelPhysicalSize(self, pixel_physical_size):
+		self.pixel_physical_size = pixel_physical_size;
+
+	def setFrameInterval(self, frame_interval):
+		self.frame_interval = frame_interval;
+
 	def setFilterNegativeCurvatures(self, dofilter):
 		self.filter_negative_curvatures = dofilter;
 

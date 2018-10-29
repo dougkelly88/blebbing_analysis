@@ -5,7 +5,7 @@
 # D.J. Kelly, 2018-09-26, douglas.kelly@riken.jp
 
 # imports
-import os, sys
+import os, sys, math
 from ij import IJ, ImageStack
 from ij.io import FileSaver
 from ij.plugin import ChannelSplitter
@@ -24,14 +24,14 @@ from Parameters import Parameters
 
 def main():
 	### debug ###############################################################
-	print (sys.version_info);
-	print(sys.path);
-	file_path = "D:\\data\\Inverse blebbing\\MAX_2dpf marcksl1b-EGFP inj_TgLifeact-mCh_movie e4_split-bleb1.tif";
-	output_root = "D:\\data\\Inverse blebbing\\output";
-	from datetime import datetime
-	timestamp = datetime.strftime(datetime.now(), '%Y-%m-%d %H-%M-%S');
-	output_folder = os.path.join(output_root, (timestamp + ' output')); 
-	os.mkdir(output_folder); 
+	#print (sys.version_info);
+	#print(sys.path);
+	#file_path = "D:\\data\\Inverse blebbing\\MAX_2dpf marcksl1b-EGFP inj_TgLifeact-mCh_movie e4_split-bleb1.tif";
+	#output_root = "D:\\data\\Inverse blebbing\\output";
+	#from datetime import datetime
+	#timestamp = datetime.strftime(datetime.now(), '%Y-%m-%d %H-%M-%S');
+	#output_folder = os.path.join(output_root, (timestamp + ' output')); 
+	#os.mkdir(output_folder); 
 	########################################################################
 	
 	# prompt user for file locations
@@ -49,10 +49,10 @@ def main():
 	imp.show();
 	reader = ImageReader();
 	reader.setId(file_path);
-	frame_interval = reader.getMetadataValue("Frame Interval").value();
-	frame_interval_unit = reader.getMetadataValue("Frame Interval").unit().getSymbol();
-	pixel_size = 1/reader.getMetadataValue("YResolution");
-	pixel_size_unit = reader.getMetadataValue("Unit");
+	params.setFrameInterval(reader.getMetadataValue("Frame Interval").value());
+	params.setIntervalUnit(reader.getMetadataValue("Frame Interval").unit().getSymbol())
+	params.setPixelPhysicalSize(1/reader.getMetadataValue("YResolution"));
+	params.setPixelSizeUnit(reader.getMetadataValue("Unit"))
 	mbui.autoset_zoom(imp);
 
 	# prompt user to select ROI
@@ -142,16 +142,16 @@ def main():
 	mbio.save_profile_as_csv(actin_profiles, os.path.join(output_folder, (params.labeled_species + " intensities.csv")), (params.labeled_species + " intensity"))
 	FileSaver(membrane_channel_imp).saveAsTiffStack(os.path.join(output_folder, "binary_membrane_stack.tif"));
 	mrg_imp = mbfig.merge_kymographs(norm_actin_kym, norm_curv_kym, params);
-	bleb_len_imp, bleb_ls = mbfig.plot_bleb_evolution([t * frame_interval for t in range(0, len(membrane_edges))], 
-											[mb.roi_length(medge) * pixel_size for medge in membrane_edges], 
-											"Edge length (" + pixel_size_unit + ")");
-	bleb_a_imp, bleb_as = mbfig.plot_bleb_evolution([t * frame_interval for t in range(0, len(membrane_edges))], 
-											[mb.roi_area(medge) * pixel_size * pixel_size for medge in membrane_edges], 
-											"Bleb area (" + pixel_size_unit + "^2)");
+	bleb_len_imp, bleb_ls = mbfig.plot_bleb_evolution([t * params.frame_interval for t in range(0, len(membrane_edges))], 
+											[mb.roi_length(medge) * params.pixel_physical_size for medge in membrane_edges], 
+											"Edge length (" + params.pixel_unit + ")");
+	bleb_a_imp, bleb_as = mbfig.plot_bleb_evolution([t * params.frame_interval for t in range(0, len(membrane_edges))], 
+											[mb.roi_area(medge) * math.pow(params.pixel_physical_size,2) for medge in membrane_edges], 
+											"Bleb area (" + params.pixel_unit + "^2)");
 	FileSaver(bleb_len_imp).saveAsTiff(os.path.join(output_folder, "bleb perimeter length.tif"));
 	FileSaver(bleb_a_imp).saveAsTiff(os.path.join(output_folder, "bleb perimeter area.tif"));
-	mbio.save_1d_profile_as_csv(bleb_ls, os.path.join(output_folder, "bleb perimeter length.csv"), ["Time, frames", "Length, " + pixel_size_unit]);
-	mbio.save_1d_profile_as_csv(bleb_as, os.path.join(output_folder, "bleb area.csv"), ["Time, " + frame_interval_unit, "Area, " + pixel_size_unit + "^2"]);
+	mbio.save_1d_profile_as_csv(bleb_ls, os.path.join(output_folder, "bleb perimeter length.csv"), [("Time, " + params.interval_unit), "Length, " + params.pixel_unit]);
+	mbio.save_1d_profile_as_csv(bleb_as, os.path.join(output_folder, "bleb area.csv"), [("Time, " + params.interval_unit), "Area, " + params.pixel_unit + "^2"]);
 	FileSaver(mrg_imp).saveAsTiff(os.path.join(output_folder, "merged intensity and curvature kymograph.tif"));
 	#mbfig.generate_intensity_weighted_curvature(raw_curvature_imp, curvature_profiles, actin_channel_imp, "physics");
 	params.saveParametersToJson(os.path.join(output_folder, "parameters used.json"));
