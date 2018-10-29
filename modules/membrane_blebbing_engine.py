@@ -12,8 +12,8 @@ from ij.plugin.filter import ParticleAnalyzer
 from ij.plugin.frame import RoiManager
 from ij.measure import ResultsTable
 
-# convert the membrane identification channel into binary for segmentation
 def make_and_clean_binary(imp, threshold_method):
+	"""convert the membrane identification channel into binary for segmentation"""
 	IJ.run(imp, "Make Binary", "method=" + threshold_method + " background=Dark calculate");
 	IJ.run(imp, "Fill Holes", "stack");
 	IJ.run(imp, "Open", "stack");
@@ -21,11 +21,8 @@ def make_and_clean_binary(imp, threshold_method):
 	keep_largest_blob(imp);
 	return imp;
 
-# move user-defined anchor points onto automatically-segmented membrane
-# can do this more efficiently but probably not worth optimising...
-# use set to implicitly avoid degeneracy, convert back to list. again, 
-# inefficient, but OK for small set
 def fix_anchors_to_membrane(anchors_list, membrane_roi):
+	"""move user-defined anchor points onto automatically-segmented membrane. TODO: make more efficient?"""
 	outline = membrane_roi.getPolygon();
 	fixed_anchors_set = set();
 	for anchor_idx, anchor in enumerate(anchors_list):
@@ -43,9 +40,8 @@ def fix_anchors_to_membrane(anchors_list, membrane_roi):
 	vec_ls = [vector_length((0, IJ.getImage().getHeight()), v) for v in sortlist];
 	return [sortlist[vec_ls.index(min(vec_ls))], sortlist[vec_ls.index(max(vec_ls))]];
 
-# figure out which edge of the roi is the membrane, since IJ might start the roi
-# from anywhere along the perimeter w.r.t. the user defined anchors
 def get_membrane_edge(roi, fixed_anchors, fixed_midpoint):
+	"""figure out which edge of the roi is the membrane, since IJ might start the roi from anywhere along the perimeter w.r.t. the user defined anchors"""
 	poly = roi.getPolygon();
 	started = False;
 	e1 = FloatPolygon();
@@ -73,18 +69,18 @@ def get_membrane_edge(roi, fixed_anchors, fixed_midpoint):
 		use_edge = (e1, e2)[vector_length(anchors_midpoint, e1_mean) < vector_length(anchors_midpoint, e2_mean)]
 	return 	PolygonRoi(use_edge, Roi.POLYLINE);
 
-# return angle between two vectors
 def angle_between_vecs(u_start, u_end, v_start, v_end):
-    u = (u_end[0] - u_start[0], u_end[1] - u_start[1]);
-    v = (v_end[0] - v_start[0], v_end[1] - v_start[1]);
-    return math.atan2(v[1], v[0]) - math.atan2(u[1], u[0]);
+	"""return angle between two vectors"""
+	u = (u_end[0] - u_start[0], u_end[1] - u_start[1]);
+	v = (v_end[0] - v_start[0], v_end[1] - v_start[1]);
+	return math.atan2(v[1], v[0]) - math.atan2(u[1], u[0]);
 
-# return vector length
 def vector_length(start, end):
+	"""return vector length, given start and end points"""
 	return math.sqrt(math.pow((start[0] - end[0]),2) + math.pow((start[1] - end[1]),2));
 
-# generate arrays of points along the membrane that are separated by path length l - currently in pixels
 def generate_l_spaced_points(roi, l): 
+	"""generate arrays of points along the membrane that are separated by path length l - currently in pixels"""
 	poly = roi.getInterpolatedPolygon();
 	p1, cp, p2 = ([] for i in range(3));
 	for idx,(x,y) in enumerate(zip(poly.xpoints,poly.ypoints)):
@@ -126,9 +122,8 @@ def generate_l_spaced_points(roi, l):
 					p2.append((xx, yy));
 	return (p1, cp, p2);
 
-# generate a line profile of local curvatures using three-point method and SSS theorem
-# (see http://mathworld.wolfram.com/SSSTheorem.html)
 def calculate_curvature_profile(curv_points, roi, remove_negative_curvatures):
+	"""generate a line profile of local curvatures using three-point method and SSS theorem (see http://mathworld.wolfram.com/SSSTheorem.html)"""
 	poly = roi.getInterpolatedPolygon();
 	curvature_profile = [((x,y),0) for (x,y) in zip(poly.xpoints, poly.ypoints)];
 	pos = [p for (p, c) in curvature_profile]
@@ -158,8 +153,8 @@ def calculate_curvature_profile(curv_points, roi, remove_negative_curvatures):
 		curvature_profile[pos.index(cp)] = (cp, curv);
 	return curvature_profile;
 
-# remove all blobs other than the largest by area
 def keep_largest_blob(imp):
+	"""remove all blobs other than the largest by area"""
 	rt = ResultsTable();
 	mxsz = imp.width * imp.height;
 	pa = ParticleAnalyzer(ParticleAnalyzer.ADD_TO_MANAGER, ParticleAnalyzer.AREA | ParticleAnalyzer.SLICE, rt, 0, mxsz);
@@ -179,8 +174,8 @@ def keep_largest_blob(imp):
 	roim.reset();
 	roim.close();
 
-# return a line profile taking the maximum value over n pixels perpendicular to roi line
 def maximum_line_profile(imp, roi, pixel_width):
+	"""return a line profile taking the maximum value over n pixels perpendicular to roi line"""
 	imp.setRoi(roi);
 	ip = Straightener().straightenLine(imp, pixel_width);
 	width = ip.getWidth();
@@ -191,3 +186,13 @@ def maximum_line_profile(imp, roi, pixel_width):
 		pix = ip.getLine(idx, 0, idx, height);
 		max_profile.append(((x, y), max(pix)));
 	return max_profile;
+
+def roi_length(membrane_edge):
+	"""calculate the length of the drawn membrane"""
+	return membrane_edge.getLength();
+
+def roi_area(membrane_edge):
+	"""calculate the area of the drawn bleb"""
+	poly = membrane_edge.getPolygon();
+	area_roi = PolygonRoi([x for x in poly.xpoints], [y for y in poly.ypoints], Roi.POLYGON);
+	return area_roi.getStatistics().area;

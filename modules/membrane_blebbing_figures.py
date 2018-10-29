@@ -135,15 +135,14 @@ def generate_intensity_weighted_curvature(curvature_overlay, curvature_profiles,
 	base_impRGB.show();
 	curv_impRGB.show();
 
-def plot_bleb_length(membrane_edges):
-	"""Plot 'bleb length'"""
-	ts = [x for x in range(0, len(membrane_edges))];
-	bleb_ls = [membrane_edge.getLength() for membrane_edge in membrane_edges];
-	plt = Plot("Crude bleb perimeter length against time", "Time, frames", "Bleb length, um");
-	plt.add("line", ts, bleb_ls)
+def plot_bleb_evolution(ts, prop_to_plots, title):
+	"""Plot evolution of a given bleb property over time"""
+	title = title.replace("\u00B5", "u");
+	plt = Plot((title + "against time"), "Time", title);
+	plt.add("line", ts, prop_to_plots);
 	plt.show();
-	plot_data = [(t, l) for t, l in zip(ts, bleb_ls)];
-	return plt.getImagePlus(), plot_data
+	plot_data = [(t, d) for t, d in zip(ts, prop_to_plots)];
+	return plt.getImagePlus(), plot_data;
 
 def merge_kymographs(kym1_imp, kym2_imp):
 	"""Merge two kymographs"""

@@ -143,10 +143,17 @@ def main():
 	mbio.save_profile_as_csv(actin_profiles, os.path.join(output_folder, "actin intensities.csv"), "actin intensity")
 	FileSaver(membrane_channel_imp).saveAsTiffStack(os.path.join(output_folder, "binary_membrane_stack.tif"));
 	mrg_imp = mbfig.merge_kymographs(norm_actin_kym, norm_curv_kym);
-	bleb_len_imp, bleb_ls = mbfig.plot_bleb_length(membrane_edges);
+	bleb_len_imp, bleb_ls = mbfig.plot_bleb_evolution([t * frame_interval for t in range(0, len(membrane_edges))], 
+											[mb.roi_length(medge) * pixel_size for medge in membrane_edges], 
+											"Edge length (" + pixel_size_unit + ")");
+	bleb_a_imp, bleb_as = mbfig.plot_bleb_evolution([t * frame_interval for t in range(0, len(membrane_edges))], 
+											[mb.roi_area(medge) * pixel_size * pixel_size for medge in membrane_edges], 
+											"Bleb area (" + pixel_size_unit + "^2)");
 	FileSaver(bleb_len_imp).saveAsTiff(os.path.join(output_folder, "bleb perimeter length.tif"));
+	FileSaver(bleb_a_imp).saveAsTiff(os.path.join(output_folder, "bleb perimeter area.tif"));
+	mbio.save_1d_profile_as_csv(bleb_ls, os.path.join(output_folder, "bleb perimeter length.csv"), ["Time, frames", "Length, " + pixel_size_unit]);
+	mbio.save_1d_profile_as_csv(bleb_as, os.path.join(output_folder, "bleb area.csv"), ["Time, " + frame_interval_unit, "Area, " + pixel_size_unit + "^2"]);
 	FileSaver(mrg_imp).saveAsTiff(os.path.join(output_folder, "merged intensity and curvature kymograph.tif"));
-	mbio.save_1d_profile_as_csv(bleb_ls, os.path.join(output_folder, "bleb perimeter length.csv"), ["Time, frames", "Length, um"]);
 	#mbfig.generate_intensity_weighted_curvature(raw_curvature_imp, curvature_profiles, actin_channel_imp, "physics");
 	params.saveParametersToJson(os.path.join(output_folder, "parameters used.json"));
 	IJ.setTool("zoom");
