@@ -4,13 +4,14 @@
 
 # imports
 import math
-from ij import IJ;
+from ij import IJ, ImagePlus;
 from ij.gui import PolygonRoi, Roi
 from ij.process import FloatPolygon
 from ij.plugin import Straightener
 from ij.plugin.filter import ParticleAnalyzer
 from ij.plugin.frame import RoiManager
 from ij.measure import ResultsTable
+from ij.gui import WaitForUserDialog
 
 def make_and_clean_binary(imp, threshold_method):
 	"""convert the membrane identification channel into binary for segmentation"""
@@ -161,8 +162,10 @@ def keep_largest_blob(imp):
 
 	roim = RoiManager();
 	for idx in range(1, imp.getImageStackSize()+1):
-		roim.reset();
-		rt.reset();
+		try:
+			roim.reset();
+		except:
+			print(roim);
 		imp.setPosition(idx);
 		pa.analyze(imp);
 		rt_areas = rt.getColumn(rt.getColumnIndex("Area")).tolist();
@@ -173,6 +176,7 @@ def keep_largest_blob(imp):
 			roim.runCommand(imp, "Fill");
 	roim.reset();
 	roim.close();
+	rt.reset();
 
 def maximum_line_profile(imp, roi, pixel_width):
 	"""return a line profile taking the maximum value over n pixels perpendicular to roi line"""
@@ -191,8 +195,47 @@ def roi_length(membrane_edge):
 	"""calculate the length of the drawn membrane"""
 	return membrane_edge.getLength();
 
-def roi_area(membrane_edge):
-	"""calculate the area of the drawn bleb"""
+def bleb_area(membrane_edge, imp):
+	"""calculate the area of the drawn bleb, accounting for membrane crossing line joining anchors"""
+	# N.B. but area measured from intersection with anchor line, not from inflection points...
+	# generate binary mask of bleb
 	poly = membrane_edge.getPolygon();
 	area_roi = PolygonRoi([x for x in poly.xpoints], [y for y in poly.ypoints], Roi.POLYGON);
-	return area_roi.getStatistics().area;
+	imp2 = IJ.createImage("binary", imp.getWidth(), imp.getHeight(), 1, 8);
+	imp2.setRoi(area_roi);
+	mask = imp2.createRoiMask();
+	mskimp = ImagePlus("mask", mask);
+	IJ.run(mskimp, "Invert", "");
+
+	# get the largest area as the main part of the bleb
+	ip = mskimp.getProcessor();
+	mskimp.setProcessor(ip.resize(3 * imp.getWidth()));
+	IJ.run(mskimp, "Erode", "");
+	keep_largest_blob(mskimp);
+	ip = mskimp.getProcessor();
+	IJ.run(mskimp, "Dilate", "");
+	mskimp.setProcessor(ip.resize(imp.getWidth()));
+	rt = ResultsTable();
+	mxsz = imp.width * imp.height;
+	roim = RoiManager();
+	pa = ParticleAnalyzer(ParticleAnalyzer.ADD_TO_MANAGER, ParticleAnalyzer.AREA | ParticleAnalyzer.SLICE, rt, 0, mxsz);
+	pa.analyze(mskimp);
+	nroi = roim.getRoi(0);
+	mskimp.setRoi(nroi);
+	return nroi.getStatistics().area;
+
+	#anchorline_roi = PolygonRoi([float(poly.xpoints[0]), float(poly.xpoints[-1])], 
+	#						 [float(poly.ypoints[0]), float(poly.ypoints[-1])], 
+	#						 Roi.POLYLINE);
+	#mskimp.killRoi();
+	#IJ.run(mskimp, "Dilate", "");
+	#pa = ParticleAnalyzer(ParticleAnalyzer.ADD_TO_MANAGER, ParticleAnalyzer.AREA | ParticleAnalyzer.SLICE, rt, 0, mxsz);
+	#pa.analyze(mskimp);
+	#nnroi = roim.getRoi(0);
+	#for idx, pt in enumerate(anchorline_roi.getContainedPoints()):
+	#	if pt in membrane_edge.getContainedPoints() and pt in nnroi.getContainedPoints():
+	#		print(pt);
+	#rotangle = membrane_edge.getAngle(poly.xpoints[0], poly.ypoints[0], poly.xpoints[-1], poly.ypoints[-1]);
+	#imp.setRoi(membrane_edge);
+	#WaitForUserDialog("paise").show();
+	#roim.close();

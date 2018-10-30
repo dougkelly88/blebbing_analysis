@@ -1,6 +1,7 @@
 import math, os, sys, unittest
 script_path = os.path.dirname(os.path.realpath(__file__))
 sys.path.insert(0, os.path.join(script_path, 'modules'));
+sys.path.insert(0, os.path.join(script_path, 'classes'));
 
 import membrane_blebbing_fileio as mbio;
 import membrane_blebbing_ui as mbui;
@@ -10,7 +11,6 @@ import membrane_blebbing_figures as mbfig;
 from ij import ImagePlus
 from ij.gui import PolygonRoi, Roi
 from ij.process import FloatProcessor
-
 
 class TestMbEngine(unittest.TestCase):
 	def test_vector_length(self):
@@ -25,9 +25,8 @@ class TestMbEngine(unittest.TestCase):
 		self.assertEqual(-math.pi/2, mb.angle_between_vecs((0,0),(1,0),(0,0),(0,-1)));
 		self.assertEqual(math.pi/2, mb.angle_between_vecs((0,0),(1,0),(0,-1),(0,0)));
 
-	# test that anchors are fixed to expected positions,
-	# and that degenerate anchors raise an error
 	def test_fix_anchors_to_membrane(self):
+		"""test that anchors are fixed to expected positions, and that degenerate anchors raise an error"""
 		ip = FloatProcessor(3, 5);
 		imp = ImagePlus("testimp", ip);
 		ypts = [y for y in range(1, 6)];
@@ -38,8 +37,8 @@ class TestMbEngine(unittest.TestCase):
 		self.assertRaises(ValueError, mb.fix_anchors_to_membrane, [(1,2), (1,2)], roi)
 		imp.close();
 
-	# test that start and end of l-spaced points range are as expected
 	def test_generate_l_spaced_points(self):
+		"""test that start and end of l-spaced points range are as expected"""
 		ypts = [y for y in range(0, 101)];
 		xpts = [2 for y in range(0, 101)];
 		roi = PolygonRoi(xpts, ypts, Roi.POLYLINE);
@@ -48,10 +47,9 @@ class TestMbEngine(unittest.TestCase):
 		test_group2 = [l_spaced_points[0][-1], l_spaced_points[1][-1], l_spaced_points[2][-1]];
 		self.assertEqual([(2,0),(2,5),(2,10)], test_group1);
 		self.assertEqual([(2,90),(2,95),(2,100)], test_group2);
-
-	# test that flat line returns 0 curvature, r = 1000 curve returns 1/1000 curvature, 
-	# and that negative curvatures are removed appropriately
+		
 	def test_calculate_curvature_profile(self):
+		"""test that flat line returns 0 curvature, r = 1000 curve returns 1/1000 curvature, and that negative curvatures are removed appropriately"""
 		ypts = [y for y in range(0, 3)];
 		xpts = [1 for y in range(0, 3)];
 		roi = PolygonRoi(xpts, ypts, Roi.POLYLINE);
@@ -82,6 +80,31 @@ class TestMbEngine(unittest.TestCase):
 		ctest4 = cp[int(round(len(cp)/2))][1];
 		self.assertEqual(ctest4, 0);
 		
+	def test_roi_length(self):
+		ypts = [y for y in range(0, 3)];
+		xpts = [1 for y in range(0, 3)];
+		roi = PolygonRoi(xpts, ypts, Roi.POLYLINE);
+		self.assertEqual(mb.roi_length(roi), 2);
+
+	def test_bleb_area(self):
+		ip = FloatProcessor(10, 10);
+		imp = ImagePlus("testimp", ip);
+		
+		xpts = [1, 2, 2, 3, 3, 4];
+		ypts = [1, 1, 2, 2, 1, 1];
+		roi = PolygonRoi(xpts, ypts, Roi.POLYLINE);
+		imp.setRoi(roi);
+		self.assertEqual(mb.bleb_area(roi, imp), 1);
+		imp.killRoi()
+
+		# test behaviour when membrane crosses the line joining the anchor points
+		xpts = [1, 1, 2, 2, 3, 4, 5, 6, 6, 7, 7];
+		ypts = [2, 1, 1, 3, 3, 3, 3, 3, 1, 1, 2];
+		roi = PolygonRoi(xpts, ypts, Roi.POLYLINE);
+		imp.setRoi(roi);
+		area = mb.bleb_area(roi, imp)
+		self.assertEqual(area, 4);
+		imp.close();
 
 if __name__ in ['__builtin__','__main__']:
 	suite = unittest.TestLoader().loadTestsFromTestCase(TestMbEngine)
