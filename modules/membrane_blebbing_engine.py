@@ -162,10 +162,8 @@ def keep_largest_blob(imp):
 
 	roim = RoiManager();
 	for idx in range(1, imp.getImageStackSize()+1):
-		try:
-			roim.reset();
-		except:
-			print(roim);
+		roim.reset();
+		rt.reset();
 		imp.setPosition(idx);
 		pa.analyze(imp);
 		rt_areas = rt.getColumn(rt.getColumnIndex("Area")).tolist();
@@ -176,7 +174,6 @@ def keep_largest_blob(imp):
 			roim.runCommand(imp, "Fill");
 	roim.reset();
 	roim.close();
-	rt.reset();
 
 def maximum_line_profile(imp, roi, pixel_width):
 	"""return a line profile taking the maximum value over n pixels perpendicular to roi line"""
@@ -216,8 +213,6 @@ def bleb_area(membrane_edge):
 	area_poly_ys = ys[idx1:idx2+1];
 	area_roi = PolygonRoi(area_poly_xs, area_poly_ys, Roi.POLYGON);
 	area = area_roi.getStatistics().area;
-	imp.setRoi(area_roi);
-	print(area);
-	imp.setRoi(membrane_edge);
+	#print(area);
 	return area, area_roi;
 
