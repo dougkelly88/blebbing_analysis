@@ -164,6 +164,18 @@ def main():
 	params.saveParametersToJson(os.path.join(output_folder, "parameters used.json"));
 	imp.changes = False;
 	IJ.setTool("zoom");
+	if params.close_on_completion:
+		imp.close();
+		mrg_imp.close();
+		bleb_a_imp.close();
+		bleb_len_imp.close();
+		raw_curvature_imp.close();
+		overlaid_curvature_imp.close();
+		norm_curv_kym.close();
+		curv_kym.close();
+		norm_actin_kym.close();
+		actin_kym.close();
+
 
 # It's best practice to create a function that contains the code that is executed when running the script.
 # This enables us to stop the script by just calling return.

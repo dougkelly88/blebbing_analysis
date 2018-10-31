@@ -96,6 +96,8 @@ def analysis_parameters_gui():
 	dialog.addToSameRow();
 	dialog.addCheckbox("Perform time cropping?", 
 						params.perform_time_crop)
+	dialog.addCheckbox("Close images on completion?", 
+						params.close_on_completion)
 	dialog.showDialog();
 	if dialog.wasCanceled():
 		raise KeyboardInterrupt("Run canceled");
@@ -109,5 +111,6 @@ def analysis_parameters_gui():
 	params.setFilterNegativeCurvatures(dialog.getNextBoolean());
 	params.toggleSpatialCrop(dialog.getNextBoolean());
 	params.toggleTimeCrop(dialog.getNextBoolean());
+	params.toggleCloseOnCompletion(dialog.getNextBoolean());
 	params.persistParameters();
 	return params;

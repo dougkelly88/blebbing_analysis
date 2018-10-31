@@ -27,7 +27,8 @@ class Parameters:
 						filter_negative_curvatures = True, 
 						perform_spatial_crop = False, 
 						perform_time_crop = False, 
-						time_crop_start_end = None):
+						time_crop_start_end = None, 
+						close_on_completion = False):
 		self.__blebbingparams__ = True;
 
 		success = True;
@@ -40,6 +41,7 @@ class Parameters:
 				self.input_image_path = input_image_path;
 
 			self.output_path = output_path;
+			self.close_on_completion = close_on_completion;
 
 			self.curvature_length_pix = curvature_length_pix;
 			self.threshold_method = threshold_method;
@@ -64,6 +66,9 @@ class Parameters:
 			self.interval_unit = "s";
 
 		self.software_version = Parameters._version_string;
+
+	def toggleCloseOnCompletion(self, do_close_on_completion):
+		self.close_on_completion = do_close_on_completion;
 
 	def setTimeCropStartEnd(self, start_and_end_tuple):
 		self.time_crop_start_end = start_and_end_tuple;
@@ -167,6 +172,7 @@ class Parameters:
 				self.setTimeCropStartEnd(dct["time_crop_start_end"]);
 				self.toggleSpatialCrop(dct["perform_spatial_crop"]);
 				self.toggleTimeCrop(dct["perform_time_crop"]);
+				self.toggleCloseOnCompletion(dct["close_on_completion"]);
 			else:
 				raise ValueError("JSON file doesn't translate to membrane blebbing analysis parameters")
 		except IOError:
@@ -196,11 +202,9 @@ class Parameters:
 			else:
 				success = False;
 		except:
-			#raise Warning("Error loading previous settings, reverting to default...");
 			print("Warning: Error loading previous settings, reverting to default...");
 			return False;
 		if not success:
-			#raise Warning("Error loading previous settings, reverting to default...");
 			print("Warning: Error loading previous settings, reverting to default...");
 		return success;
 
