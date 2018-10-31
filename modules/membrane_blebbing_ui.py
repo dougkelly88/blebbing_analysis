@@ -62,8 +62,11 @@ def time_crop(imp):
 	end_frame = imp.getT();
 	slices = imp.getNSlices();
 	channels = imp.getNChannels();
-	cropimp = Duplicator().run(imp, 1, channels, 1, slices, start_frame, end_frame)
-	return cropimp, (start_frame, end_frame);
+	dupimp = Duplicator().run(imp, 1, channels, 1, slices, start_frame, end_frame);
+	imp.close();
+	dupimp.show()
+	autoset_zoom(dupimp);
+	return dupimp, (start_frame, end_frame);
 
 def analysis_parameters_gui():
 	"""GUI for setting analysis parameters at the start of a run. TODO: more effectively separate model and view"""
@@ -90,9 +93,9 @@ def analysis_parameters_gui():
 						params.filter_negative_curvatures);
 	dialog.addCheckbox("Perform spatial cropping?", 
 						params.perform_spatial_crop)
-	#dialog.addToSameRow();
-	#dialog.addCheckbox("Perform time cropping?", 
-	#					params.perform_time_crop)
+	dialog.addToSameRow();
+	dialog.addCheckbox("Perform time cropping?", 
+						params.perform_time_crop)
 	dialog.showDialog();
 	if dialog.wasCanceled():
 		raise KeyboardInterrupt("Run canceled");
@@ -105,9 +108,6 @@ def analysis_parameters_gui():
 	params.setLabeledSpecies(dialog.getNextString());
 	params.setFilterNegativeCurvatures(dialog.getNextBoolean());
 	params.toggleSpatialCrop(dialog.getNextBoolean());
-	#params.toggleTimeCrop(dialog.getNextBoolean());
+	params.toggleTimeCrop(dialog.getNextBoolean());
 	params.persistParameters();
 	return params;
-
-#out = analysis_parameters_gui();
-#print(out.__dict__);

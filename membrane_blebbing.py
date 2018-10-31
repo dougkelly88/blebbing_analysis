@@ -64,18 +64,11 @@ def main():
 			params.setSpatialCrop(crop_params.toString());
 			mbui.autoset_zoom(imp);
 
-	## prompt user to do time cropping
-	#if params.perform_time_crop:
-	#	print("time crop!");
-	#	imp, params.time_crop_start_end = mbui.time_crop(preimp);
-	#	preimp.changes = False;
-	#	preimp.close();
-	#	imp.show();
-	#else:
-	#	imp = Duplicator().run(preimp);
-	#	mbui.autoset_zoom(imp);
-	#	print("just zoomed");
-	#	WaitForUserDialog("wait").show();
+	# prompt user to do time cropping
+	if params.perform_time_crop:
+		print("time crop!");
+		imp, start_end_tuple = mbui.time_crop(imp)
+		params.setTimeCropStartEnd(start_end_tuple);
 
 	h = imp.height;
 	w = imp.width;
