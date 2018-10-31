@@ -13,14 +13,19 @@ from ij.plugin import ChannelSplitter, Duplicator
 from loci.formats import ImageReader
 from loci.plugins import BF as bf
 
-script_path = os.path.dirname(os.path.realpath(__file__))
+script_path = os.path.dirname(os.path.realpath(__file__));
+if "Fiji.app" in script_path:
+	ss = script_path.split("Fiji.app");
+	final_folder = os.path.basename(script_path);
+	script_path = os.path.join(ss[0], "Fiji.app", "plugins", "Scripts", "Plugins", final_folder);
 sys.path.insert(0, os.path.join(script_path, 'modules'));
 sys.path.insert(0, os.path.join(script_path, 'classes'));
+print(sys.path);
 
-import membrane_blebbing_fileio as mbio;
-import membrane_blebbing_ui as mbui;
-import membrane_blebbing_engine as mb;
-import membrane_blebbing_figures as mbfig;
+import membraneBlebbingFileio as mbio;
+import membraneBlebbingUi as mbui;
+import membraneBlebbingEngine as mb;
+import membraneBlebbingFigures as mbfig;
 from Parameters import Parameters
 
 def main():

@@ -16,7 +16,7 @@ from ij.gui import Plot, GenericDialog
 from ij.measure import Measurements
 from ij.plugin import RGBStackMerge
 from ij.process import FloatProcessor, ByteProcessor, ColorProcessor
-import membrane_blebbing_engine as mb;
+import membraneBlebbingEngine as mb;
 
 def pause_for_debug():
 	gd = GenericDialog("Continue?");

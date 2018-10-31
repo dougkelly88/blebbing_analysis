@@ -10,7 +10,7 @@ class Parameters:
 	"""Class to hold analysis parameters"""
 
 	_persist_parameters_filename = "IJ_membrane_blebbing_params.json";
-	_version_string = "0.0.1";
+	_version_string = "1.0.1";
 
 	def __init__(self, load_last_params = False,
 						input_image_path = None, 
