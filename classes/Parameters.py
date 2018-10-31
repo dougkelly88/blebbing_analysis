@@ -189,6 +189,8 @@ class Parameters:
 			temp_params_path = os.path.join(temp_path, Parameters._persist_parameters_filename);
 			if os.path.isfile(temp_params_path):
 				success = self.loadParametersFromJson(temp_params_path);
+			else:
+				success = False;
 		except:
 			#raise Warning("Error loading previous settings, reverting to default...");
 			print("Warning: Error loading previous settings, reverting to default...");
