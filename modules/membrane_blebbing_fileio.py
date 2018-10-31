@@ -17,7 +17,7 @@ def file_location_chooser(default_directory):
 	if file_path is None:
 		raise IOError('no input file chosen');
 	# output
-	DirectoryChooser.setDefaultDirectory(default_directory);
+	DirectoryChooser.setDefaultDirectory(os.path.dirname(file_path));
 	dc = DirectoryChooser('Select the root folder for saving output');
 	output_root = dc.getDirectory();
 	if output_root is None:

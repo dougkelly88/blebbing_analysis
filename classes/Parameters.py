@@ -34,7 +34,11 @@ class Parameters:
 		if load_last_params:
 			success = self.loadLastParams();
 		if (not load_last_params) or not success:
-			self.input_image_path = input_image_path;
+			if input_image_path is None:
+				self.input_image_path = os.path.expanduser("~");
+			else:
+				self.input_image_path = input_image_path;
+
 			self.output_path = output_path;
 
 			self.curvature_length_pix = curvature_length_pix;

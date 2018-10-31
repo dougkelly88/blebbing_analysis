@@ -35,14 +35,12 @@ def main():
 	#os.mkdir(output_folder); 
 	########################################################################
 	
-	# prompt user for file locations
-	default_directory = "D:\\data\\Inverse blebbing\\";
-	file_path, output_folder = mbio.file_location_chooser(default_directory);
-
 	# prompt user for input parameters
 	params = mbui.analysis_parameters_gui();
+
+	# prompt user for file locations
+	file_path, output_folder = mbio.file_location_chooser(params.input_image_path);
 	params.setInputImagePath(file_path);
-	params.saveParametersToJson("C:\\Users\\dougk\\Desktop\\test.json")
 
 	# get image file
 	imps = bf.openImagePlus(file_path);
@@ -66,7 +64,6 @@ def main():
 
 	# prompt user to do time cropping
 	if params.perform_time_crop:
-		print("time crop!");
 		imp, start_end_tuple = mbui.time_crop(imp)
 		params.setTimeCropStartEnd(start_end_tuple);
 
