@@ -195,47 +195,29 @@ def roi_length(membrane_edge):
 	"""calculate the length of the drawn membrane"""
 	return membrane_edge.getLength();
 
-def bleb_area(membrane_edge, imp):
+def bleb_area(membrane_edge):
 	"""calculate the area of the drawn bleb, accounting for membrane crossing line joining anchors"""
-	# N.B. but area measured from intersection with anchor line, not from inflection points...
-	# generate binary mask of bleb
 	poly = membrane_edge.getPolygon();
-	area_roi = PolygonRoi([x for x in poly.xpoints], [y for y in poly.ypoints], Roi.POLYGON);
-	imp2 = IJ.createImage("binary", imp.getWidth(), imp.getHeight(), 1, 8);
-	imp2.setRoi(area_roi);
-	mask = imp2.createRoiMask();
-	mskimp = ImagePlus("mask", mask);
-	IJ.run(mskimp, "Invert", "");
+	xs = [x for x in poly.xpoints];
+	ys = [y for y in poly.ypoints];
+	rotangle = membrane_edge.getAngle(xs[0], ys[0], xs[-1], ys[-1]) / 180 * math.pi;
+	rotY = [(x * math.sin(rotangle) + y * math.cos(rotangle)) for x, y in zip(xs, ys)];
+	meanRotY = sum(rotY)/len(rotY);
+	seg1 = rotY[:int(round(len(rotY)/2))];
+	seg1.reverse();
+	seg2 = rotY[int(round(len(rotY)/2)):];
+	if meanRotY > rotY[0]:
+		idx1 = len(seg1) - seg1.index(min(seg1));
+		idx2 = int(round(len(rotY)/2)) + seg2.index(min(seg2));
+	else:
+		idx1 = len(seg1) - seg1.index(max(seg1));
+		idx2 = int(round(len(rotY)/2)) + seg2.index(max(seg2));
+	area_poly_xs = xs[idx1:idx2+1];
+	area_poly_ys = ys[idx1:idx2+1];
+	area_roi = PolygonRoi(area_poly_xs, area_poly_ys, Roi.POLYGON);
+	area = area_roi.getStatistics().area;
+	imp.setRoi(area_roi);
+	print(area);
+	imp.setRoi(membrane_edge);
+	return area, area_roi;
 
-	# get the largest area as the main part of the bleb
-	ip = mskimp.getProcessor();
-	mskimp.setProcessor(ip.resize(3 * imp.getWidth()));
-	IJ.run(mskimp, "Erode", "");
-	keep_largest_blob(mskimp);
-	ip = mskimp.getProcessor();
-	IJ.run(mskimp, "Dilate", "");
-	mskimp.setProcessor(ip.resize(imp.getWidth()));
-	rt = ResultsTable();
-	mxsz = imp.width * imp.height;
-	roim = RoiManager();
-	pa = ParticleAnalyzer(ParticleAnalyzer.ADD_TO_MANAGER, ParticleAnalyzer.AREA | ParticleAnalyzer.SLICE, rt, 0, mxsz);
-	pa.analyze(mskimp);
-	nroi = roim.getRoi(0);
-	mskimp.setRoi(nroi);
-	return nroi.getStatistics().area;
-
-	#anchorline_roi = PolygonRoi([float(poly.xpoints[0]), float(poly.xpoints[-1])], 
-	#						 [float(poly.ypoints[0]), float(poly.ypoints[-1])], 
-	#						 Roi.POLYLINE);
-	#mskimp.killRoi();
-	#IJ.run(mskimp, "Dilate", "");
-	#pa = ParticleAnalyzer(ParticleAnalyzer.ADD_TO_MANAGER, ParticleAnalyzer.AREA | ParticleAnalyzer.SLICE, rt, 0, mxsz);
-	#pa.analyze(mskimp);
-	#nnroi = roim.getRoi(0);
-	#for idx, pt in enumerate(anchorline_roi.getContainedPoints()):
-	#	if pt in membrane_edge.getContainedPoints() and pt in nnroi.getContainedPoints():
-	#		print(pt);
-	#rotangle = membrane_edge.getAngle(poly.xpoints[0], poly.ypoints[0], poly.xpoints[-1], poly.ypoints[-1]);
-	#imp.setRoi(membrane_edge);
-	#WaitForUserDialog("paise").show();
-	#roim.close();
