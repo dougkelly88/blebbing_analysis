@@ -6,6 +6,7 @@
 import math
 from ij import IJ
 from ij.gui import WaitForUserDialog, GenericDialog
+from ij.plugin import Duplicator
 from ij.process import AutoThresholder
 
 from Parameters import Parameters
@@ -54,6 +55,16 @@ def prompt_for_points(imp, title, message, n_points):
 			imp.killRoi();
 	return [(p.x, p.y) for p in roi.getContainedPoints()];
 
+def time_crop(imp):
+	WaitForUserDialog("Choose first time frame and click OK...").show();
+	start_frame = imp.getT();
+	WaitForUserDialog("Now choose last time frame and click OK...").show();
+	end_frame = imp.getT();
+	slices = imp.getNSlices();
+	channels = imp.getNChannels();
+	cropimp = Duplicator().run(imp, 1, channels, 1, slices, start_frame, end_frame)
+	return cropimp, (start_frame, end_frame);
+
 def analysis_parameters_gui():
 	"""GUI for setting analysis parameters at the start of a run. TODO: more effectively separate model and view"""
 	params = Parameters(load_last_params = True);
@@ -77,6 +88,11 @@ def analysis_parameters_gui():
 							params.labeled_species);
 	dialog.addCheckbox("Filter out negative curvatures", 
 						params.filter_negative_curvatures);
+	dialog.addCheckbox("Perform spatial cropping?", 
+						params.perform_spatial_crop)
+	#dialog.addToSameRow();
+	#dialog.addCheckbox("Perform time cropping?", 
+	#					params.perform_time_crop)
 	dialog.showDialog();
 	if dialog.wasCanceled():
 		raise KeyboardInterrupt("Run canceled");
@@ -88,6 +104,8 @@ def analysis_parameters_gui():
 	params.setActinKymographLUT(chc[3].getSelectedItem()); # similarly, whether getNextChoice has method to get label - this way, less dependent on order not changing...
 	params.setLabeledSpecies(dialog.getNextString());
 	params.setFilterNegativeCurvatures(dialog.getNextBoolean());
+	params.toggleSpatialCrop(dialog.getNextBoolean());
+	#params.toggleTimeCrop(dialog.getNextBoolean());
 	params.persistParameters();
 	return params;
 

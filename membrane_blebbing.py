@@ -8,7 +8,8 @@
 import os, sys, math
 from ij import IJ, ImageStack
 from ij.io import FileSaver
-from ij.plugin import ChannelSplitter
+from ij.gui import WaitForUserDialog
+from ij.plugin import ChannelSplitter, Duplicator
 from loci.formats import ImageReader
 from loci.plugins import BF as bf
 
@@ -56,10 +57,26 @@ def main():
 	mbui.autoset_zoom(imp);
 
 	# prompt user to select ROI
-	original_imp, crop_params = mbui.crop_to_ROI(imp);
-	if crop_params is not None:
-		params.setSpatialCrop(crop_params.toString());
-		mbui.autoset_zoom(imp);
+	if params.perform_spatial_crop:
+		original_imp, crop_params = mbui.crop_to_ROI(imp);
+		if crop_params is not None:
+			print("cropped");
+			params.setSpatialCrop(crop_params.toString());
+			mbui.autoset_zoom(imp);
+
+	## prompt user to do time cropping
+	#if params.perform_time_crop:
+	#	print("time crop!");
+	#	imp, params.time_crop_start_end = mbui.time_crop(preimp);
+	#	preimp.changes = False;
+	#	preimp.close();
+	#	imp.show();
+	#else:
+	#	imp = Duplicator().run(preimp);
+	#	mbui.autoset_zoom(imp);
+	#	print("just zoomed");
+	#	WaitForUserDialog("wait").show();
+
 	h = imp.height;
 	w = imp.width;
 	d = imp.getNSlices();
@@ -82,7 +99,6 @@ def main():
 	membrane_channel = imp.getChannel();
 	split_channels = ChannelSplitter.split(imp);
 	membrane_channel_imp = split_channels[membrane_channel-1];
-	#membrane_channel_imp.show(); # debug
 	
 	# perform binary manipulations
 	membrane_channel_imp = mb.make_and_clean_binary(membrane_channel_imp, params.threshold_method);
@@ -136,6 +152,7 @@ def main():
 	FileSaver(curv_kym).saveAsTiff(os.path.join(output_folder, "raw curvature kymograph.tif"));
 	overlaid_curvature_imp, raw_curvature_imp = mbfig.overlay_curvatures(imp, curvature_stack, curvature_profiles, membrane_channel, curv_limits, params);	
 	overlaid_curvature_imp.show();
+	mbui.autoset_zoom(overlaid_curvature_imp);
 	FileSaver(overlaid_curvature_imp).saveAsTiffStack(os.path.join(output_folder, "overlaid curvature.tif"));
 	FileSaver(raw_curvature_imp).saveAsTiffStack(os.path.join(output_folder, "raw curvature.tif"));
 	mbio.save_profile_as_csv(curvature_profiles, os.path.join(output_folder, "curvatures.csv"), "curvature")
@@ -146,7 +163,7 @@ def main():
 											[mb.roi_length(medge) * params.pixel_physical_size for medge in membrane_edges], 
 											"Edge length (" + params.pixel_unit + ")");
 	bleb_a_imp, bleb_as = mbfig.plot_bleb_evolution([t * params.frame_interval for t in range(0, len(membrane_edges))], 
-											[mb.roi_area(medge) * math.pow(params.pixel_physical_size,2) for medge in membrane_edges], 
+											[mb.bleb_area(medge)[0] * math.pow(params.pixel_physical_size,2) for medge in membrane_edges], 
 											"Bleb area (" + params.pixel_unit + "^2)");
 	FileSaver(bleb_len_imp).saveAsTiff(os.path.join(output_folder, "bleb perimeter length.tif"));
 	FileSaver(bleb_a_imp).saveAsTiff(os.path.join(output_folder, "bleb perimeter area.tif"));

@@ -23,7 +23,10 @@ class Parameters:
 						curvature_kymograph_lut_string = 'Yellow', 
 						actin_kymograph_lut_string = 'Cyan', 
 						labeled_species = 'Actin', 
-						filter_negative_curvatures = True):
+						filter_negative_curvatures = True, 
+						perform_spatial_crop = False, 
+						perform_time_crop = False, 
+						time_crop_start_end = None):
 		self.__blebbingparams__ = True;
 
 		success = True;
@@ -36,6 +39,7 @@ class Parameters:
 			self.curvature_length_pix = curvature_length_pix;
 			self.threshold_method = threshold_method;
 			self.spatial_crop = spatial_crop;
+			self.time_crop_start_end = time_crop_start_end;
 			self.manual_anchor_positions = manual_anchor_positions;
 			self.manual_anchor_midpoint = manual_anchor_midpoint;
 
@@ -46,11 +50,23 @@ class Parameters:
 			self.labeled_species = labeled_species;
 			
 			self.filter_negative_curvatures = filter_negative_curvatures;
+			self.perform_spatial_crop = perform_spatial_crop;
+			self.perform_time_crop = perform_time_crop;
 
 			self.pixel_physical_size = 1.0;
 			self.pixel_unit = "um";
 			self.frame_interval = 1.0;
 			self.interval_unit = "s";
+
+
+	def setTimeCropStartEnd(self, start_and_end_tuple):
+		self.time_crop_start_end = start_and_end_tuple;
+
+	def toggleTimeCrop(self, do_time_crop):
+		self.perform_time_crop = do_time_crop;
+
+	def toggleSpatialCrop(self, do_spatial_crop):
+		self.perform_spatial_crop = do_spatial_crop;
 
 	def setPixelSizeUnit(self, pixel_unit):
 		self.pixel_unit = pixel_unit;
@@ -142,6 +158,9 @@ class Parameters:
 				self.setActinKymographLUT(dct["actin_kymograph_lut_string"]);
 				self.setLabeledSpecies(dct["labeled_species"]);
 				self.setFilterNegativeCurvatures(dct["filter_negative_curvatures"]);
+				self.setTimeCropStartEnd(dct["time_crop_start_end"]);
+				self.toggleSpatialCrop(dct["perform_spatial_crop"]);
+				self.toggleTimeCrop(dct["perform_time_crop"]);
 			else:
 				raise ValueError("JSON file doesn't translate to membrane blebbing analysis parameters")
 		except IOError:
@@ -169,10 +188,12 @@ class Parameters:
 			if os.path.isfile(temp_params_path):
 				success = self.loadParametersFromJson(temp_params_path);
 		except:
-			raise Warning("Error loading previous settings, reverting to default...");
+			#raise Warning("Error loading previous settings, reverting to default...");
+			print("Warning: Error loading previous settings, reverting to default...");
 			return False;
 		if not success:
-			raise Warning("Error loading previous settings, reverting to default...");
+			#raise Warning("Error loading previous settings, reverting to default...");
+			print("Warning: Error loading previous settings, reverting to default...");
 		return success;
 
 	def persistParameters(self):
