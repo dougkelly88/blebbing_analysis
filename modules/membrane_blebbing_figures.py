@@ -110,8 +110,6 @@ def generate_intensity_weighted_curvature(curvature_overlay, curvature_profiles,
 		maxes.append(int_imp16.getStatistics(Measurements.MIN_MAX).max)
 	mx = float(max(maxes));
 
-	print(len(curvature_profiles));
-	pause_for_debug();
 	for idx, profile in enumerate(curvature_profiles):
 		print("Frame = " + str(idx));
 		curv_impRGB.setPosition(idx+1);
@@ -131,12 +129,14 @@ def generate_intensity_weighted_curvature(curvature_overlay, curvature_profiles,
 			for ((x,y), c) in profile:
 				x = int(round(x));
 				y = int(round(y));
-				#baseBP.putPixelValue(x, y, int(curvBP.getPixel(x,y) * float(int_imp16.getPixel(x,y)[0])/mx));
-				baseBP.putPixelValue(x, y, int(curvBP.getPixel(x,y)));
+				baseBP.putPixelValue(x, y, int(curvBP.getPixel(x,y) * float(int_imp16.getPixel(x,y)[0])/mx));
+				#baseBP.putPixelValue(x, y, int(curvBP.getPixel(x,y)));
 			baseCP.setChannel(chidx, baseBP);
 		base_impRGB.setProcessor(baseCP);
+	base_impRGB.setTitle("Merged");
 	base_impRGB.show();
 	curv_impRGB.show();
+	pause_for_debug();
 
 def plot_bleb_evolution(ts, prop_to_plots, title):
 	"""Plot evolution of a given bleb property over time"""
@@ -158,8 +158,9 @@ def merge_kymographs(kym1_imp, kym2_imp, params):
 #import membrane_blebbing_fileio as mbio;
 #from ij.plugin import ChannelSplitter
 
-#curvature_overlay = IJ.openImage("D:\\data\\Inverse blebbing\\output\\2018-10-17 14-56-47 output\\raw curvature.tif");
-#curvature_profiles = mbio.load_csv_as_profile("D:\\data\\Inverse blebbing\\output\\2018-10-17 14-56-47 output\\curvatures.csv");
+#folder = "D:\\data\\Inverse blebbing\\output\\2018-10-29 17-06-15 output";
+#curvature_overlay = IJ.openImage(os.path.join(folder, "raw curvature.tif"));
+#curvature_profiles = mbio.load_csv_as_profile(os.path.join(folder, "curvatures.csv"));
 #imp = IJ.openImage("D:\\data\\Inverse blebbing\\MAX_2dpf marcksl1b-EGFP inj_TgLifeact-mCh_movie e4_split-bleb1.tif");
 #intensity_channel_imp = ChannelSplitter.split(imp)[1];
 #intensity_channel_imp.show();
