@@ -10,6 +10,7 @@ class Parameters:
 	"""Class to hold analysis parameters"""
 
 	_persist_parameters_filename = "IJ_membrane_blebbing_params.json";
+	_version_string = "0.0.1";
 
 	def __init__(self, load_last_params = False,
 						input_image_path = None, 
@@ -58,6 +59,7 @@ class Parameters:
 			self.frame_interval = 1.0;
 			self.interval_unit = "s";
 
+		self.software_version = Parameters._version_string;
 
 	def setTimeCropStartEnd(self, start_and_end_tuple):
 		self.time_crop_start_end = start_and_end_tuple;
