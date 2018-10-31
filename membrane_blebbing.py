@@ -172,6 +172,7 @@ def main():
 	FileSaver(mrg_imp).saveAsTiff(os.path.join(output_folder, "merged intensity and curvature kymograph.tif"));
 	#mbfig.generate_intensity_weighted_curvature(raw_curvature_imp, curvature_profiles, actin_channel_imp, "physics");
 	params.saveParametersToJson(os.path.join(output_folder, "parameters used.json"));
+	imp.changes = False;
 	IJ.setTool("zoom");
 
 # It's best practice to create a function that contains the code that is executed when running the script.
