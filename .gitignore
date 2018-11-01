@@ -1,1 +1,4 @@
 *$py.class
+*.tif
+*.tiff
+test data/
