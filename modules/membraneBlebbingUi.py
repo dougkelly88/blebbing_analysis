@@ -63,6 +63,7 @@ def time_crop(imp):
 	slices = imp.getNSlices();
 	channels = imp.getNChannels();
 	dupimp = Duplicator().run(imp, 1, channels, 1, slices, start_frame, end_frame);
+	imp.changes = False;
 	imp.close();
 	dupimp.show()
 	autoset_zoom(dupimp);
