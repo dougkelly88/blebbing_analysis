@@ -1,0 +1,9 @@
+* "Data with Z": Y:\Li Kun\Experiments\Marcksl1\Marcksl1b OE\2018-04-12 2dpf marcksl1b-mCh INJ_TgMyl9b-EGFP_fast movies\bleb movie 1\51hpf_marcksl1b-mCh INJ_myl9b-EGFP-bleb movie-crop1.tif
+
+* "Simple data": ??\MAX_2dpf marcksl1b-EGFP inj_TgLifeact-mCh_movie e4_split-bleb1.tif
+
+* "Complex data": Y:\Li Kun\Experiments\Marcksl1\Marcksl1b OE\2018-04-12 2dpf marcksl1b-mCh INJ_TgMyl9b-EGFP_fast movies\bleb movie 1\MAX_51hpf_marcksl1b-mCh INJ_myl9b-EGFP-bleb movie.tif
+
+* "Flat stack": Y:\Li Kun\Experiments\Marcksl1\Marcksl1b OE\2018-04-12 2dpf marcksl1b-mCh INJ_TgMyl9b-EGFP_fast movies\bleb movie 151hpf_marcksl1b-mCh INJ_myl9b-EGFP-bleb movie.tif
+
+* "Flat stack metadata": Y:\Li Kun\Experiments\Marcksl1\Marcksl1b OE\2018-04-12 2dpf marcksl1b-mCh INJ_TgMyl9b-EGFP_fast movies\bleb movie 1\51hpf_marcksl1b-mCh INJ_myl9b-EGFP-bleb movie.txt
