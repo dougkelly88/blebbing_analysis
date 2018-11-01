@@ -1,3 +1,7 @@
+# unit tests for blebbing analysis code
+#
+# D. J. Kelly, 2018-10-16, douglas.kelly@riken.jp
+
 import math, os, sys, unittest
 script_path = os.path.dirname(os.path.realpath(__file__));
 if "Fiji.app" in script_path:
