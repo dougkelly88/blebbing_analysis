@@ -154,13 +154,13 @@ def main():
 	FileSaver(membrane_channel_imp).saveAsTiffStack(os.path.join(output_folder, "binary_membrane_stack.tif"));
 	mrg_imp = mbfig.merge_kymographs(norm_actin_kym, norm_curv_kym, params);
 	bleb_len_imp, bleb_ls = mbfig.plot_bleb_evolution([t * params.frame_interval for t in range(0, len(membrane_edges))], 
-											[mb.roi_length(medge) * params.pixel_physical_size for medge in membrane_edges], 
+											[mb.roi_length(medge) for medge in membrane_edges], 
 											"Edge length (" + params.pixel_unit + ")");
 	bleb_a_imp, bleb_as = mbfig.plot_bleb_evolution([t * params.frame_interval for t in range(0, len(membrane_edges))], 
 											[mb.bleb_area(medge)[0] * math.pow(params.pixel_physical_size,2) for medge in membrane_edges], 
 											"Bleb area (" + params.pixel_unit + "^2)");
 	FileSaver(bleb_len_imp).saveAsTiff(os.path.join(output_folder, "bleb perimeter length.tif"));
-	FileSaver(bleb_a_imp).saveAsTiff(os.path.join(output_folder, "bleb perimeter area.tif"));
+	FileSaver(bleb_a_imp).saveAsTiff(os.path.join(output_folder, "bleb area.tif"));
 	mbio.save_1d_profile_as_csv(bleb_ls, os.path.join(output_folder, "bleb perimeter length.csv"), [("Time, " + params.interval_unit), "Length, " + params.pixel_unit]);
 	mbio.save_1d_profile_as_csv(bleb_as, os.path.join(output_folder, "bleb area.csv"), [("Time, " + params.interval_unit), "Area, " + params.pixel_unit + "^2"]);
 	FileSaver(mrg_imp).saveAsTiff(os.path.join(output_folder, "merged intensity and curvature kymograph.tif"));
