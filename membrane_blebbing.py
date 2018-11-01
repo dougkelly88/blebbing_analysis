@@ -13,10 +13,15 @@ from ij.plugin import ChannelSplitter, Duplicator
 from loci.formats import ImageReader
 from loci.plugins import BF as bf
 
-script_path = os.path.dirname(os.path.realpath(__file__));
+release = True;
+
+if not release:
+	script_path = os.path.dirname(os.path.realpath(__file__));
+else: 
+	script_path = os.getcwd();
 if "Fiji.app" in script_path:
 	ss = script_path.split("Fiji.app");
-	final_folder = os.path.basename(script_path);
+	final_folder = "blebbing analysis";
 	script_path = os.path.join(ss[0], "Fiji.app", "plugins", "Scripts", "Plugins", final_folder);
 sys.path.insert(0, os.path.join(script_path, 'modules'));
 sys.path.insert(0, os.path.join(script_path, 'classes'));
