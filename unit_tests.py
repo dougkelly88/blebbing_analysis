@@ -90,25 +90,13 @@ class TestMbEngine(unittest.TestCase):
 		roi = PolygonRoi(xpts, ypts, Roi.POLYLINE);
 		self.assertEqual(mb.roi_length(roi), 2);
 
-	def test_bleb_area(self):
-		ip = FloatProcessor(10, 10);
-		imp = ImagePlus("testimp", ip);
-		
-		xpts = [1, 2, 2, 3, 3, 4];
-		ypts = [1, 1, 2, 2, 1, 1];
-		roi = PolygonRoi(xpts, ypts, Roi.POLYLINE);
-		imp.setRoi(roi);
-		self.assertEqual(mb.bleb_area(roi, imp), 1);
-		imp.killRoi()
-
-		# test behaviour when membrane crosses the line joining the anchor points
+	def test_bleb_area(self):	
+		"""test behaviour when membrane crosses the line joining the anchor points"""
 		xpts = [1, 1, 2, 2, 3, 4, 5, 6, 6, 7, 7];
 		ypts = [2, 1, 1, 3, 3, 3, 3, 3, 1, 1, 2];
 		roi = PolygonRoi(xpts, ypts, Roi.POLYLINE);
-		imp.setRoi(roi);
-		area = mb.bleb_area(roi, imp)
+		area, area_roi = mb.bleb_area(roi)
 		self.assertEqual(area, 4);
-		imp.close();
 
 if __name__ in ['__builtin__','__main__']:
 	suite = unittest.TestLoader().loadTestsFromTestCase(TestMbEngine)
