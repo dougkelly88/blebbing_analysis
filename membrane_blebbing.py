@@ -20,7 +20,6 @@ if "Fiji.app" in script_path:
 	script_path = os.path.join(ss[0], "Fiji.app", "plugins", "Scripts", "Plugins", final_folder);
 sys.path.insert(0, os.path.join(script_path, 'modules'));
 sys.path.insert(0, os.path.join(script_path, 'classes'));
-print(sys.path);
 
 import membraneBlebbingFileio as mbio;
 import membraneBlebbingUi as mbui;
