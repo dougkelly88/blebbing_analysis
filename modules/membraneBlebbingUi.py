@@ -10,6 +10,7 @@ from ij.plugin import Duplicator
 from ij.process import AutoThresholder
 
 from Parameters import Parameters
+import membraneBlebbingEngine as mb
 
 # set the zoom of the current imageplus to give a reasonable window size, 
 # based on reasonable guess at screen resolution
@@ -25,16 +26,28 @@ def autoset_zoom(imp):
 	IJ.run("Scale to Fit", "");
 
 # prompt user to select ROI for subsequent analysis
-def crop_to_ROI(imp):
+def crop_to_ROI(imp, params):
 	IJ.setTool("rect");
-	MyWaitForUser("Crop", "If desired, select a rectangular ROI to crop to...");
+	MyWaitForUser("Crop", "If desired, select an area ROI to crop to...");
 	roi = imp.getRoi();
+	if not roi.isArea():
+		raise TypeError("selected ROI should be an area");
 	crop_params = None;
 	original_imp = imp.clone();
 	if roi is not None:
+		if roi.getType():
+			crop_params = str([(x, y) for x, y in 
+							zip(roi.getPolygon().xpoints, roi.getPolygon().ypoints)]);
+			IJ.run(imp, "Make Inverse", "");
+			roi = imp.getRoi();
+			fill_val = mb.calculate_percentile(imp, roi, 25);
+			IJ.run(imp, "Set...", "value=" + str(round(fill_val)) + " stack");
+		else:
+			crop_params = roi.getBounds();
 		IJ.run(imp, "Crop", "");
 		autoset_zoom(imp);
-		crop_params = roi.getBounds();
+		imp.killRoi();
+		params.setSpatialCrop(crop_params)
 	return original_imp, crop_params;
 
 # prompt the user to provide a number of points on the image

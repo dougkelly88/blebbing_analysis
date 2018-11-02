@@ -269,3 +269,29 @@ def apply_photobleach_correction_framewise(params, actin_channel_imp, membrane_c
 			factor = t0_value/mean_value;
 			IJ.run(actin_channel_imp, "Multiply...", "value=" + str(factor) + " slice");
 		return actin_channel_imp, t0_value;
+
+def calculate_percentile(imp, roi, percentile):
+	""" Use a crude (slow) method to get the pixel values in an roi, then calculate a percentile"""
+	ip = imp.getProcessor();
+	if (percentile > 100):
+		raise ValueError("Percentile should be either in % or as a fraction, not > 100!");
+	if (percentile > 1):
+		percentile = float(percentile) / 100;
+	pts = roi.getContainedPoints();
+	vals = [];
+	for pt in pts:
+		vals.append(ip.getf(pt.x, pt.y));
+	vals.sort();
+	split_idx = float(len(vals)) * percentile + 0.5 - 1; # -1 as indexed from zero
+	if (split_idx == math.floor(split_idx)):
+		npc_percentile = vals[split_idx];
+	else:
+		k = int(math.floor(split_idx));
+		#f = split_idx - math.floor(split_idx);
+		## calculate percentile according to 
+		## https://web.stanford.edu/class/archive/anthsci/anthsci192/anthsci192.1064/handouts/calculating%20percentiles.pdf
+		# npc_percentile = (1 - f) * vals[k] + f * vals[k+1];
+
+		# calculate excel-style percentile...
+		npc_percentile = vals[k] + (vals[k+1] - vals[k]) * (1 - percentile);
+	return npc_percentile;

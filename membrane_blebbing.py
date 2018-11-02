@@ -83,9 +83,8 @@ def main():
 
 	# prompt user to select ROI
 	if params.perform_spatial_crop:
-		original_imp, crop_params = mbui.crop_to_ROI(imp);
+		original_imp, crop_params = mbui.crop_to_ROI(imp, params);
 		if crop_params is not None:
-			params.setSpatialCrop(crop_params.toString());
 			mbui.autoset_zoom(imp);
 
 	# prompt user to do time cropping
