@@ -85,7 +85,7 @@ def analysis_parameters_gui():
 							params.curvature_length_pix, 
 							1);
 	dialog.addChoice("Threshold method: ", 
-						AutoThresholder.getMethods(),
+						params.listThresholdMethods(),
 						params.threshold_method);
 	dialog.addChoice("Curvature overlay LUT: ", 
 						IJ.getLuts(), 

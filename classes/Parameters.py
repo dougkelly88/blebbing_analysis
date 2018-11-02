@@ -117,10 +117,17 @@ class Parameters:
 		self.manual_anchor_midpoint = manual_anchor_midpoint;
 
 	def setThresholdMethod(self, method):
-		if method in AutoThresholder.getMethods():
+		if method in self.listThresholdMethods():
 			self.threshold_method = method;
 		else: 
 			raise ValueError('Requested threshold methd is not a valid IJ threshold method')
+
+	def listThresholdMethods(self):
+		threshold_methods = AutoThresholder.getMethods();
+		local_threshold_methods = ["Bernsen", "Contrast", "Mean", "Median", "MidGrey", "Niblack", "Otsu", "Phansalkar", "Sauvola"]; # from https://github.com/fiji/Auto_Local_Threshold/blob/master/src/main/java/fiji/threshold/Auto_Local_Threshold.java (2018-11-02)
+		for meth in local_threshold_methods:
+			threshold_methods.append("Local: " + meth);
+		return threshold_methods;
 
 	def setCurvatureLengthPix(self, length):
 		if length > 0:

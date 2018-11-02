@@ -7,7 +7,7 @@ import math
 from ij import IJ, ImagePlus;
 from ij.gui import PolygonRoi, Roi
 from ij.process import FloatPolygon
-from ij.plugin import Straightener
+from ij.plugin import Straightener, Duplicator, ImageCalculator
 from ij.plugin.filter import ParticleAnalyzer
 from ij.plugin.frame import RoiManager
 from ij.measure import ResultsTable
@@ -15,13 +15,39 @@ from ij.gui import WaitForUserDialog
 
 def make_and_clean_binary(imp, threshold_method):
 	"""convert the membrane identification channel into binary for segmentation"""
-	IJ.run(imp, "Make Binary", "method=" + threshold_method + " background=Dark calculate");
+	if "Local: " in threshold_method:
+		dup = Duplicator();
+		imp1 = dup.run(imp);
+		imp2 =  dup.run(imp);
+		imp.changes = False;
+		imp.close();
+		threshold_method = threshold_method.split("Local: ")[1];
+		IJ.run(imp1, "8-bit", "");
+		IJ.run(imp1, "Auto Local Threshold", "method=" + threshold_method + " radius=15 parameter_1=0 parameter_2=0 white stack");
+		imp1.show();
+		print(imp1.getType());
+		WaitForUserDialog("Local thresholded imp1").show();
+		imp1.hide();
+		IJ.run(imp2, "Make Binary", "method=MinError background=Dark calculate");
+		imp2.show();
+		print(imp2.getType());
+		WaitForUserDialog("Local thresholded imp2").show();
+		imp2.hide();
+		ic = ImageCalculator();
+		imp = ic.run("AND create stack", imp1, imp2);
+		IJ.run(imp, "Invert", "stack");
+		imp.show();
+		WaitForUserDialog("Result").show();
+	else:
+		IJ.run(imp, "Make Binary", "method=" + threshold_method + " background=Dark calculate");
+	
 	IJ.run(imp, "Open", "stack");
 	IJ.run(imp, "Close-", "stack");
 	IJ.run(imp, "Close-", "stack");
 	IJ.run(imp, "Open", "stack");
 
 	IJ.run(imp, "Fill Holes", "stack");
+
 	keep_largest_blob(imp);
 	return imp;
 
