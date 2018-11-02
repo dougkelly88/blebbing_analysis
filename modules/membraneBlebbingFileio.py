@@ -75,7 +75,7 @@ def get_metadata(params):
 	"""get image metadata, either from the image file or from acquisition-time metadata"""
 	if params.metadata_source == "Image metadata":
 		reader = ImageReader();
-		reader.setId(file_path);
+		reader.setId(params.input_image_path);
 		params.setFrameInterval(reader.getMetadataValue("Frame Interval").value());
 		params.setIntervalUnit(reader.getMetadataValue("Frame Interval").unit().getSymbol())
 		params.setPixelPhysicalSize(1/reader.getMetadataValue("YResolution"));
