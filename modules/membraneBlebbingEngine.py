@@ -36,7 +36,9 @@ def make_and_clean_binary(imp, threshold_method):
 	IJ.run(imp, "Close-", "stack");
 	IJ.run(imp, "Open", "stack");
 	IJ.run(imp, "Fill Holes", "stack");
+	IJ.run(imp, "Erode", "stack");
 	keep_largest_blob(imp);
+	IJ.run(imp, "Dilate", "stack");
 	return imp;
 
 def fix_anchors_to_membrane(anchors_list, membrane_roi):
@@ -64,8 +66,8 @@ def get_membrane_edge(roi, fixed_anchors, fixed_midpoint):
 	started = False;
 	e1 = FloatPolygon();
 	e2 = FloatPolygon();
-	term_index_1 = [(x, y) for x, y in zip(poly.xpoints,poly.ypoints)].index( fixed_anchors[0]);
-	term_index_2 = [(x, y) for x, y in zip(poly.xpoints,poly.ypoints)].index( fixed_anchors[1]);
+	term_index_1 = [(x, y) for x, y in zip(poly.xpoints,poly.ypoints)].index(fixed_anchors[0]);
+	term_index_2 = [(x, y) for x, y in zip(poly.xpoints,poly.ypoints)].index(fixed_anchors[1]);
 	
 	for idx in range(min(term_index_1, term_index_2), max(term_index_1, term_index_2)+1):
 		e1.addPoint(poly.xpoints[idx], poly.ypoints[idx]);
