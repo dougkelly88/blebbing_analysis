@@ -284,7 +284,7 @@ def calculate_percentile(imp, roi, percentile):
 	vals.sort();
 	split_idx = float(len(vals)) * percentile + 0.5 - 1; # -1 as indexed from zero
 	if (split_idx == math.floor(split_idx)):
-		npc_percentile = vals[split_idx];
+		npc_percentile = vals[int(split_idx)];
 	else:
 		k = int(math.floor(split_idx));
 		#f = split_idx - math.floor(split_idx);
