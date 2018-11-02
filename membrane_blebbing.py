@@ -85,7 +85,6 @@ def main():
 	if params.perform_spatial_crop:
 		original_imp, crop_params = mbui.crop_to_ROI(imp);
 		if crop_params is not None:
-			print("cropped");
 			params.setSpatialCrop(crop_params.toString());
 			mbui.autoset_zoom(imp);
 
@@ -117,6 +116,9 @@ def main():
 	split_channels = ChannelSplitter.split(imp);
 	membrane_channel_imp = split_channels[membrane_channel-1];
 	
+	if n_channels >= 2:
+		actin_channel = (membrane_channel + 1) % n_channels;
+		actin_channel_imp = split_channels[actin_channel-1];
 	# perform binary manipulations
 	membrane_channel_imp = mb.make_and_clean_binary(membrane_channel_imp, params.threshold_method);
 	
@@ -153,10 +155,11 @@ def main():
 						max(curv_limits[1], max([c[1] for c in curvature_profiles[-1]])));
 		curvature_stack = mbfig.generate_curvature_overlays(curvature_profiles[-1], curvature_stack)
 		
-		# generate actin-channel line profile - assume 2-channel image...
-		if n_channels > 2:
 			actin_channel = (membrane_channel + 1) % n_channels;
 			actin_channel_imp = split_channels[actin_channel-1];
+		# generate actin-channel line profile if actin channel present
+		if n_channels >= 2:
+			actin_channel_imp.setPosition(fridx+1);
 			actin_profiles.append(mb.maximum_line_profile(actin_channel_imp, membrane_edge, 3));
 	
 	# output colormapped images and kymographs 
@@ -184,7 +187,7 @@ def main():
 	mbio.save_1d_profile_as_csv(bleb_as, os.path.join(output_folder, "bleb area.csv"), [("Time, " + params.interval_unit), "Area, " + params.pixel_unit + "^2"]);
 	
 	# actin channel
-	if n_channels > 2:
+	if n_channels >= 2:
 		norm_actin_kym = mbfig.generate_kymograph(actin_profiles, params.actin_kymograph_lut_string, (params.labeled_species + " intensity - distal point at middle"));
 		actin_kym = mbfig.generate_plain_kymograph(actin_profiles, params.actin_kymograph_lut_string, (params.labeled_species + " intensity"));
 		FileSaver(norm_actin_kym).saveAsTiff(os.path.join(output_folder, "normalised position " + params.labeled_species + " kymograph.tif"));
@@ -205,7 +208,7 @@ def main():
 		overlaid_curvature_imp.close();
 		norm_curv_kym.close();
 		curv_kym.close();
-		if n_channels > 2:
+		if n_channels >= 2:
 			mrg_imp.close();
 			norm_actin_kym.close();
 			actin_kym.close();
