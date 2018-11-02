@@ -11,6 +11,7 @@ class Parameters:
 
 	_persist_parameters_filename = "IJ_membrane_blebbing_params.json";
 	_version_string = "1.0.1";
+	_persist_parameters_folder = "IJ_membrane_blebbing";
 
 	def __init__(self, load_last_params = False,
 						input_image_path = None, 
@@ -187,39 +188,44 @@ class Parameters:
 	def loadLastParams(self):
 		success = True;
 		try:
-			st = platform.mac_ver()[0];
-			if not st:
-				# windows
-				temp_path = os.path.join(os.getenv('APPDATA'), "IJ_membrane_blebbing");
-			else:
-				# mac
-				temp_path = os.path.join('~/Library/', "IJ_membrane_blebbing");
-			if not os.path.isdir(temp_path):
-				os.mkdir(temp_path);
-			temp_params_path = os.path.join(temp_path, Parameters._persist_parameters_filename);
-			if os.path.isfile(temp_params_path):
-				success = self.loadParametersFromJson(temp_params_path);
+			temp_path = self.getPeristenceFileLocation();
+			if temp_path:
+				temp_params_path = os.path.join(temp_path, Parameters._persist_parameters_filename);
+				if os.path.isfile(temp_params_path):
+					success = self.loadParametersFromJson(temp_params_path);
+				else:
+					success = False;
 			else:
 				success = False;
-		except:
+		except Exception as e:
 			print("Warning: Error loading previous settings, reverting to default...");
+			raise e;
 			return False;
 		if not success:
 			print("Warning: Error loading previous settings, reverting to default...");
 		return success;
 
 	def persistParameters(self):
-		st = platform.mac_ver()[0];
-		if not st:
-			# windows
-			temp_path = os.path.join(os.getenv('APPDATA'), "IJ_membrane_blebbing");
-		else:
-			# mac
-			temp_path = os.path.join('~/Library/', "IJ_membrane_blebbing");
-		if not os.path.isdir(temp_path):
-			os.mkdir(temp_path);
-		temp_params_path = os.path.join(temp_path, Parameters._persist_parameters_filename);
-		self.saveParametersToJson(temp_params_path);
+		temp_path = self.getPeristenceFileLocation();
+		if temp_path:
+			temp_params_path = os.path.join(temp_path, Parameters._persist_parameters_filename);
+			self.saveParametersToJson(temp_params_path);
+
+	def getPeristenceFileLocation(self):
+		try:
+			st = platform.mac_ver()[0];
+			if not st:
+				# windows
+				temp_path = os.path.join(os.getenv('APPDATA'), Parameters._persist_parameters_folder);
+			else:
+				# mac
+				temp_path = os.path.join(os.path.expanduser("~"), "Library", Parameters._persist_parameters_folder);
+			if not os.path.isdir(temp_path):
+				os.mkdir(temp_path);
+		except Exception as e:
+			print("Error: " + e.message);
+			return "";
+		return temp_path;
 
 #params = Parameters();
 #print(params.__dict__);
