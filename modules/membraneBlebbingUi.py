@@ -69,6 +69,14 @@ def time_crop(imp):
 	autoset_zoom(dupimp);
 	return dupimp, (start_frame, end_frame);
 
+def warning_dialog(message_lst):
+	dialog = GenericDialog("Warning!");
+	for message in message_lst:
+		dialog.addMessage(message);
+	dialog.showDialog();
+	if dialog.wasCanceled():
+		raise KeyboardInterrupt("Run canceled");
+
 def analysis_parameters_gui():
 	"""GUI for setting analysis parameters at the start of a run. TODO: more effectively separate model and view"""
 	params = Parameters(load_last_params = True);
