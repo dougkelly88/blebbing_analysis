@@ -31,7 +31,8 @@ class Parameters:
 						time_crop_start_end = None, 
 						close_on_completion = False, 
 						metadata_source = "Image metadata", 
-						metadata_source_file = None):
+						metadata_source_file = None, 
+						photobleaching_correction = False):
 		self.__blebbingparams__ = True;
 
 		success = True;
@@ -59,6 +60,7 @@ class Parameters:
 
 			self.labeled_species = labeled_species;
 			
+			self.photobleaching_correction = photobleaching_correction;
 			self.filter_negative_curvatures = filter_negative_curvatures;
 			self.perform_spatial_crop = perform_spatial_crop;
 			self.perform_time_crop = perform_time_crop;
@@ -71,6 +73,9 @@ class Parameters:
 			self.interval_unit = "s";
 
 		self.software_version = Parameters._version_string;
+
+	def togglePhotobleachingCorrection(self, photobleaching_correction):
+		self.photobleaching_correction = photobleaching_correction;
 
 	def setMetadataSource(self, metadata_source):
 		self.metadata_source = metadata_source;
@@ -192,7 +197,8 @@ class Parameters:
 				self.toggleTimeCrop(dct["perform_time_crop"]);
 				self.toggleCloseOnCompletion(dct["close_on_completion"]);
 				self.setMetadataSource(dct["metadata_source"]);
-				self.setMetadataSourceFile(dct["metadata_source_file"])
+				self.setMetadataSourceFile(dct["metadata_source_file"]);
+				self.togglePhotobleachingCorrection(dct["photobleaching_correction"]);
 			else:
 				raise ValueError("JSON file doesn't translate to membrane blebbing analysis parameters")
 		except IOError:

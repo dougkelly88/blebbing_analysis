@@ -115,10 +115,11 @@ def main():
 	membrane_channel = imp.getChannel();
 	split_channels = ChannelSplitter.split(imp);
 	membrane_channel_imp = split_channels[membrane_channel-1];
-	
 	if n_channels >= 2:
 		actin_channel = (membrane_channel + 1) % n_channels;
 		actin_channel_imp = split_channels[actin_channel-1];
+		t0_actin_mean = None;
+
 	# perform binary manipulations
 	membrane_channel_imp = mb.make_and_clean_binary(membrane_channel_imp, params.threshold_method);
 	
@@ -155,13 +156,15 @@ def main():
 						max(curv_limits[1], max([c[1] for c in curvature_profiles[-1]])));
 		curvature_stack = mbfig.generate_curvature_overlays(curvature_profiles[-1], curvature_stack)
 		
-			actin_channel = (membrane_channel + 1) % n_channels;
-			actin_channel_imp = split_channels[actin_channel-1];
 		# generate actin-channel line profile if actin channel present
 		if n_channels >= 2:
 			actin_channel_imp.setPosition(fridx+1);
+			actin_channel_imp, t0_actin_mean = mb.apply_photobleach_correction_framewise(params, 
+																						actin_channel_imp, 
+																						membrane_channel_imp, 
+																						t0_value=t0_actin_mean);
 			actin_profiles.append(mb.maximum_line_profile(actin_channel_imp, membrane_edge, 3));
-	
+
 	# output colormapped images and kymographs 
 	# curvature/membrane channel
 	norm_curv_kym = mbfig.generate_kymograph(curvature_profiles, params.curvature_kymograph_lut_string, "Curvature kymograph - distal point at middle");

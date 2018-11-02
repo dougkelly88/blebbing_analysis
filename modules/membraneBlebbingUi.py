@@ -104,6 +104,8 @@ def analysis_parameters_gui():
 								params.metadata_source);
 	dialog.addCheckbox("Filter out negative curvatures", 
 						params.filter_negative_curvatures);
+	dialog.addCheckbox("Account for photobleaching?", 
+						params.photobleaching_correction)
 	dialog.addCheckbox("Perform spatial cropping?", 
 						params.perform_spatial_crop)
 	dialog.addCheckbox("Perform time cropping?", 
@@ -113,14 +115,15 @@ def analysis_parameters_gui():
 	dialog.showDialog();
 	if dialog.wasCanceled():
 		raise KeyboardInterrupt("Run canceled");
-	chc =  dialog.getChoices();
+	choices =  dialog.getChoices();
 	params.setCurvatureLengthPix(dialog.getNextNumber()); # check whether label of numeric field is contained in getNextNumber?
-	params.setThresholdMethod(chc[0].getSelectedItem());
-	params.setCurvatureOverlayLUT(chc[1].getSelectedItem());
-	params.setCurvatureKymographLUT(chc[2].getSelectedItem());
-	params.setActinKymographLUT(chc[3].getSelectedItem()); # similarly, whether getNextChoice has method to get label - this way, less dependent on order not changing...
+	params.setThresholdMethod(choices[0].getSelectedItem());
+	params.setCurvatureOverlayLUT(choices[1].getSelectedItem());
+	params.setCurvatureKymographLUT(choices[2].getSelectedItem());
+	params.setActinKymographLUT(choices[3].getSelectedItem()); # similarly, whether getNextChoice has method to get label - this way, less dependent on order not changing...
 	params.setLabeledSpecies(dialog.getNextString());
 	params.setFilterNegativeCurvatures(dialog.getNextBoolean());
+	params.togglePhotobleachingCorrection(dialog.getNextBoolean());
 	params.toggleSpatialCrop(dialog.getNextBoolean());
 	params.toggleTimeCrop(dialog.getNextBoolean());
 	params.toggleCloseOnCompletion(dialog.getNextBoolean());

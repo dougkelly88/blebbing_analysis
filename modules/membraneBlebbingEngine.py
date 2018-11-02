@@ -35,9 +35,7 @@ def make_and_clean_binary(imp, threshold_method):
 	IJ.run(imp, "Close-", "stack");
 	IJ.run(imp, "Close-", "stack");
 	IJ.run(imp, "Open", "stack");
-
 	IJ.run(imp, "Fill Holes", "stack");
-
 	keep_largest_blob(imp);
 	return imp;
 
@@ -235,3 +233,43 @@ def bleb_area(membrane_edge):
 	#print(area);
 	return area, area_roi;
 
+def apply_photobleach_correction_stack(params, actin_channel_imp):
+	"""if toggled on, scale stack of labeled-species images to have constant mean intensity"""
+	if not params.photobleaching_correction:
+		return actin_channel_imp;
+	# get intial mean labeled-species intensity:
+	actin_channel_imp.killRoi();
+	actin_channel_imp.setPosition(1);
+	mean_t0 = actin_channel_imp.getStatistics().mean;
+	# scale subsequent frames
+	for idx in range(2, actin_channel_imp.getNFrames()+1):
+		actin_channel_imp.setPosition(idx);
+		mean_val = actin_channel_imp.getStatistics().mean;
+		factor = mean_t0/mean_val;
+		IJ.run(actin_channel_imp, "Multiply...", "value=" + str(factor) + " slice");
+	return actin_channel_imp;
+
+def apply_photobleach_correction_framewise(params, actin_channel_imp, membrane_channel_imp, t0_value=None):
+	"""if toggled on, scale the current frame in a stack to have the same mean intensity as the first frame within an ROI"""
+	if not params.photobleaching_correction:
+		return actin_channel_imp, None;
+	else:
+		if (t0_value is None) or (actin_channel_imp.getT() == 1):
+			IJ.run(membrane_channel_imp, "Create Selection", "");
+			roi = membrane_channel_imp.getRoi();
+			actin_channel_imp.setRoi(roi);
+			t0_value = actin_channel_imp.getStatistics().mean;
+			print("Correction timepoint T = " + str(actin_channel_imp.getT()));
+			print("Factor = 1 (by definition)");
+			print("ROI area = " + str(roi.size()));
+		else:
+			IJ.run(membrane_channel_imp, "Create Selection", "");
+			roi = membrane_channel_imp.getRoi();
+			actin_channel_imp.setRoi(roi);
+			mean_value = actin_channel_imp.getStatistics().mean;
+			factor = t0_value/mean_value;
+			print("Correction timepoint T = " + str(actin_channel_imp.getT()));
+			print("Factor: " + str(factor));
+			print("ROI area = " + str(roi.size()));
+			IJ.run(actin_channel_imp, "Multiply...", "value=" + str(factor) + " slice");
+		return actin_channel_imp, t0_value;

@@ -15,10 +15,11 @@ import membraneBlebbingFileio as mbio;
 import membraneBlebbingUi as mbui;
 import membraneBlebbingEngine as mb;
 import membraneBlebbingFigures as mbfig;
+from Parameters import Parameters;
 
-from ij import ImagePlus
+from ij import ImagePlus, IJ
 from ij.gui import PolygonRoi, Roi
-from ij.process import FloatProcessor
+from ij.process import FloatProcessor, ImageProcessor
 
 class TestMbEngine(unittest.TestCase):
 	def test_vector_length(self):
@@ -101,6 +102,46 @@ class TestMbEngine(unittest.TestCase):
 		roi = PolygonRoi(xpts, ypts, Roi.POLYLINE);
 		area, area_roi = mb.bleb_area(roi)
 		self.assertEqual(area, 4);
+
+	def test_apply_photobleach_correction_framewise(self):
+		"""confirm that photobleaching correction equalises mean values across a stack"""
+		# create test images: 
+		nx = 3;
+		ny = 3;
+		nz = 1;
+		nc = 1;
+		nt = 5;
+		bitdepth = 8;
+		seg_imp = IJ.createHyperStack("segmentation image", nx, ny, nc, nz, nt, bitdepth);
+		intensity_imp = IJ.createHyperStack("intensity image", nx, ny, nc, nz, nt, bitdepth);
+		for idx in range(0, nt):
+			seg_imp.setPosition(idx + 1);
+			seg_pix = seg_imp.getProcessor().getPixels();
+			for pixidx in range(len(seg_pix)):
+				seg_pix[pixidx] = 1;
+			intensity_imp.setPosition(idx + 1);
+			int_pix = intensity_imp.getProcessor().getPixels();
+			for pixidx in range(len(int_pix)):
+				int_pix[pixidx] = nt - idx;
+		ip = seg_imp.getProcessor();
+		ip.setThreshold(8, 8, ImageProcessor.NO_LUT_UPDATE);
+		IJ.run(seg_imp, "Make Binary", "method=Default background=Dark calculate");
+
+		# apply photobleaching correction: 
+		t0_mean = None;
+		params = Parameters(photobleaching_correction = True);
+		for idx in range(0, nt):
+			intensity_imp.setPosition(idx+1);
+			seg_imp.setPosition(idx+1);
+			intensity_imp, t0_mean = mb.apply_photobleach_correction_framewise(params, 
+																			intensity_imp, 
+																			seg_imp, 
+																			t0_mean);
+		# test result:
+		for idx in range(0, nt):
+			intensity_imp.setPosition(idx+1);
+			self.assertEqual(nt, intensity_imp.getStatistics().mean);
+
 
 if __name__ in ['__builtin__','__main__']:
 	suite = unittest.TestLoader().loadTestsFromTestCase(TestMbEngine)
