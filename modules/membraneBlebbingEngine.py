@@ -16,7 +16,6 @@ from ij.gui import WaitForUserDialog
 def make_and_clean_binary(imp, threshold_method):
 	"""convert the membrane identification channel into binary for segmentation"""
 	IJ.run(imp, "Make Binary", "method=" + threshold_method + " background=Dark calculate");
-	IJ.run(imp, "Fill Holes", "stack");
 	IJ.run(imp, "Open", "stack");
 	IJ.run(imp, "Close-", "stack");
 	IJ.run(imp, "Close-", "stack");
