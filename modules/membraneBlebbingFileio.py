@@ -8,6 +8,8 @@ from datetime import datetime
 from ij.io import OpenDialog, DirectoryChooser
 from loci.formats import ImageReader
 
+import membraneBlebbingUi as mbui
+
 def file_location_chooser(default_directory):
 	"""choose folder locations and prepare output folder"""
 	# input
@@ -74,14 +76,20 @@ def save_parameters(params, file_path):
 def get_metadata(params):
 	"""get image metadata, either from the image file or from acquisition-time metadata"""
 	if params.metadata_source == "Image metadata":
-		reader = ImageReader();
-		reader.setId(params.input_image_path);
-		params.setFrameInterval(reader.getMetadataValue("Frame Interval").value());
-		params.setIntervalUnit(reader.getMetadataValue("Frame Interval").unit().getSymbol())
-		params.setPixelPhysicalSize(1/reader.getMetadataValue("YResolution"));
-		params.setPixelSizeUnit(reader.getMetadataValue("Unit"));
-		params.setMetadataSourceFile(None);
-	else:
+		try:
+			reader = ImageReader();
+			reader.setId(params.input_image_path);
+			params.setFrameInterval(reader.getMetadataValue("Frame Interval").value());
+			params.setIntervalUnit(reader.getMetadataValue("Frame Interval").unit().getSymbol())
+			params.setPixelPhysicalSize(1/reader.getMetadataValue("YResolution"));
+			params.setPixelSizeUnit(reader.getMetadataValue("Unit"));
+			params.setMetadataSourceFile(None);
+		except:
+			mbui.warning_dialog(["There was a problem getting metadata from the image. ", 
+								"Please consider using acquisition metadata instead (click OK). ", 
+								"Or, quit the analysis run and investigate image metadata by hand. "]);
+			params.setMetadataSource("Acquisition metadata")
+	if params.metadata_source == "Acquisition metadata":
 		od = OpenDialog('Choose acquisition metadata file...', 
 					os.path.dirname(params.input_image_path), 
 					'*.txt');
