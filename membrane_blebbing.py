@@ -50,18 +50,14 @@ def main():
 	# prompt user for file locations
 	file_path, output_folder = mbio.file_location_chooser(params.input_image_path);
 	params.setInputImagePath(file_path);
-	params.persistParameters();
 
 	# get image file
 	imps = bf.openImagePlus(file_path);
 	imp = imps[0];
 	imp.show();
-	reader = ImageReader();
-	reader.setId(file_path);
-	params.setFrameInterval(reader.getMetadataValue("Frame Interval").value());
-	params.setIntervalUnit(reader.getMetadataValue("Frame Interval").unit().getSymbol())
-	params.setPixelPhysicalSize(1/reader.getMetadataValue("YResolution"));
-	params.setPixelSizeUnit(reader.getMetadataValue("Unit"))
+
+	params = mbio.get_metadata(params);
+	params.persistParameters();
 	mbui.autoset_zoom(imp);
 
 	# prompt user to select ROI

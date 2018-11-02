@@ -29,7 +29,9 @@ class Parameters:
 						perform_spatial_crop = False, 
 						perform_time_crop = False, 
 						time_crop_start_end = None, 
-						close_on_completion = False):
+						close_on_completion = False, 
+						metadata_source = "Image metadata", 
+						metadata_source_file = None):
 		self.__blebbingparams__ = True;
 
 		success = True;
@@ -61,12 +63,20 @@ class Parameters:
 			self.perform_spatial_crop = perform_spatial_crop;
 			self.perform_time_crop = perform_time_crop;
 
+			self.metadata_source = metadata_source;
+			self.metadata_source_file = metadata_source_file;
 			self.pixel_physical_size = 1.0;
 			self.pixel_unit = "um";
 			self.frame_interval = 1.0;
 			self.interval_unit = "s";
 
 		self.software_version = Parameters._version_string;
+
+	def setMetadataSource(self, metadata_source):
+		self.metadata_source = metadata_source;
+		
+	def setMetadataSourceFile(self, metadata_source_file):
+		self.metadata_source_file = metadata_source_file;
 
 	def toggleCloseOnCompletion(self, do_close_on_completion):
 		self.close_on_completion = do_close_on_completion;
@@ -181,6 +191,8 @@ class Parameters:
 				self.toggleSpatialCrop(dct["perform_spatial_crop"]);
 				self.toggleTimeCrop(dct["perform_time_crop"]);
 				self.toggleCloseOnCompletion(dct["close_on_completion"]);
+				self.setMetadataSource(dct["metadata_source"]);
+				self.setMetadataSourceFile(dct["metadata_source_file"])
 			else:
 				raise ValueError("JSON file doesn't translate to membrane blebbing analysis parameters")
 		except IOError:

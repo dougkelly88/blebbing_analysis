@@ -98,13 +98,16 @@ def analysis_parameters_gui():
 						params.actin_kymograph_lut_string);
 	dialog.addStringField("Labelled species for intensity analysis: ", 
 							params.labeled_species);
+	dialog.addRadioButtonGroup("Metadata source: ", 
+								["Image metadata", "Acquisition metadata"], 
+								1, 2, 
+								params.metadata_source);
 	dialog.addCheckbox("Filter out negative curvatures", 
 						params.filter_negative_curvatures);
 	dialog.addCheckbox("Perform spatial cropping?", 
 						params.perform_spatial_crop)
-	dialog.addToSameRow();
 	dialog.addCheckbox("Perform time cropping?", 
-						params.perform_time_crop)
+						params.perform_time_crop);
 	dialog.addCheckbox("Close images on completion?", 
 						params.close_on_completion)
 	dialog.showDialog();
@@ -121,5 +124,6 @@ def analysis_parameters_gui():
 	params.toggleSpatialCrop(dialog.getNextBoolean());
 	params.toggleTimeCrop(dialog.getNextBoolean());
 	params.toggleCloseOnCompletion(dialog.getNextBoolean());
+	params.setMetadataSource(dialog.getNextRadioButton());
 	params.persistParameters();
 	return params;
