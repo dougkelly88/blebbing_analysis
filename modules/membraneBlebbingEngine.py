@@ -19,6 +19,10 @@ def make_and_clean_binary(imp, threshold_method):
 	IJ.run(imp, "Fill Holes", "stack");
 	IJ.run(imp, "Open", "stack");
 	IJ.run(imp, "Close-", "stack");
+	IJ.run(imp, "Close-", "stack");
+	IJ.run(imp, "Open", "stack");
+
+	IJ.run(imp, "Fill Holes", "stack");
 	keep_largest_blob(imp);
 	return imp;
 
