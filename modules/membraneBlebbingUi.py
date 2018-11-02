@@ -83,9 +83,13 @@ def time_crop(imp):
 	autoset_zoom(dupimp);
 	return dupimp, (start_frame, end_frame);
 
-def warning_dialog(message_lst):
+def warning_dialog(message):
 	dialog = GenericDialog("Warning!");
-	for message in message_lst:
+	dialog.setCancelLabel("Cancel analysis");
+	if type(message) is list:
+		for line in message:
+			dialog.addMessage(line);
+	else:
 		dialog.addMessage(message);
 	dialog.showDialog();
 	if dialog.wasCanceled():
