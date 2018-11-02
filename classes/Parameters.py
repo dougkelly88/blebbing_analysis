@@ -105,7 +105,6 @@ class Parameters:
 
 	def setInputImagePath(self, path):
 		self.input_image_path = path;
-		self.persistParameters();
 
 	def setSpatialCrop(self, spatial_crop):
 		self.spatial_crop = spatial_crop;

@@ -50,6 +50,7 @@ def main():
 	# prompt user for file locations
 	file_path, output_folder = mbio.file_location_chooser(params.input_image_path);
 	params.setInputImagePath(file_path);
+	params.persistParameters();
 
 	# get image file
 	imps = bf.openImagePlus(file_path);
