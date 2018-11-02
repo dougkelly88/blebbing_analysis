@@ -5,7 +5,7 @@
 # imports
 import math
 from ij import IJ
-from ij.gui import WaitForUserDialog, GenericDialog
+from ij.gui import WaitForUserDialog, GenericDialog, NonBlockingGenericDialog
 from ij.plugin import Duplicator
 from ij.process import AutoThresholder
 
@@ -27,7 +27,7 @@ def autoset_zoom(imp):
 # prompt user to select ROI for subsequent analysis
 def crop_to_ROI(imp):
 	IJ.setTool("rect");
-	WaitForUserDialog("Crop", "If desired, select a rectangular ROI to crop to...").show();
+	MyWaitForUser("Crop", "If desired, select a rectangular ROI to crop to...");
 	roi = imp.getRoi();
 	crop_params = None;
 	original_imp = imp.clone();
@@ -46,19 +46,19 @@ def prompt_for_points(imp, title, message, n_points):
 		IJ.setTool("multipoint");
 	selected_points = 0;
 	while (selected_points != n_points):
-		WaitForUserDialog(title, message).show();
+		MyWaitForUser(title, message);
 		roi = imp.getRoi();
 		if roi is not None:
 			selected_points = len(roi.getContainedPoints());
 		if ((roi is None) or (selected_points != n_points)):
-			WaitForUserDialog("Error!", "Wrong number of points selected! Please try again...").show();
+			MyWaitForUser("Error!", "Wrong number of points selected! Please try again...");
 			imp.killRoi();
 	return [(p.x, p.y) for p in roi.getContainedPoints()];
 
 def time_crop(imp):
-	WaitForUserDialog("Choose first time frame and click OK...").show();
+	MyWaitForUser("Choose first time frame and click OK...");
 	start_frame = imp.getT();
-	WaitForUserDialog("Now choose last time frame and click OK...").show();
+	MyWaitForUser("Now choose last time frame and click OK...");
 	end_frame = imp.getT();
 	slices = imp.getNSlices();
 	channels = imp.getNChannels();
@@ -72,6 +72,18 @@ def time_crop(imp):
 def warning_dialog(message_lst):
 	dialog = GenericDialog("Warning!");
 	for message in message_lst:
+		dialog.addMessage(message);
+	dialog.showDialog();
+	if dialog.wasCanceled():
+		raise KeyboardInterrupt("Run canceled");
+
+def MyWaitForUser(title, message):
+	dialog = NonBlockingGenericDialog(title);
+	dialog.setCancelLabel("Cancel analysis");
+	if type(message) is list:
+		for line in message:
+			dialog.addMessage(line);
+	else:
 		dialog.addMessage(message);
 	dialog.showDialog();
 	if dialog.wasCanceled():
