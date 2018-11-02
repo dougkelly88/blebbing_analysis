@@ -259,17 +259,11 @@ def apply_photobleach_correction_framewise(params, actin_channel_imp, membrane_c
 			roi = membrane_channel_imp.getRoi();
 			actin_channel_imp.setRoi(roi);
 			t0_value = actin_channel_imp.getStatistics().mean;
-			print("Correction timepoint T = " + str(actin_channel_imp.getT()));
-			print("Factor = 1 (by definition)");
-			print("ROI area = " + str(roi.size()));
 		else:
 			IJ.run(membrane_channel_imp, "Create Selection", "");
 			roi = membrane_channel_imp.getRoi();
 			actin_channel_imp.setRoi(roi);
 			mean_value = actin_channel_imp.getStatistics().mean;
 			factor = t0_value/mean_value;
-			print("Correction timepoint T = " + str(actin_channel_imp.getT()));
-			print("Factor: " + str(factor));
-			print("ROI area = " + str(roi.size()));
 			IJ.run(actin_channel_imp, "Multiply...", "value=" + str(factor) + " slice");
 		return actin_channel_imp, t0_value;
