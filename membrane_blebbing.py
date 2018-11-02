@@ -9,11 +9,10 @@ import os, sys, math
 from ij import IJ, ImageStack
 from ij.io import FileSaver
 from ij.gui import WaitForUserDialog
-from ij.plugin import ChannelSplitter, Duplicator
-from loci.formats import ImageReader
+from ij.plugin import ChannelSplitter, Duplicator, ZProjector
 from loci.plugins import BF as bf
 
-release = True;
+release = False;
 
 if not release:
 	script_path = os.path.dirname(os.path.realpath(__file__));
@@ -55,6 +54,28 @@ def main():
 	imps = bf.openImagePlus(file_path);
 	imp = imps[0];
 	imp.show();
+	h = imp.height;
+	w = imp.width;
+	d = imp.getNSlices();
+	n_channels = imp.getNChannels();
+	n_frames = imp.getNFrames();
+	n_slices = imp.getNSlices();
+
+	# catch unexpected image dimensions - for now, project in Z...:
+	if n_slices > 1:
+		mbui.warning_dialog(["More than one Z plane detected.", 
+							"I will do a maximum projection before proceeding", 
+							"Continue?"]);
+		imp = ZProjector.run(imp,"max all");
+	#if n_channels < 2:
+	#	mbui.warning_dialog(["There seems to be only one channel in the data. ", 
+	#						"I will assume this is correct and "])
+	#if (imp.getNDimensions() < 4) or (n_channels < 2):
+	#	mbui.warning_dialog(["There doesn't seem to be 2 or more channels in the data!", 
+	#						"If multiple channels and timepoints have been acquired, but", 
+	#						"they are in a single stack TIFF format, I can try to access", 
+	#						"acquisition metadata to generate an appropriate hyperstack. ", 
+	#						"Continue?"]);
 
 	params = mbio.get_metadata(params);
 	params.persistParameters();
@@ -133,17 +154,15 @@ def main():
 		curvature_stack = mbfig.generate_curvature_overlays(curvature_profiles[-1], curvature_stack)
 		
 		# generate actin-channel line profile - assume 2-channel image...
-		actin_channel = (membrane_channel + 1) % n_channels;
-		actin_channel_imp = split_channels[actin_channel-1];
-		actin_profiles.append(mb.maximum_line_profile(actin_channel_imp, membrane_edge, 3));
+		if n_channels > 2:
+			actin_channel = (membrane_channel + 1) % n_channels;
+			actin_channel_imp = split_channels[actin_channel-1];
+			actin_profiles.append(mb.maximum_line_profile(actin_channel_imp, membrane_edge, 3));
 	
 	# output colormapped images and kymographs 
+	# curvature/membrane channel
 	norm_curv_kym = mbfig.generate_kymograph(curvature_profiles, params.curvature_kymograph_lut_string, "Curvature kymograph - distal point at middle");
 	curv_kym = mbfig.generate_plain_kymograph(curvature_profiles, params.curvature_kymograph_lut_string, "Curvature kymograph");
-	norm_actin_kym = mbfig.generate_kymograph(actin_profiles, params.actin_kymograph_lut_string, (params.labeled_species + " intensity - distal point at middle"));
-	actin_kym = mbfig.generate_plain_kymograph(actin_profiles, params.actin_kymograph_lut_string, (params.labeled_species + " intensity"));
-	FileSaver(norm_actin_kym).saveAsTiff(os.path.join(output_folder, "normalised position " + params.labeled_species + " kymograph.tif"));
-	FileSaver(actin_kym).saveAsTiff(os.path.join(output_folder, "raw " + params.labeled_species + " kymograph.tif"));
 	FileSaver(norm_curv_kym).saveAsTiff(os.path.join(output_folder, "normalised position curvature kymograph.tif"));
 	FileSaver(curv_kym).saveAsTiff(os.path.join(output_folder, "raw curvature kymograph.tif"));
 	overlaid_curvature_imp, raw_curvature_imp = mbfig.overlay_curvatures(imp, curvature_stack, curvature_profiles, membrane_channel, curv_limits, params);	
@@ -152,9 +171,7 @@ def main():
 	FileSaver(overlaid_curvature_imp).saveAsTiffStack(os.path.join(output_folder, "overlaid curvature.tif"));
 	FileSaver(raw_curvature_imp).saveAsTiffStack(os.path.join(output_folder, "raw curvature.tif"));
 	mbio.save_profile_as_csv(curvature_profiles, os.path.join(output_folder, "curvatures.csv"), "curvature")
-	mbio.save_profile_as_csv(actin_profiles, os.path.join(output_folder, (params.labeled_species + " intensities.csv")), (params.labeled_species + " intensity"))
 	FileSaver(membrane_channel_imp).saveAsTiffStack(os.path.join(output_folder, "binary_membrane_stack.tif"));
-	mrg_imp = mbfig.merge_kymographs(norm_actin_kym, norm_curv_kym, params);
 	bleb_len_imp, bleb_ls = mbfig.plot_bleb_evolution([t * params.frame_interval for t in range(0, len(membrane_edges))], 
 											[mb.roi_length(medge) for medge in membrane_edges], 
 											"Edge length (" + params.pixel_unit + ")");
@@ -165,22 +182,33 @@ def main():
 	FileSaver(bleb_a_imp).saveAsTiff(os.path.join(output_folder, "bleb area.tif"));
 	mbio.save_1d_profile_as_csv(bleb_ls, os.path.join(output_folder, "bleb perimeter length.csv"), [("Time, " + params.interval_unit), "Length, " + params.pixel_unit]);
 	mbio.save_1d_profile_as_csv(bleb_as, os.path.join(output_folder, "bleb area.csv"), [("Time, " + params.interval_unit), "Area, " + params.pixel_unit + "^2"]);
-	FileSaver(mrg_imp).saveAsTiff(os.path.join(output_folder, "merged intensity and curvature kymograph.tif"));
-	#mbfig.generate_intensity_weighted_curvature(raw_curvature_imp, curvature_profiles, actin_channel_imp, "physics");
+	
+	# actin channel
+	if n_channels > 2:
+		norm_actin_kym = mbfig.generate_kymograph(actin_profiles, params.actin_kymograph_lut_string, (params.labeled_species + " intensity - distal point at middle"));
+		actin_kym = mbfig.generate_plain_kymograph(actin_profiles, params.actin_kymograph_lut_string, (params.labeled_species + " intensity"));
+		FileSaver(norm_actin_kym).saveAsTiff(os.path.join(output_folder, "normalised position " + params.labeled_species + " kymograph.tif"));
+		FileSaver(actin_kym).saveAsTiff(os.path.join(output_folder, "raw " + params.labeled_species + " kymograph.tif"));
+		mbio.save_profile_as_csv(actin_profiles, os.path.join(output_folder, (params.labeled_species + " intensities.csv")), (params.labeled_species + " intensity"))
+		mrg_imp = mbfig.merge_kymographs(norm_actin_kym, norm_curv_kym, params);
+		FileSaver(mrg_imp).saveAsTiff(os.path.join(output_folder, "merged intensity and curvature kymograph.tif"));
+		#mbfig.generate_intensity_weighted_curvature(raw_curvature_imp, curvature_profiles, actin_channel_imp, "physics");
+
 	params.saveParametersToJson(os.path.join(output_folder, "parameters used.json"));
 	imp.changes = False;
 	IJ.setTool("zoom");
 	if params.close_on_completion:
 		imp.close();
-		mrg_imp.close();
 		bleb_a_imp.close();
 		bleb_len_imp.close();
 		raw_curvature_imp.close();
 		overlaid_curvature_imp.close();
 		norm_curv_kym.close();
 		curv_kym.close();
-		norm_actin_kym.close();
-		actin_kym.close();
+		if n_channels > 2:
+			mrg_imp.close();
+			norm_actin_kym.close();
+			actin_kym.close();
 
 
 # It's best practice to create a function that contains the code that is executed when running the script.
