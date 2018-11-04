@@ -53,7 +53,6 @@ def main():
 	# get image file
 	imps = bf.openImagePlus(file_path);
 	imp = imps[0];
-	imp.show();
 	h = imp.height;
 	w = imp.width;
 	d = imp.getNSlices();
@@ -79,6 +78,7 @@ def main():
 
 	params = mbio.get_metadata(params);
 	params.persistParameters();
+	imp.show();
 	mbui.autoset_zoom(imp);
 
 	# prompt user to select ROI
