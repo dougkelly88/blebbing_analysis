@@ -44,7 +44,7 @@ def crop_to_ROI(imp, params):
 			IJ.run(imp, "Set...", "value=" + str(round(fill_val)) + " stack");
 			IJ.run(imp, "Make Inverse", "");
 		else:
-			crop_params = roi.getBounds();
+			crop_params = roi.getBounds().toString();
 		IJ.run(imp, "Crop", "");
 		autoset_zoom(imp);
 		imp.killRoi();
