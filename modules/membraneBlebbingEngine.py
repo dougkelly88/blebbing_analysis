@@ -30,15 +30,18 @@ def make_and_clean_binary(imp, threshold_method):
 		IJ.run(imp, "Invert", "stack");
 	else:
 		IJ.run(imp, "Make Binary", "method=" + threshold_method + " background=Dark calculate");
-	
+
 	IJ.run(imp, "Open", "stack");
 	IJ.run(imp, "Close-", "stack");
 	IJ.run(imp, "Close-", "stack");
 	IJ.run(imp, "Open", "stack");
 	IJ.run(imp, "Fill Holes", "stack");
 	IJ.run(imp, "Erode", "stack");
+	IJ.run(imp, "Erode", "stack");
 	keep_largest_blob(imp);
 	IJ.run(imp, "Dilate", "stack");
+	IJ.run(imp, "Dilate", "stack");
+	IJ.run(imp, "Open", "stack");
 	return imp;
 
 def fix_anchors_to_membrane(anchors_list, membrane_roi):
@@ -187,10 +190,12 @@ def keep_largest_blob(imp):
 		pa.analyze(imp);
 		rt_areas = rt.getColumn(rt.getColumnIndex("Area")).tolist();
 		mx_ind = rt_areas.index(max(rt_areas))
-		indices_to_remove = [a for a in range(0,len(rt_areas)) if a != mx_ind]
+		indices_to_remove = [a for a in range(0,len(rt_areas)) if a != mx_ind];
+		indices_to_remove.reverse();
 		for rem_idx in indices_to_remove:
 			roim.select(imp, rem_idx);
-			roim.runCommand(imp, "Fill");
+			IJ.run(imp, "Set...", "value=0 slice");
+	imp.killRoi();
 	roim.reset();
 	roim.close();
 

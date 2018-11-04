@@ -108,6 +108,26 @@ class TestMbEngine(unittest.TestCase):
 		area, area_roi = mb.bleb_area(roi)
 		self.assertEqual(area, 4);
 
+	def test_keep_largest_blob(self):
+		"""test to ensure that keep largest blob does indeed only retain largest blob"""
+		# create binary image
+		w = 5;
+		imp = IJ.createImage("one", w, w, 1, 8);
+		pix = imp.getProcessor().getPixels();
+
+		for idx in range(0, w):
+			pix[idx] = 127;
+		pix[w * w - w + 2] = 127;
+		pix[w * w - w] = 127;
+		pix[int(float(w)/2 * float(w+1)/2 + w)] = 127;
+		pix[int(float(w)/2 * float(w+1)/2 + w) + 1] = 127
+		IJ.setRawThreshold(imp, 125, 255, "null");
+		IJ.run(imp, "Convert to Mask", "");
+		mb.keep_largest_blob(imp);
+		IJ.run(imp, "Create Selection", "");
+		roi = imp.getRoi();
+		self.assertEqual(roi.getStatistics().area, w);
+
 	def test_apply_photobleach_correction_framewise(self):
 		"""confirm that photobleaching correction equalises mean values across a stack"""
 		# create test images: 
