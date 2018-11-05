@@ -114,6 +114,7 @@ def main():
 	membrane_channel = imp.getChannel();
 	split_channels = ChannelSplitter.split(imp);
 	membrane_channel_imp = split_channels[membrane_channel-1];
+	membrane_test_channel_imp = Duplicator().run(membrane_channel_imp);
 	if n_channels >= 2:
 		actin_channel = (membrane_channel + 1) % n_channels;
 		actin_channel_imp = split_channels[actin_channel-1];
@@ -163,6 +164,9 @@ def main():
 																						membrane_channel_imp, 
 																						t0_value=t0_actin_mean);
 			actin_profiles.append(mb.maximum_line_profile(actin_channel_imp, membrane_edge, 3));
+
+	# perform user QC before saving anything
+	mbui.perform_user_qc(membrane_test_channel_imp, membrane_edges);
 
 	# output colormapped images and kymographs 
 	# curvature/membrane channel

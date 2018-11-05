@@ -107,6 +107,10 @@ def MyWaitForUser(title, message):
 	if dialog.wasCanceled():
 		raise KeyboardInterrupt("Run canceled");
 
+def perform_user_qc(imp, edges):
+	"""allow the user to intervene to fix erroneously identified membrane edges"""
+
+
 def analysis_parameters_gui():
 	"""GUI for setting analysis parameters at the start of a run. TODO: more effectively separate model and view"""
 	params = Parameters(load_last_params = True);
