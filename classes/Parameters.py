@@ -11,7 +11,7 @@ class Parameters:
 
 	_persist_parameters_filename = "IJ_membrane_blebbing_params.json";
 	_persist_parameters_folder = "IJ_membrane_blebbing";
-	_version_string = "1.0.2";
+	_version_string = "1.0.3";
 
 	def __init__(self, load_last_params = False,
 						input_image_path = None, 
