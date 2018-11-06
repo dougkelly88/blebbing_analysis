@@ -12,14 +12,16 @@ class UpdateRoiImageListener(ImageListener):
 		print("UpdateRoiImageListener started");
 
 	def imageUpdated(self, imp):
-		self.roi_list[self.last_frame - 1] = imp.getRoi();
+		roi = imp.getRoi();
+		if roi is not None and not roi.isArea():
+			self.roi_list[self.last_frame - 1] = roi;
 		frame = imp.getT();
 		self.last_frame = frame;
 		imp.setRoi(self.roi_list[frame - 1]);
 
 	def imageOpened(self, imp):
 		print("UpdateRoiImageListener: image opened");
-
+			
 	def imageClosed(self, imp):
 		print("UpdateRoiImageListener: image closed");
 		imp.removeImageListener(self);
