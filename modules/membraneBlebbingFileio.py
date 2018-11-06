@@ -73,6 +73,14 @@ def save_parameters(params, file_path):
 	json.dump(params, f);
 	f.close();
 
+def save_qcd_edges(edges, output_folder):
+	"""save JSON describing user-drawn edges"""
+	edge_point_list = [zip(poly.xpoints, poly.ypoints) for poly in [edge.getPolygon() for edge in edges]];
+	file_path = os.path.join(output_folder, "user_defined_edges.json");
+	f = open(file_path, 'w');
+	json.dump(edge_point_list, f);
+	f.close();
+
 def get_metadata(params):
 	"""get image metadata, either from the image file or from acquisition-time metadata"""
 	if params.metadata_source == "Image metadata":

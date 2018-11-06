@@ -10,7 +10,9 @@ from ij.plugin import Duplicator
 from ij.process import AutoThresholder
 
 from Parameters import Parameters
+from UpdateRoiImageListener import UpdateRoiImageListener
 import membraneBlebbingEngine as mb
+import membraneBlebbingFileio as mbio
 
 # set the zoom of the current imageplus to give a reasonable window size, 
 # based on reasonable guess at screen resolution
@@ -107,9 +109,25 @@ def MyWaitForUser(title, message):
 	if dialog.wasCanceled():
 		raise KeyboardInterrupt("Run canceled");
 
-def perform_user_qc(imp, edges):
+def perform_user_qc(imp, edges, output_folder):
 	"""allow the user to intervene to fix erroneously identified membrane edges"""
-
+	imp.show();
+	imp.setPosition(1);
+	imp.setRoi(edges[0]);
+	listener = UpdateRoiImageListener(edges);
+	imp.addImageListener(listener);
+	IJ.setTool("freeline");
+	MyWaitForUser("User quality control", 
+					["Please adjust/redraw the membrane edges as necessary, ",
+					"making sure to draw beyond anchor points at either end...",
+					"Click OK when done. "]);
+	last_roi = imp.getRoi();
+	qcd_edges = listener.getRoiList();
+	qcd_edges[imp.getT() - 1] = last_roi;
+	imp.removeImageListener(listener);
+	imp.close();
+	mbio.save_qcd_edges(qcd_edges, output_folder);
+	return qcd_edges;
 
 def analysis_parameters_gui():
 	"""GUI for setting analysis parameters at the start of a run. TODO: more effectively separate model and view"""
@@ -139,13 +157,15 @@ def analysis_parameters_gui():
 	dialog.addCheckbox("Filter out negative curvatures", 
 						params.filter_negative_curvatures);
 	dialog.addCheckbox("Account for photobleaching?", 
-						params.photobleaching_correction)
+						params.photobleaching_correction);
+	dialog.addCheckbox("Perform quality control of membrane edges?", 
+						params.perform_user_qc);
 	dialog.addCheckbox("Perform spatial cropping?", 
-						params.perform_spatial_crop)
+						params.perform_spatial_crop);
 	dialog.addCheckbox("Perform time cropping?", 
 						params.perform_time_crop);
 	dialog.addCheckbox("Close images on completion?", 
-						params.close_on_completion)
+						params.close_on_completion);
 	dialog.showDialog();
 	if dialog.wasCanceled():
 		raise KeyboardInterrupt("Run canceled");
@@ -158,6 +178,7 @@ def analysis_parameters_gui():
 	params.setLabeledSpecies(dialog.getNextString());
 	params.setFilterNegativeCurvatures(dialog.getNextBoolean());
 	params.togglePhotobleachingCorrection(dialog.getNextBoolean());
+	params.togglePerformUserQC(dialog.getNextBoolean());
 	params.toggleSpatialCrop(dialog.getNextBoolean());
 	params.toggleTimeCrop(dialog.getNextBoolean());
 	params.toggleCloseOnCompletion(dialog.getNextBoolean());

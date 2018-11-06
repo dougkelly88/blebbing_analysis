@@ -146,8 +146,14 @@ def main():
 		IJ.run(imp, "Fit Spline", "");
 		membrane_edge = imp.getRoi();
 		membrane_edges.append(membrane_edge);
-		
+
+	# perform user QC before saving anything
+	if params.perform_user_qc:
+		membrane_edges = mbui.perform_user_qc(membrane_test_channel_imp, membrane_edges, output_folder);
+	
+	for fridx in range(0, n_frames):
 		# generate curvature - this needs to be looped over slices
+		membrane_edge = membrane_edges[fridx];
 		curv_points = mb.generate_l_spaced_points(membrane_edge, params.curvature_length_pix);
 		curvature_profiles.append(mb.calculate_curvature_profile(curv_points,
 																membrane_edge, 
@@ -164,9 +170,6 @@ def main():
 																						membrane_channel_imp, 
 																						t0_value=t0_actin_mean);
 			actin_profiles.append(mb.maximum_line_profile(actin_channel_imp, membrane_edge, 3));
-
-	# perform user QC before saving anything
-	mbui.perform_user_qc(membrane_test_channel_imp, membrane_edges);
 
 	# output colormapped images and kymographs 
 	# curvature/membrane channel

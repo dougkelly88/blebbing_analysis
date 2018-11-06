@@ -32,7 +32,8 @@ class Parameters:
 						close_on_completion = False, 
 						metadata_source = "Image metadata", 
 						metadata_source_file = None, 
-						photobleaching_correction = False):
+						photobleaching_correction = False, 
+						perform_user_qc = False):
 		self.__blebbingparams__ = True;
 
 		success = True;
@@ -60,11 +61,12 @@ class Parameters:
 
 			self.labeled_species = labeled_species;
 			
+			self.perform_user_qc = perform_user_qc;
 			self.photobleaching_correction = photobleaching_correction;
 			self.filter_negative_curvatures = filter_negative_curvatures;
 			self.perform_spatial_crop = perform_spatial_crop;
 			self.perform_time_crop = perform_time_crop;
-
+			
 			self.metadata_source = metadata_source;
 			self.metadata_source_file = metadata_source_file;
 			self.pixel_physical_size = 1.0;
@@ -73,6 +75,9 @@ class Parameters:
 			self.interval_unit = "s";
 
 		self.software_version = Parameters._version_string;
+
+	def togglePerformUserQC(self, do_qc):
+		self.perform_user_qc = do_qc;
 
 	def togglePhotobleachingCorrection(self, photobleaching_correction):
 		self.photobleaching_correction = photobleaching_correction;
@@ -199,6 +204,7 @@ class Parameters:
 				self.setMetadataSource(dct["metadata_source"]);
 				self.setMetadataSourceFile(dct["metadata_source_file"]);
 				self.togglePhotobleachingCorrection(dct["photobleaching_correction"]);
+				self.togglePerformUserQC(dct["perform_user_qc"]);
 			else:
 				raise ValueError("JSON file doesn't translate to membrane blebbing analysis parameters")
 		except IOError:
