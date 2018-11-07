@@ -179,9 +179,7 @@ def main():
 	curv_kym = mbfig.generate_plain_kymograph(curvature_profiles, params.curvature_kymograph_lut_string, "Curvature kymograph");
 	FileSaver(norm_curv_kym).saveAsTiff(os.path.join(output_folder, "normalised position curvature kymograph.tif"));
 	FileSaver(curv_kym).saveAsTiff(os.path.join(output_folder, "raw curvature kymograph.tif"));
-	overlaid_curvature_imp, raw_curvature_imp = mbfig.overlay_curvatures(imp, curvature_stack, curvature_profiles, membrane_channel, params);
-	overlaid_curvature_imp.show();
-	mbui.autoset_zoom(overlaid_curvature_imp);
+	overlaid_curvature_imp, raw_curvature_imp = mbfig.overlay_curvatures(imp, curvature_stack, curvature_profiles, membrane_channel, params, annotate=True);
 	FileSaver(overlaid_curvature_imp).saveAsTiffStack(os.path.join(output_folder, "overlaid curvature.tif"));
 	FileSaver(raw_curvature_imp).saveAsTiffStack(os.path.join(output_folder, "raw curvature.tif"));
 	mbio.save_profile_as_csv(curvature_profiles, os.path.join(output_folder, "curvatures.csv"), "curvature")
