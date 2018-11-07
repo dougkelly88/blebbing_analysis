@@ -29,22 +29,21 @@ def autoset_zoom(imp):
 	zy = 100* math.floor(screen_h / (2 * h));
 	zx = 100* math.floor(screen_w / (2 * w));
 	zoom_factor = min([zx, zy]);
-	print("applying zoom factor "  +str(zoom_factor));
 	IJ.run("Set... ", "zoom=" + str(zoom_factor) + 
 						" x=" + str(math.floor(w/2)) + 
 						" y=" + str(math.floor(h/2)));
 	IJ.run("Scale to Fit", "");
 
-# prompt user to select ROI for subsequent analysis
 def crop_to_ROI(imp, params):
+	"""prompt user to select ROI for subsequent analysis"""
 	IJ.setTool("rect");
 	MyWaitForUser("Crop", "If desired, select an area ROI to crop to...");
 	roi = imp.getRoi();
-	if not roi.isArea():
-		raise TypeError("selected ROI should be an area");
 	crop_params = None;
 	original_imp = imp.clone();
 	if roi is not None:
+		if not roi.isArea():
+			raise TypeError("selected ROI should be an area");
 		if roi.getType():
 			crop_params = str([(x, y) for x, y in 
 							zip(roi.getPolygon().xpoints, roi.getPolygon().ypoints)]);
