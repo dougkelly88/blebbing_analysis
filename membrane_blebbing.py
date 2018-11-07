@@ -149,7 +149,9 @@ def main():
 
 	# perform user QC before saving anything
 	if params.perform_user_qc:
+		imp.hide();
 		membrane_edges = mbui.perform_user_qc(membrane_test_channel_imp, membrane_edges, output_folder);
+		imp.show();
 	
 	for fridx in range(0, n_frames):
 		# generate curvature - this needs to be looped over slices
@@ -177,7 +179,7 @@ def main():
 	curv_kym = mbfig.generate_plain_kymograph(curvature_profiles, params.curvature_kymograph_lut_string, "Curvature kymograph");
 	FileSaver(norm_curv_kym).saveAsTiff(os.path.join(output_folder, "normalised position curvature kymograph.tif"));
 	FileSaver(curv_kym).saveAsTiff(os.path.join(output_folder, "raw curvature kymograph.tif"));
-	overlaid_curvature_imp, raw_curvature_imp = mbfig.overlay_curvatures(imp, curvature_stack, curvature_profiles, membrane_channel, curv_limits, params);	
+	overlaid_curvature_imp, raw_curvature_imp = mbfig.overlay_curvatures(imp, curvature_stack, curvature_profiles, membrane_channel, params);
 	overlaid_curvature_imp.show();
 	mbui.autoset_zoom(overlaid_curvature_imp);
 	FileSaver(overlaid_curvature_imp).saveAsTiffStack(os.path.join(output_folder, "overlaid curvature.tif"));
