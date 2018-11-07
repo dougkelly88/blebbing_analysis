@@ -51,7 +51,7 @@ def add_colorbar(imp, limits, fraction=0.05):
 				pix[yidx * w + xidx] = float(limits[1] - limits[0]) * (float(h - yidx)/h);
 	return imp
 
-def generate_limit_labels(imp, limits, cb_fraction):
+def generate_limit_labels(imp, limits, cb_fraction, params):
 	"""generate text ROIs in correct positions to label colorbar"""
 	rois = [];
 	w = imp.getWidth();
@@ -71,7 +71,22 @@ def generate_limit_labels(imp, limits, cb_fraction):
 	for fridx in range(1, imp.getNSlices()+1):
 		imp.setPosition(fridx);
 		roi_uu = rois[1].clone();
-		#xpos = w - cb_fraction * w - float(w)/100 - rois[1].getFloatWidth();
+		xpos = w - cb_fraction * w - float(w)/100 - rois[1].getFloatWidth();
+		roi_uu.setLocation(xpos, 1);
+		imp.setRoi(roi_uu);
+		roim.addRoi(roi_uu);
+		roi_ll = rois[0].clone();
+		roi_ll.setLocation(xpos, h - rois[0].getFloatHeight());
+		imp.setRoi(roi_ll);
+		roim.addRoi(roi_ll);
+	roim.runCommand("Show All");
+	FileSaver(imp).saveAsTiffStack(os.path.join(params.output_path, "overlaid curvature nudged labels.tif"));
+	# nudge positions
+	roim.reset();
+	imp.killRoi();
+	for fridx in range(1, imp.getNSlices()+1):
+		imp.setPosition(fridx);
+		roi_uu = rois[1].clone();
 		xpos = w - cb_fraction * w - float(w)/100;
 		roi_uu.setLocation(xpos, 1);
 		imp.setRoi(roi_uu);
@@ -81,6 +96,7 @@ def generate_limit_labels(imp, limits, cb_fraction):
 		imp.setRoi(roi_ll);
 		roim.addRoi(roi_ll);
 	roim.runCommand("Show All");
+	FileSaver(imp).saveAsTiffStack(os.path.join(params.output_path, "overlaid curvature.tif"));
 	return imp;
 	
 def overlay_curvatures(imp, curvature_stack, curvature_profiles, membrane_channel, params, limits = None, annotate=True):
@@ -118,10 +134,7 @@ def overlay_curvatures(imp, curvature_stack, curvature_profiles, membrane_channe
 		overlaid_stack.addSlice(ip);
 	out_imp = ImagePlus("Overlaid curvatures", overlaid_stack);
 	if annotate:
-		out_imp = generate_limit_labels(out_imp, limits, cb_fraction)
-		out_imp.show();
-		mbui.autoset_zoom(out_imp);
-	FileSaver(out_imp).saveAsTiffStack(os.path.join(params.output_path, "overlaid curvature.tif"));
+		out_imp = generate_limit_labels(out_imp, limits, cb_fraction, params)
 	FileSaver(raw_overlay).saveAsTiffStack(os.path.join(params.output_path, "raw curvature.tif"));
 	return out_imp, raw_overlay;
 
