@@ -8,20 +8,28 @@ from ij import IJ
 from ij.gui import WaitForUserDialog, GenericDialog, NonBlockingGenericDialog
 from ij.plugin import Duplicator
 from ij.process import AutoThresholder
+from java.awt import GraphicsEnvironment
 
 from Parameters import Parameters
 from UpdateRoiImageListener import UpdateRoiImageListener
 import membraneBlebbingEngine as mb
 import membraneBlebbingFileio as mbio
 
-# set the zoom of the current imageplus to give a reasonable window size, 
-# based on reasonable guess at screen resolution
 def autoset_zoom(imp):
+	"""set the zoom of the current imageplus to give a reasonable window size,  based on reasonable guess at screen resolution"""
 	h = imp.getHeight();
 	w = imp.getWidth();
-	zy = 100* math.floor(1080 / (2 * h));
-	zx = 100* math.floor(1920 / (2 * w));
+	try:
+		gd = GraphicsEnvironment.getLocalGraphicsEnvironment().getDefaultScreenDevice().getDisplayMode();
+		screen_h = gd.getHeight();
+		screen_w = gd.getWidth();
+	except:
+		screen_h = 1080;
+		screen_w = 1920;
+	zy = 100* math.floor(screen_h / (2 * h));
+	zx = 100* math.floor(screen_w / (2 * w));
 	zoom_factor = min([zx, zy]);
+	print("applying zoom factor "  +str(zoom_factor));
 	IJ.run("Set... ", "zoom=" + str(zoom_factor) + 
 						" x=" + str(math.floor(w/2)) + 
 						" y=" + str(math.floor(h/2)));
