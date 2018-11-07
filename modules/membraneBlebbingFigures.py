@@ -105,25 +105,25 @@ def overlay_curvatures(imp, curvature_stack, curvature_profiles, membrane_channe
 			for x in range(w - int(w * cb_fraction), w):
 				for y in range(0, h):
 					base_pix[int(round(y)) * imp.width + int(round(x))] = pix[int(round(y)) * imp.width + int(round(x))];
-			overlay_base_imp.setPosition(fridx);
 		overlaid_stack.addSlice(ip);
 	out_imp = ImagePlus("Overlaid curvatures", overlaid_stack);
 	if annotate:
 		out_imp.show();
-		mbui.MyWaitForUser("pause", "pause");
+		mbui.autoset_zoom(out_imp);
 		w = out_imp.getWidth();
 		h = out_imp.getHeight();
+		txt_h_px = float(h)/15;
+		txt_sz_pt = int(round((18.0/24.0) * txt_h_px));
 		roim = RoiManager(False);
 		roim.reset();
-		roi_u = TextRoi(1, 1, str(round(limits[1], 2)), Font("SansSerif", Font.ITALIC, 18));
-		roi_u.setJustification(TextRoi.LEFT);
+		roi_u = TextRoi(1, 1, str(round(limits[1], 2)), Font("SansSerif", Font.ITALIC, txt_sz_pt));
+		roi_u.setJustification(TextRoi.RIGHT);
 		roi_u.setFillColor(Color.BLACK);
 		roi_u.setStrokeColor(Color.WHITE);
-		roi_l = TextRoi(1, 1, str(round(limits[0], 2)), Font("SansSerif", Font.ITALIC, 18));
-		roi_l.setJustification(TextRoi.LEFT);
+		roi_l = TextRoi(1, 1, str(round(limits[0], 2)), Font("SansSerif", Font.ITALIC, txt_sz_pt));
+		roi_l.setJustification(TextRoi.RIGHT);
 		roi_l.setFillColor(Color.BLACK);
 		roi_l.setStrokeColor(Color.WHITE);
-		print("out_imp N slices = " + str(out_imp.getNSlices()));
 		for fridx in range(1, out_imp.getNSlices()+1):
 			out_imp.setPosition(fridx);
 			roi_uu = roi_u.clone();
@@ -135,7 +135,6 @@ def overlay_curvatures(imp, curvature_stack, curvature_profiles, membrane_channe
 			out_imp.setRoi(roi_ll);
 			roim.addRoi(roi_ll);
 		roim.runCommand("Show All");
-		mbui.MyWaitForUser("pause", "pause");
 	return out_imp, raw_overlay;
 
 def generate_plain_kymograph(data_to_plot, colormap_string, title_string):
