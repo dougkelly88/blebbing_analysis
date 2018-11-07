@@ -119,6 +119,7 @@ def MyWaitForUser(title, message):
 def perform_user_qc(imp, edges, output_folder):
 	"""allow the user to intervene to fix erroneously identified membrane edges"""
 	imp.show();
+	autoset_zoom(imp);
 	imp.setPosition(1);
 	imp.setRoi(edges[0]);
 	listener = UpdateRoiImageListener(edges);
