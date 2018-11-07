@@ -60,8 +60,8 @@ def crop_to_ROI(imp, params):
 		params.setSpatialCrop(crop_params)
 	return original_imp, crop_params;
 
-# prompt the user to provide a number of points on the image
 def prompt_for_points(imp, title, message, n_points):
+	"""prompt the user to provide a number of points on the image"""
 	imp.killRoi();
 	if (n_points == 1): 
 		IJ.setTool("point");
@@ -79,6 +79,7 @@ def prompt_for_points(imp, title, message, n_points):
 	return [(p.x, p.y) for p in roi.getContainedPoints()];
 
 def time_crop(imp):
+	"""trim a time series based on interactively-defined start and end points"""
 	MyWaitForUser("Choose first time frame and click OK...");
 	start_frame = imp.getT();
 	MyWaitForUser("Now choose last time frame and click OK...");
@@ -93,6 +94,7 @@ def time_crop(imp):
 	return dupimp, (start_frame, end_frame);
 
 def warning_dialog(message):
+	"""show a warning dialog with a user-defined message"""
 	dialog = GenericDialog("Warning!");
 	dialog.setCancelLabel("Cancel analysis");
 	if type(message) is list:
@@ -105,6 +107,7 @@ def warning_dialog(message):
 		raise KeyboardInterrupt("Run canceled");
 
 def MyWaitForUser(title, message):
+	"""non-modal dialog with option to cancel the analysis"""
 	dialog = NonBlockingGenericDialog(title);
 	dialog.setCancelLabel("Cancel analysis");
 	if type(message) is list:
