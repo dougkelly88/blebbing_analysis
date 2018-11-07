@@ -13,6 +13,7 @@ sys.path.insert(0, script_path);
 
 from ij import IJ, ImagePlus, ImageStack
 from ij.gui import Plot, GenericDialog, TextRoi
+from ij.io import FileSaver
 from ij.measure import Measurements
 from ij.plugin import RGBStackMerge, Duplicator
 from ij.plugin.frame import RoiManager
@@ -50,26 +51,38 @@ def add_colorbar(imp, limits, fraction=0.05):
 				pix[yidx * w + xidx] = float(limits[1] - limits[0]) * (float(h - yidx)/h);
 	return imp
 
-def generate_limit_labels(overlay_imp, limits, cb_fraction):
+def generate_limit_labels(imp, limits, cb_fraction):
 	"""generate text ROIs in correct positions to label colorbar"""
 	rois = [];
+	w = imp.getWidth();
+	h = imp.getHeight();
+	txt_h_px = float(h)/15;
+	txt_sz_pt = int(round((18.0/24.0) * txt_h_px));
 	for limit in limits:
-		roi = TextRoi(1, 1, str(round(limit, 3)), Font("SansSerif", Font.ITALIC, 18));
+		roi = TextRoi(1, 1, str(round(limit, 3)), Font("SansSerif", Font.ITALIC, txt_sz_pt));
 		roi.setJustification(TextRoi.RIGHT);
 		roi.setFillColor(Color.BLACK);
 		roi.setStrokeColor(Color.WHITE);
 		rois.append(roi);
-	w = overlay_imp.getWidth();
-	h = overlay_imp.getHeight();
-	rois[0].setLocation(int(w - cb_fraction*w - float(w)/100) - rois[0].getFloatWidth(), 1);
-	rois[1].setLocation(int(w - cb_fraction * w - float(w)/100 - rois[1].getFloatWidth()), 
-						int(h - rois[1].getFloatHeight()));
-	print("lower lim text = "  + str(rois[0].getText()));
-	print("lower lim X location = " + str(rois[0].getXBase()));
-	print("upper lim text = "  + str(rois[1].getText()));
-	print("upper lim X location = " + str(rois[1].getXBase()));
-	return rois;
-
+	roim = RoiManager(False);
+	roim.reset();
+	imp.show();
+	mbui.autoset_zoom(imp);
+	for fridx in range(1, imp.getNSlices()+1):
+		imp.setPosition(fridx);
+		roi_uu = rois[1].clone();
+		#xpos = w - cb_fraction * w - float(w)/100 - rois[1].getFloatWidth();
+		xpos = w - cb_fraction * w - float(w)/100;
+		roi_uu.setLocation(xpos, 1);
+		imp.setRoi(roi_uu);
+		roim.addRoi(roi_uu);
+		roi_ll = rois[0].clone();
+		roi_ll.setLocation(xpos, h - rois[0].getFloatHeight());
+		imp.setRoi(roi_ll);
+		roim.addRoi(roi_ll);
+	roim.runCommand("Show All");
+	return imp;
+	
 def overlay_curvatures(imp, curvature_stack, curvature_profiles, membrane_channel, params, limits = None, annotate=True):
 	"""Overlay curvature pixels on membrane image"""
 	overlay_base_imp = imp.clone();
@@ -83,9 +96,6 @@ def overlay_curvatures(imp, curvature_stack, curvature_profiles, membrane_channe
 	if annotate:
 		cb_fraction = 0.05;
 		overlay_imp = add_colorbar(overlay_imp, limits, cb_fraction);
-		#lim_text_rois = generate_limit_labels(overlay_imp, limits, cb_fraction);
-		#roim = RoiManager();
-		#roim.reset();
 	IJ.run(overlay_imp, "RGB Color", "");
 	overlaid_stack = ImageStack(overlay_imp.width, overlay_imp.height);
 	for fridx in range(1, curvature_stack.getSize()+1):
@@ -108,33 +118,11 @@ def overlay_curvatures(imp, curvature_stack, curvature_profiles, membrane_channe
 		overlaid_stack.addSlice(ip);
 	out_imp = ImagePlus("Overlaid curvatures", overlaid_stack);
 	if annotate:
+		out_imp = generate_limit_labels(out_imp, limits, cb_fraction)
 		out_imp.show();
 		mbui.autoset_zoom(out_imp);
-		w = out_imp.getWidth();
-		h = out_imp.getHeight();
-		txt_h_px = float(h)/15;
-		txt_sz_pt = int(round((18.0/24.0) * txt_h_px));
-		roim = RoiManager(False);
-		roim.reset();
-		roi_u = TextRoi(1, 1, str(round(limits[1], 2)), Font("SansSerif", Font.ITALIC, txt_sz_pt));
-		roi_u.setJustification(TextRoi.RIGHT);
-		roi_u.setFillColor(Color.BLACK);
-		roi_u.setStrokeColor(Color.WHITE);
-		roi_l = TextRoi(1, 1, str(round(limits[0], 2)), Font("SansSerif", Font.ITALIC, txt_sz_pt));
-		roi_l.setJustification(TextRoi.RIGHT);
-		roi_l.setFillColor(Color.BLACK);
-		roi_l.setStrokeColor(Color.WHITE);
-		for fridx in range(1, out_imp.getNSlices()+1):
-			out_imp.setPosition(fridx);
-			roi_uu = roi_u.clone();
-			roi_uu.setLocation(w - cb_fraction * w - float(w)/100 - roi_u.getFloatWidth(), 1);
-			out_imp.setRoi(roi_uu);
-			roim.addRoi(roi_uu);
-			roi_ll = roi_l.clone();
-			roi_ll.setLocation(w - cb_fraction*w - float(w)/100 - roi_l.getFloatWidth(), h - roi_l.getFloatHeight());
-			out_imp.setRoi(roi_ll);
-			roim.addRoi(roi_ll);
-		roim.runCommand("Show All");
+	FileSaver(out_imp).saveAsTiffStack(os.path.join(params.output_path, "overlaid curvature.tif"));
+	FileSaver(raw_overlay).saveAsTiffStack(os.path.join(params.output_path, "raw curvature.tif"));
 	return out_imp, raw_overlay;
 
 def generate_plain_kymograph(data_to_plot, colormap_string, title_string):
