@@ -160,9 +160,9 @@ def analysis_parameters_gui():
 	"""GUI for setting analysis parameters at the start of a run. TODO: more effectively separate model and view"""
 	params = Parameters(load_last_params = True);
 	dialog = GenericDialog("Analysis parameters");
-	dialog.addNumericField("Curvature length parameter (pix):", 
-							params.curvature_length_pix, 
-							1);
+	dialog.addNumericField("Curvature length parameter (um):", 
+							round(params.curvature_length_um, 2), 
+							2);
 	dialog.addChoice("Threshold method: ", 
 						params.listThresholdMethods(),
 						params.threshold_method);
@@ -197,7 +197,7 @@ def analysis_parameters_gui():
 	if dialog.wasCanceled():
 		raise KeyboardInterrupt("Run canceled");
 	choices =  dialog.getChoices();
-	params.setCurvatureLengthPix(dialog.getNextNumber()); # check whether label of numeric field is contained in getNextNumber?
+	params.setCurvatureLengthUm(dialog.getNextNumber()); # check whether label of numeric field is contained in getNextNumber?
 	params.setThresholdMethod(choices[0].getSelectedItem());
 	params.setCurvatureOverlayLUT(choices[1].getSelectedItem());
 	params.setCurvatureKymographLUT(choices[2].getSelectedItem());

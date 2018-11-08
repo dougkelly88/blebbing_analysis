@@ -16,7 +16,7 @@ class Parameters:
 	def __init__(self, load_last_params = False,
 						input_image_path = None, 
 						output_path = None, 
-						curvature_length_pix = 10.0, 
+						curvature_length_um = 1.0, 
 						threshold_method = 'Moments', 
 						spatial_crop = None, 
 						manual_anchor_positions = None, 
@@ -48,7 +48,7 @@ class Parameters:
 			self.output_path = output_path;
 			self.close_on_completion = close_on_completion;
 
-			self.curvature_length_pix = curvature_length_pix;
+			self.curvature_length_um = curvature_length_um;
 			self.threshold_method = threshold_method;
 			self.spatial_crop = spatial_crop;
 			self.time_crop_start_end = time_crop_start_end;
@@ -149,9 +149,9 @@ class Parameters:
 			threshold_methods.append("Local: " + meth);
 		return threshold_methods;
 
-	def setCurvatureLengthPix(self, length):
+	def setCurvatureLengthUm(self, length):
 		if length > 0:
-			self.curvature_length_pix = length;
+			self.curvature_length_um = length;
 		else:
 			raise ValueError('Curvature length parameter must be positive');
 
@@ -187,7 +187,7 @@ class Parameters:
 			if "__blebbingparams__" in dct:
 				self.setInputImagePath(dct["input_image_path"]);
 				self.setOutputPath(dct["output_path"]);
-				self.setCurvatureLengthPix(dct["curvature_length_pix"]);
+				self.setCurvatureLengthUm(dct["curvature_length_um"]);
 				self.setThresholdMethod(dct["threshold_method"])
 				self.setSpatialCrop(dct["spatial_crop"]);
 				self.setManualAnchorPositions(dct["manual_anchor_positions"]);

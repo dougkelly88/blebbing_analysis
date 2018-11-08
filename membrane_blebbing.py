@@ -78,6 +78,7 @@ def main():
 	#						"Continue?"]);
 
 	params = mbio.get_metadata(params);
+	params.setCurvatureLengthUm(round(params.curvature_length_um / params.pixel_physical_size) * params.pixel_physical_size);
 	params.persistParameters();
 	imp.show();
 	mbui.autoset_zoom(imp);
@@ -157,7 +158,7 @@ def main():
 	for fridx in range(0, n_frames):
 		# generate curvature - this needs to be looped over slices
 		membrane_edge = membrane_edges[fridx];
-		curv_points = mb.generate_l_spaced_points(membrane_edge, params.curvature_length_pix);
+		curv_points = mb.generate_l_spaced_points(membrane_edge, int(round(params.curvature_length_um / params.pixel_physical_size)));
 		curvature_profiles.append(mb.calculate_curvature_profile(curv_points,
 																membrane_edge, 
 																params.filter_negative_curvatures));
