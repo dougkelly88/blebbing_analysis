@@ -48,7 +48,7 @@ def add_colorbar(imp, limits, fraction=0.05):
 		h = imp.getHeight();
 		for xidx in range(w - int(w*fraction), w):
 			for yidx in range(0, h):
-				pix[yidx * w + xidx] = float(limits[1] - limits[0]) * (float(h - yidx)/h);
+				pix[yidx * w + xidx] = float(limits[1] - limits[0]) * (float((h-1) - yidx)/(h-1)) + limits[0];
 	return imp
 
 def generate_limit_labels(imp, limits, cb_fraction, params):

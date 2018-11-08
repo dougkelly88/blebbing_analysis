@@ -129,7 +129,7 @@ def perform_user_qc(imp, edges, anchors, output_folder):
 	imp.addImageListener(listener);
 	IJ.setTool("freeline");
 	MyWaitForUser("User quality control", 
-					["Please adjust/redraw the membrane edges as necessary, ",
+					["Please redraw the membrane edges as necessary, ",
 					"making sure to draw beyond anchor points at either end...",
 					"Click OK when done. "]);
 	last_roi = imp.getRoi();
@@ -138,14 +138,11 @@ def perform_user_qc(imp, edges, anchors, output_folder):
 	imp.removeImageListener(listener);
 	for fridx in range(0, imp.getNFrames()):
 		if qcd_edges[fridx].getType() == Roi.FREELINE:
-			print("fixing free-drawn membrane at frame " + str(fridx+1));
 			fixed_anchors = mb.fix_anchors_to_membrane(anchors, qcd_edges[fridx]);
-			print("fixed anchors are at " + str(fixed_anchors));
 			poly =  qcd_edges[fridx].getPolygon();
 			polypoints = [(x,y) for x,y in zip(poly.xpoints, poly.ypoints)];
 			idx = [polypoints.index(fixed_anchors[0]), polypoints.index(fixed_anchors[1])];
 			idx.sort();
-			print("roi polygon should be sampled between indices " + str(idx[0]) + " and " + str(idx[1]));
 			polypoints = polypoints = polypoints[idx[0]:idx[1]];
 			newedge = PolygonRoi([x for (x,y) in polypoints], 
 									[y for (x,y) in polypoints], 
