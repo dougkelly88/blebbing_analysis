@@ -151,7 +151,7 @@ def main():
 	# perform user QC before saving anything
 	if params.perform_user_qc:
 		imp.hide();
-		membrane_edges = mbui.perform_user_qc(membrane_test_channel_imp, membrane_edges, output_folder);
+		membrane_edges = mbui.perform_user_qc(membrane_test_channel_imp, membrane_edges, anchors, output_folder);
 		imp.show();
 	
 	for fridx in range(0, n_frames):

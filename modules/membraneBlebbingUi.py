@@ -5,7 +5,7 @@
 # imports
 import math
 from ij import IJ
-from ij.gui import WaitForUserDialog, GenericDialog, NonBlockingGenericDialog
+from ij.gui import WaitForUserDialog, GenericDialog, NonBlockingGenericDialog, Roi, PolygonRoi
 from ij.plugin import Duplicator
 from ij.process import AutoThresholder
 from java.awt import GraphicsEnvironment
@@ -119,7 +119,7 @@ def MyWaitForUser(title, message):
 	if dialog.wasCanceled():
 		raise KeyboardInterrupt("Run canceled");
 
-def perform_user_qc(imp, edges, output_folder):
+def perform_user_qc(imp, edges, anchors, output_folder):
 	"""allow the user to intervene to fix erroneously identified membrane edges"""
 	imp.show();
 	autoset_zoom(imp);
@@ -136,8 +136,27 @@ def perform_user_qc(imp, edges, output_folder):
 	qcd_edges = listener.getRoiList();
 	qcd_edges[imp.getT() - 1] = last_roi;
 	imp.removeImageListener(listener);
-	imp.close();
+	for fridx in range(0, imp.getNFrames()):
+		if qcd_edges[fridx].getType() == Roi.FREELINE:
+			print("fixing free-drawn membrane at frame " + str(fridx+1));
+			fixed_anchors = mb.fix_anchors_to_membrane(anchors, qcd_edges[fridx]);
+			print("fixed anchors are at " + str(fixed_anchors));
+			poly =  qcd_edges[fridx].getPolygon();
+			polypoints = [(x,y) for x,y in zip(poly.xpoints, poly.ypoints)];
+			idx = [polypoints.index(fixed_anchors[0]), polypoints.index(fixed_anchors[1])];
+			idx.sort();
+			print("roi polygon should be sampled between indices " + str(idx[0]) + " and " + str(idx[1]));
+			polypoints = polypoints = polypoints[idx[0]:idx[1]];
+			newedge = PolygonRoi([x for (x,y) in polypoints], 
+									[y for (x,y) in polypoints], 
+									Roi.POLYLINE);
+			imp.setPosition(fridx + 1);
+			imp.setRoi(newedge);
+			IJ.run(imp, "Interpolate", "interval=0.5 smooth");
+			IJ.run(imp, "Fit Spline", "");
+			qcd_edges[fridx] = imp.getRoi();
 	mbio.save_qcd_edges(qcd_edges, output_folder);
+	imp.close();
 	return qcd_edges;
 
 def analysis_parameters_gui():
