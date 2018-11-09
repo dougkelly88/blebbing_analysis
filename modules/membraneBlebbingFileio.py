@@ -6,7 +6,8 @@
 import csv, json, os
 from datetime import datetime
 from ij.io import OpenDialog, DirectoryChooser
-from loci.formats import ImageReader
+from loci.formats import ImageReader, MetadataTools
+from ome.units import UNITS
 
 import membraneBlebbingUi as mbui
 
@@ -86,14 +87,19 @@ def get_metadata(params):
 	if params.metadata_source == "Image metadata":
 		try:
 			reader = ImageReader();
+			ome_meta = MetadataTools.createOMEXMLMetadata();
+			reader.setMetadataStore(ome_meta);
 			reader.setId(params.input_image_path);
-			params.setFrameInterval(reader.getMetadataValue("Frame Interval").value());
-			params.setIntervalUnit(reader.getMetadataValue("Frame Interval").unit().getSymbol())
-			params.setPixelPhysicalSize(1/reader.getMetadataValue("YResolution"));
-			params.setPixelSizeUnit(reader.getMetadataValue("Unit"));
+			reader.close();
+			params.setFrameInterval(ome_meta.getPixelsTimeIncrement(0).value());
+			params.setIntervalUnit(ome_meta.getPixelsTimeIncrement(0).unit().getSymbol());
+			params.setPixelPhysicalSize(ome_meta.getPixelsPhysicalSizeX(0).value());
+			params.setPixelSizeUnit(ome_meta.getPixelsPhysicalSizeX(0).unit().getSymbol());
 			params.setMetadataSourceFile(None);
-		except:
-			mbui.warning_dialog(["There was a problem getting metadata from the image. ", 
+		except Exception as e:
+			print(e.message);
+			mbui.warning_dialog(["There was a problem getting metadata from the image: ", 
+									e.message, 
 								"Please consider using acquisition metadata instead (click OK). ", 
 								"Or, quit the analysis run and investigate image metadata by hand. "]);
 			params.setMetadataSource("Acquisition metadata")
