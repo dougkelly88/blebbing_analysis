@@ -119,7 +119,7 @@ def MyWaitForUser(title, message):
 	if dialog.wasCanceled():
 		raise KeyboardInterrupt("Run canceled");
 
-def perform_user_qc(imp, edges, anchors, output_folder):
+def perform_user_qc(imp, edges, anchors, fixed_anchors_list, output_folder):
 	"""allow the user to intervene to fix erroneously identified membrane edges"""
 	imp.show();
 	autoset_zoom(imp);
@@ -139,6 +139,7 @@ def perform_user_qc(imp, edges, anchors, output_folder):
 	for fridx in range(0, imp.getNFrames()):
 		if qcd_edges[fridx].getType() == Roi.FREELINE:
 			fixed_anchors = mb.fix_anchors_to_membrane(anchors, qcd_edges[fridx]);
+			fixed_anchors_list[fridx] = fixed_anchors;
 			poly =  qcd_edges[fridx].getPolygon();
 			polypoints = [(x,y) for x,y in zip(poly.xpoints, poly.ypoints)];
 			idx = [polypoints.index(fixed_anchors[0]), polypoints.index(fixed_anchors[1])];
@@ -154,7 +155,7 @@ def perform_user_qc(imp, edges, anchors, output_folder):
 			qcd_edges[fridx] = imp.getRoi();
 	mbio.save_qcd_edges(qcd_edges, output_folder);
 	imp.close();
-	return qcd_edges;
+	return qcd_edges, fixed_anchors_list;
 
 def analysis_parameters_gui():
 	"""GUI for setting analysis parameters at the start of a run. TODO: more effectively separate model and view"""

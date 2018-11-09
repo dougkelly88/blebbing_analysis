@@ -131,6 +131,7 @@ def main():
 	curvature_profiles = [];
 	membrane_edges = [];
 	curv_limits = (10E4, 0);
+	fixed_anchors_list = [];
 	for fridx in range(0, n_frames):
 		imp.setPosition(membrane_channel, 1, fridx+1);
 		membrane_channel_imp.setPosition(fridx+1);
@@ -138,6 +139,7 @@ def main():
 		IJ.run(membrane_channel_imp, "Create Selection", "");
 		roi = membrane_channel_imp.getRoi();
 		fixed_anchors = mb.fix_anchors_to_membrane(anchors, roi);
+		fixed_anchors_list.append(fixed_anchors);
 		fixed_midpoint = midpoint[0];
 
 		#	identify which side of the segmented roi to use and perform interpolation/smoothing:
@@ -152,16 +154,22 @@ def main():
 	# perform user QC before saving anything
 	if params.perform_user_qc:
 		imp.hide();
-		membrane_edges = mbui.perform_user_qc(membrane_test_channel_imp, membrane_edges, anchors, output_folder);
+		membrane_edges, fixed_anchors_list = mbui.perform_user_qc(membrane_test_channel_imp, membrane_edges, anchors, fixed_anchors_list, output_folder);
 		imp.show();
+
+	# save membrane channel with original anchors, fixed anchors and membrane edge for assessment of performance
+	new_split = ChannelSplitter.split(imp);
+	new_membrane_channel_imp = new_split[membrane_channel-1]
+	mbfig.save_membrane_edge_image(new_membrane_channel_imp, anchors, fixed_anchors_list, membrane_edges, params);
 	
 	for fridx in range(0, n_frames):
 		# generate curvature - this needs to be looped over slices
 		membrane_edge = membrane_edges[fridx];
 		curv_points = mb.generate_l_spaced_points(membrane_edge, int(round(params.curvature_length_um / params.pixel_physical_size)));
-		curvature_profiles.append(mb.calculate_curvature_profile(curv_points,
-																membrane_edge, 
-																params.filter_negative_curvatures));
+		curv_profile = mb.calculate_curvature_profile(curv_points,
+														membrane_edge, 
+														params.filter_negative_curvatures);
+		curvature_profiles.append(curv_profile);
 		curv_limits = (min(curv_limits[0], min([c[1] for c in curvature_profiles[-1]])), 
 						max(curv_limits[1], max([c[1] for c in curvature_profiles[-1]])));
 		curvature_stack = mbfig.generate_curvature_overlays(curvature_profiles[-1], curvature_stack)
@@ -173,9 +181,10 @@ def main():
 																						actin_channel_imp, 
 																						membrane_channel_imp, 
 																						t0_value=t0_actin_mean);
-			actin_profiles.append(mb.maximum_line_profile(actin_channel_imp, 
-															membrane_edge, 
-															int(round(params.intensity_profile_width_um / params.pixel_physical_size))));
+			actin_profile = mb.maximum_line_profile(actin_channel_imp, 
+													membrane_edge, 
+													int(round(params.intensity_profile_width_um / params.pixel_physical_size)));
+			actin_profiles.append(actin_profile);
 
 	# output colormapped images and kymographs 
 	# curvature/membrane channel

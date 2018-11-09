@@ -12,7 +12,7 @@ script_path = os.path.dirname(os.path.realpath(__file__))
 sys.path.insert(0, script_path);
 
 from ij import IJ, ImagePlus, ImageStack
-from ij.gui import Plot, GenericDialog, TextRoi
+from ij.gui import Plot, GenericDialog, TextRoi, PointRoi
 from ij.io import FileSaver
 from ij.measure import Measurements
 from ij.plugin import RGBStackMerge, Duplicator
@@ -233,6 +233,30 @@ def merge_kymographs(kym1_imp, kym2_imp, params):
 	mrg_imp.setTitle("Merged " + params.labeled_species + " intensity and curvature kymograph");
 	mrg_imp.show();
 	return mrg_imp;
+
+def save_membrane_edge_image(membrane_channel_imp, anchors, fixed_anchors_list, membrane_edges, params):
+	"""Save an image with the membrane channel overlaid with original anchor positions, fixed anchor positions, and membrane edge"""
+	#imp = Duplicator().run(membrane_channel_imp);
+	IJ.run(membrane_channel_imp, "RGB Color", "");
+	for fridx in range(0, imp.getNFrames()):
+		membrane_channel_imp.setPosition(fridx + 1);
+		membrane_channel_imp.setRoi(membrane_edges[fridx]);
+		IJ.setForegroundColor(0, 255, 255);
+		IJ.run(membrane_channel_imp, "Draw", "slice");
+		for p in anchors:
+			roi = PointRoi(p[0], p[1]);
+			membrane_channel_imp.setRoi(roi);
+			IJ.setForegroundColor(255, 0, 0);
+			IJ.run(membrane_channel_imp, "Draw", "slice");
+		for p in fixed_anchors_list[fridx]:
+			roi = PointRoi(p[0], p[1]);
+			membrane_channel_imp.setRoi(roi);
+			IJ.setForegroundColor(255, 255, 0);
+			IJ.run(membrane_channel_imp, "Draw", "slice");
+		# TODO: if coincidence between anchors and fixed anchors, or indeed with edge, consider 
+		# rendering in secondary colours (magenta = (255,0,255), orange = (255,200,0), green = (0,255,0)?
+	FileSaver(membrane_channel_imp).saveAsTiffStack(os.path.join(params.output_path, "membrane identification check.tif"));
+	IJ.setForegroundColor(255, 255, 255);
 
 #from ij import WindowManager as WM
 #import membrane_blebbing_fileio as mbio;
