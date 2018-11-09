@@ -162,7 +162,6 @@ def calculate_curvature_profile(curv_points, roi, remove_negative_curvatures):
 				K = 0;
 			if s < 0:
 				raise ValueError('s < 0!');
-			K = math.sqrt(s * (s - a) * (s - b) * (s - c));
 		if (K == 0):
 			curv = 0;
 		else:
