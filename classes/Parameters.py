@@ -11,7 +11,7 @@ class Parameters:
 
 	_persist_parameters_filename = "IJ_membrane_blebbing_params.json";
 	_persist_parameters_folder = "IJ_membrane_blebbing";
-	_version_string = "1.0.7";
+	_version_string = "1.0.8";
 
 	def __init__(self, load_last_params = False,
 						input_image_path = None, 
@@ -33,7 +33,8 @@ class Parameters:
 						metadata_source = "Image metadata", 
 						metadata_source_file = None, 
 						photobleaching_correction = False, 
-						perform_user_qc = False):
+						perform_user_qc = False, 
+						intensity_profile_width_um = 0.325):
 		self.__blebbingparams__ = True;
 
 		success = True;
@@ -73,8 +74,12 @@ class Parameters:
 			self.pixel_unit = "um";
 			self.frame_interval = 1.0;
 			self.interval_unit = "s";
+			self.intensity_profile_width_um = intensity_profile_width_um;
 
 		self.software_version = Parameters._version_string;
+
+	def setIntensityProfileWidthUm(self, width_um):
+		self.intensity_profile_width_um = width_um;
 
 	def togglePerformUserQC(self, do_qc):
 		self.perform_user_qc = do_qc;
@@ -205,6 +210,7 @@ class Parameters:
 				self.setMetadataSourceFile(dct["metadata_source_file"]);
 				self.togglePhotobleachingCorrection(dct["photobleaching_correction"]);
 				self.togglePerformUserQC(dct["perform_user_qc"]);
+				self.setIntensityProfileWidthUm(dct["intensity_profile_width_um"]);
 			else:
 				raise ValueError("JSON file doesn't translate to membrane blebbing analysis parameters")
 		except IOError:

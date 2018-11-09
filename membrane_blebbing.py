@@ -173,7 +173,9 @@ def main():
 																						actin_channel_imp, 
 																						membrane_channel_imp, 
 																						t0_value=t0_actin_mean);
-			actin_profiles.append(mb.maximum_line_profile(actin_channel_imp, membrane_edge, 3));
+			actin_profiles.append(mb.maximum_line_profile(actin_channel_imp, 
+															membrane_edge, 
+															int(round(params.intensity_profile_width_um / params.pixel_physical_size))));
 
 	# output colormapped images and kymographs 
 	# curvature/membrane channel

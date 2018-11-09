@@ -163,6 +163,9 @@ def analysis_parameters_gui():
 	dialog.addNumericField("Curvature length parameter (um):", 
 							round(params.curvature_length_um, 2), 
 							2);
+	dialog.addNumericField("Width of region for intensity analysis (um):", 
+							round(params.intensity_profile_width_um, 2), 
+							2);
 	dialog.addChoice("Threshold method: ", 
 						params.listThresholdMethods(),
 						params.threshold_method);
@@ -198,6 +201,7 @@ def analysis_parameters_gui():
 		raise KeyboardInterrupt("Run canceled");
 	choices =  dialog.getChoices();
 	params.setCurvatureLengthUm(dialog.getNextNumber()); # check whether label of numeric field is contained in getNextNumber?
+	params.setIntensityProfileWidthUm(dialog.getNextNumber());
 	params.setThresholdMethod(choices[0].getSelectedItem());
 	params.setCurvatureOverlayLUT(choices[1].getSelectedItem());
 	params.setCurvatureKymographLUT(choices[2].getSelectedItem());
