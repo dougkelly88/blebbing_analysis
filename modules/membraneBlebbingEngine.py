@@ -78,8 +78,8 @@ def get_membrane_edge(roi, fixed_anchors, fixed_midpoint):
 	for idx in range(max(term_index_1, term_index_2), poly.npoints + min(term_index_1, term_index_2) + 1):
 		e2.addPoint(poly.xpoints[idx % (poly.npoints)], poly.ypoints[idx % (poly.npoints)]);
 
-	anchors_midpoint = (fixed_anchors[1][0] - fixed_anchors[0][0], 
-						fixed_anchors[1][1] - fixed_anchors[0][1]);
+	anchors_midpoint = (int(round(0.5 * (fixed_anchors[1][0] + fixed_anchors[0][0]))), 
+						int(round(0.5 * (fixed_anchors[1][1] + fixed_anchors[0][1]))));
 	e1_mean = (sum(e1.xpoints)/e1.npoints, sum(e1.ypoints)/e1.npoints);
 	e2_mean = (sum(e2.xpoints)/e2.npoints, sum(e2.ypoints)/e2.npoints);
 	
