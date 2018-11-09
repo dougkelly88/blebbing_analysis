@@ -28,6 +28,7 @@ def make_and_clean_binary(imp, threshold_method):
 		ic = ImageCalculator();
 		imp = ic.run("AND create stack", imp1, imp2);
 		IJ.run(imp, "Invert", "stack");
+		IJ.run(imp, "Make Binary", "method=Default background=Default calculate");
 	else:
 		IJ.run(imp, "Make Binary", "method=" + threshold_method + " background=Dark calculate");
 
