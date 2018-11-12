@@ -138,6 +138,7 @@ def perform_user_qc(imp, edges, anchors, fixed_anchors_list, output_folder):
 	imp.removeImageListener(listener);
 	for fridx in range(0, imp.getNFrames()):
 		if qcd_edges[fridx].getType() == Roi.FREELINE:
+			qcd_edges[fridx] = mb.flip_edge(roi, qcd_edges[fridx]);
 			fixed_anchors = mb.fix_anchors_to_membrane(anchors, qcd_edges[fridx]);
 			fixed_anchors_list[fridx] = fixed_anchors;
 			poly =  qcd_edges[fridx].getPolygon();

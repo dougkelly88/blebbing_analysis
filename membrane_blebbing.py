@@ -153,6 +153,7 @@ def main():
 
 		#	identify which side of the segmented roi to use and perform interpolation/smoothing:
 		membrane_edge = mb.get_membrane_edge(roi, fixed_anchors, fixed_midpoint);
+		membrane_edge = mb.flip_edge(membrane_edge, anchors);
 		imp.setRoi(membrane_edge);
 		imp.show();
 		IJ.run(imp, "Interpolate", "interval=0.5 smooth");

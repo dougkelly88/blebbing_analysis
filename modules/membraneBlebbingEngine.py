@@ -306,3 +306,21 @@ def calculate_percentile(imp, roi, percentile):
 		# calculate excel-style percentile...
 		npc_percentile = vals[k] + (vals[k+1] - vals[k]) * (1 - percentile);
 	return npc_percentile;
+
+def flip_edge(roi, anchors):
+	"""Check whether the edge is drawn in the expected orientation, and flip if not"""
+	abs_angle = abs(angle_between_vecs(anchors[0], anchors[1], 
+											(roi.getPolygon().xpoints[0], roi.getPolygon().ypoints[0]), 
+											(roi.getPolygon().xpoints[-1], roi.getPolygon().ypoints[-1])));
+	#print("absolute angle between line joining anchors and line joining edge ends = " + str(abs_angle));
+	if abs_angle < math.pi/2:
+		xs = [x for x in roi.getPolygon().xpoints];
+		ys = [y for y in roi.getPolygon().ypoints];
+		xs.reverse();
+		ys.reverse();
+		roi = PolygonRoi(xs, ys, Roi.POLYLINE);
+		#new_aa = abs(angle_between_vecs(anchors[0], anchors[1], 
+		#									(roi.getPolygon().xpoints[0], roi.getPolygon().ypoints[0]), 
+		#									(roi.getPolygon().xpoints[-1], roi.getPolygon().ypoints[-1])));
+		#print("new absolute angle between line joining anchors and line joining edge ends = " + str(new_aa));
+	return roi;
