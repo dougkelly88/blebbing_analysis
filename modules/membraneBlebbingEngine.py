@@ -96,7 +96,7 @@ def get_membrane_edge(roi, fixed_anchors, fixed_midpoint):
 		theta_midpoint = angle_between_vecs(fixed_anchors[0], fixed_anchors[1], fixed_anchors[0], fixed_midpoint);
 		use_edge = (e1, e2)[sign(theta_midpoint) == sign(theta_e2)];
 	else:
-		use_edge = (e1, e2)[vector_length(anchors_midpoint, e1_mean) < vector_length(anchors_midpoint, e2_mean)]
+		use_edge = (e1, e2)[vector_length(anchors_midpoint, e1_mean) > vector_length(anchors_midpoint, e2_mean)]
 	return 	PolygonRoi(use_edge, Roi.POLYLINE);
 
 def angle_between_vecs(u_start, u_end, v_start, v_end):

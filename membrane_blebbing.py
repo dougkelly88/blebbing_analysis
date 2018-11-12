@@ -114,7 +114,7 @@ def main():
 						2);
 	midpoint = mbui.prompt_for_points(imp, 
 								"Choose midpoint", 
-								"Now select a point halfway between the extremes, along the membrane", 
+								"Now select a point halfway between the extremes, distant from the membrane in the direction of bleb formation. ", 
 								1);
 	membrane_channel = imp.getChannel();
 	params.setMembraneChannelNumber(membrane_channel);
