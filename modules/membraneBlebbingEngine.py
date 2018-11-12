@@ -29,8 +29,11 @@ def make_and_clean_binary(imp, threshold_method):
 		imp = ic.run("AND create stack", imp1, imp2);
 		IJ.run(imp, "Invert", "stack");
 		IJ.run(imp, "Make Binary", "method=Default background=Default calculate");
+	elif "Edge" in threshold_method:
+		IJ.run(imp, "Find Edges", "stack");
+		IJ.run(imp, "Make Binary", "method=Mean background=Dark calculate");	
 	else:
-		IJ.run(imp, "Make Binary", "method=" + threshold_method + " background=Dark calculate");
+		IJ.run(imp, "Make Binary", "method=" + threshold_method + " background=Dark calculate"); # "calculate" ensures that threshold is calculated image-wise
 
 	IJ.run(imp, "Open", "stack");
 	IJ.run(imp, "Close-", "stack");
@@ -43,6 +46,9 @@ def make_and_clean_binary(imp, threshold_method):
 	IJ.run(imp, "Dilate", "stack");
 	IJ.run(imp, "Dilate", "stack");
 	IJ.run(imp, "Open", "stack");
+	if "Edge" in threshold_method:
+		IJ.run(imp, "Erode", "stack");
+		IJ.run(imp, "Erode", "stack");
 	return imp;
 
 def fix_anchors_to_membrane(anchors_list, membrane_roi):
