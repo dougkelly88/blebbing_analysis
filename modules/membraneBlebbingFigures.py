@@ -234,10 +234,12 @@ def merge_kymographs(kym1_imp, kym2_imp, params):
 	mrg_imp.show();
 	return mrg_imp;
 
-def save_membrane_edge_image(membrane_channel_imp, anchors, fixed_anchors_list, membrane_edges, params):
+def save_membrane_edge_image(membrane_channel_imp, fixed_anchors_list, membrane_edges, params):
 	"""Save an image with the membrane channel overlaid with original anchor positions, fixed anchor positions, and membrane edge"""
 	#imp = Duplicator().run(membrane_channel_imp);
 	IJ.run(membrane_channel_imp, "RGB Color", "");
+	anchors = params.manual_anchor_positions;
+	midpoint = params.manual_anchor_midpoint[0];
 	for fridx in range(0, membrane_channel_imp.getNFrames()):
 		membrane_channel_imp.setPosition(fridx + 1);
 		membrane_channel_imp.setRoi(membrane_edges[fridx]);
@@ -248,6 +250,10 @@ def save_membrane_edge_image(membrane_channel_imp, anchors, fixed_anchors_list, 
 			membrane_channel_imp.setRoi(roi);
 			IJ.setForegroundColor(255, 0, 0);
 			IJ.run(membrane_channel_imp, "Draw", "slice");
+		roi = PointRoi(midpoint[0], midpoint[1]);
+		membrane_channel_imp.setRoi(roi);
+		IJ.setForegroundColor(255, 0, 0);
+		IJ.run(membrane_channel_imp, "Draw", "slice");
 		for p in fixed_anchors_list[fridx]:
 			roi = PointRoi(p[0], p[1]);
 			membrane_channel_imp.setRoi(roi);

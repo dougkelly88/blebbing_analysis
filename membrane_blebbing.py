@@ -164,7 +164,7 @@ def main():
 	# save membrane channel with original anchors, fixed anchors and membrane edge for assessment of performance
 	new_split = ChannelSplitter.split(imp);
 	new_membrane_channel_imp = new_split[membrane_channel-1]
-	mbfig.save_membrane_edge_image(new_membrane_channel_imp, anchors, fixed_anchors_list, membrane_edges, params);
+	mbfig.save_membrane_edge_image(new_membrane_channel_imp, fixed_anchors_list, membrane_edges, params);
 	
 	for fridx in range(0, n_frames):
 		# generate curvature - this needs to be looped over slices
