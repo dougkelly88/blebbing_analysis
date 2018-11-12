@@ -238,7 +238,7 @@ def save_membrane_edge_image(membrane_channel_imp, anchors, fixed_anchors_list, 
 	"""Save an image with the membrane channel overlaid with original anchor positions, fixed anchor positions, and membrane edge"""
 	#imp = Duplicator().run(membrane_channel_imp);
 	IJ.run(membrane_channel_imp, "RGB Color", "");
-	for fridx in range(0, imp.getNFrames()):
+	for fridx in range(0, membrane_channel_imp.getNFrames()):
 		membrane_channel_imp.setPosition(fridx + 1);
 		membrane_channel_imp.setRoi(membrane_edges[fridx]);
 		IJ.setForegroundColor(0, 255, 255);
