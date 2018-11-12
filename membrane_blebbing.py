@@ -10,6 +10,7 @@ from ij import IJ, ImageStack
 from ij.io import FileSaver
 from ij.gui import WaitForUserDialog
 from ij.plugin import ChannelSplitter, Duplicator, ZProjector
+from ij import Prefs
 from loci.plugins import BF as bf
 
 release = False;
@@ -43,6 +44,9 @@ def main():
 	#os.mkdir(output_folder); 
 	########################################################################
 	
+	# ensure consistent preference settings
+	Prefs.blackBackground = False;
+
 	# prompt user for input parameters
 	params = mbui.analysis_parameters_gui();
 
