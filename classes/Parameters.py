@@ -34,7 +34,8 @@ class Parameters:
 						metadata_source_file = None, 
 						photobleaching_correction = False, 
 						perform_user_qc = False, 
-						intensity_profile_width_um = 0.325):
+						intensity_profile_width_um = 0.325, 
+						membrane_channel_number = 2):
 		self.__blebbingparams__ = True;
 
 		success = True;
@@ -76,10 +77,15 @@ class Parameters:
 			self.interval_unit = "s";
 			self.intensity_profile_width_um = intensity_profile_width_um;
 
+			self.membrane_channel_number = membrane_channel_number;
+
 		self.software_version = Parameters._version_string;
 
 	def setIntensityProfileWidthUm(self, width_um):
 		self.intensity_profile_width_um = width_um;
+
+	def setMembraneChannelNumber(self, membrane_channel_number):
+		self.membrane_channel_number = membrane_channel_number;
 
 	def togglePerformUserQC(self, do_qc):
 		self.perform_user_qc = do_qc;
@@ -152,6 +158,7 @@ class Parameters:
 		local_threshold_methods = ["Bernsen", "Contrast", "Mean", "Median", "MidGrey", "Niblack", "Otsu", "Phansalkar", "Sauvola"]; # from https://github.com/fiji/Auto_Local_Threshold/blob/master/src/main/java/fiji/threshold/Auto_Local_Threshold.java (2018-11-02)
 		for meth in local_threshold_methods:
 			threshold_methods.append("Local: " + meth);
+		threshold_methods.append("Edge + mean");
 		return threshold_methods;
 
 	def setCurvatureLengthUm(self, length):
@@ -211,6 +218,7 @@ class Parameters:
 				self.togglePhotobleachingCorrection(dct["photobleaching_correction"]);
 				self.togglePerformUserQC(dct["perform_user_qc"]);
 				self.setIntensityProfileWidthUm(dct["intensity_profile_width_um"]);
+				self.setMembraneChannelNumber(dct["membrane_channel_number"]);
 			else:
 				raise ValueError("JSON file doesn't translate to membrane blebbing analysis parameters")
 		except IOError:

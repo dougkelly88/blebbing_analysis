@@ -85,6 +85,8 @@ def main():
 	params.setCurvatureLengthUm(round(params.curvature_length_um / params.pixel_physical_size) * params.pixel_physical_size);
 	params.persistParameters();
 	imp.show();
+	if imp.getNChannels() > 1:
+		imp.setPosition(params.membrane_channel_number, 1, 1);
 	mbui.autoset_zoom(imp);
 
 	# prompt user to select ROI
@@ -114,10 +116,13 @@ def main():
 								"Choose midpoint", 
 								"Now select a point halfway between the extremes, along the membrane", 
 								1);
+	membrane_channel = imp.getChannel();
+	params.setMembraneChannelNumber(membrane_channel);
+	params.persistParameters();
+	
 	params.setManualAnchorMidpoint(midpoint);
 	params.setManualAnchorPositions(anchors);
-	
-	membrane_channel = imp.getChannel();
+
 	split_channels = ChannelSplitter.split(imp);
 	membrane_channel_imp = split_channels[membrane_channel-1];
 	membrane_test_channel_imp = Duplicator().run(membrane_channel_imp);
