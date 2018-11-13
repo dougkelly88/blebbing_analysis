@@ -119,8 +119,10 @@ def MyWaitForUser(title, message):
 	if dialog.wasCanceled():
 		raise KeyboardInterrupt("Run canceled");
 
-def perform_user_qc(imp, edges, anchors, fixed_anchors_list, output_folder):
+def perform_user_qc(imp, edges, fixed_anchors_list, params):
 	"""allow the user to intervene to fix erroneously identified membrane edges"""
+	anchors = params.manual_anchor_positions;
+	output_folder = params.output_path;
 	imp.show();
 	autoset_zoom(imp);
 	imp.setPosition(1);
@@ -138,7 +140,7 @@ def perform_user_qc(imp, edges, anchors, fixed_anchors_list, output_folder):
 	imp.removeImageListener(listener);
 	for fridx in range(0, imp.getNFrames()):
 		if qcd_edges[fridx].getType() == Roi.FREELINE:
-			qcd_edges[fridx] = mb.flip_edge(roi, qcd_edges[fridx]);
+			qcd_edges[fridx] = mb.flip_edge(qcd_edges[fridx], anchors);
 			fixed_anchors = mb.fix_anchors_to_membrane(anchors, qcd_edges[fridx]);
 			fixed_anchors_list[fridx] = fixed_anchors;
 			poly =  qcd_edges[fridx].getPolygon();

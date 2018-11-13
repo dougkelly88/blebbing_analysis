@@ -73,16 +73,15 @@ def fix_anchors_to_membrane(anchors_list, membrane_roi):
 def get_membrane_edge(roi, fixed_anchors, fixed_midpoint):
 	"""figure out which edge of the roi is the membrane, since IJ might start the roi from anywhere along the perimeter w.r.t. the user defined anchors"""
 	poly = roi.getPolygon();
-	started = False;
-	e1 = FloatPolygon();
-	e2 = FloatPolygon();
 	term_index_1 = [(x, y) for x, y in zip(poly.xpoints,poly.ypoints)].index(fixed_anchors[0]);
 	term_index_2 = [(x, y) for x, y in zip(poly.xpoints,poly.ypoints)].index(fixed_anchors[1]);
-	
-	for idx in range(min(term_index_1, term_index_2), max(term_index_1, term_index_2)+1):
-		e1.addPoint(poly.xpoints[idx], poly.ypoints[idx]);
-	for idx in range(max(term_index_1, term_index_2), poly.npoints + min(term_index_1, term_index_2) + 1):
-		e2.addPoint(poly.xpoints[idx % (poly.npoints)], poly.ypoints[idx % (poly.npoints)]);
+	start_idx = min(term_index_1, term_index_2);
+	end_idx = max(term_index_1, term_index_2);
+	xs = [x for x in poly.xpoints];
+	ys = [y for y in poly.ypoints];
+	e1 = FloatPolygon(xs[start_idx:end_idx+1], ys[start_idx:end_idx+1]);
+	e2 = FloatPolygon(list(reversed(xs[end_idx:] + xs[:start_idx+1])), 
+						list(reversed(ys[end_idx:] + ys[:start_idx+1])));
 
 	anchors_midpoint = (int(round(0.5 * (fixed_anchors[1][0] + fixed_anchors[0][0]))), 
 						int(round(0.5 * (fixed_anchors[1][1] + fixed_anchors[0][1]))));
@@ -309,18 +308,18 @@ def calculate_percentile(imp, roi, percentile):
 
 def flip_edge(roi, anchors):
 	"""Check whether the edge is drawn in the expected orientation, and flip if not"""
-	abs_angle = abs(angle_between_vecs(anchors[0], anchors[1], 
-											(roi.getPolygon().xpoints[0], roi.getPolygon().ypoints[0]), 
-											(roi.getPolygon().xpoints[-1], roi.getPolygon().ypoints[-1])));
-	#print("absolute angle between line joining anchors and line joining edge ends = " + str(abs_angle));
-	if abs_angle < math.pi/2:
+	manual_roi_start = (roi.getPolygon().xpoints[0], roi.getPolygon().ypoints[0]);
+	if vector_length(manual_roi_start, anchors[0]) < vector_length(manual_roi_start, anchors[1]):
+		new_anchors = list(reversed(anchors));
+	else:
+		new_anchors = anchors;
+	angle = angle_between_vecs(new_anchors[0], new_anchors[1], 
+								(roi.getPolygon().xpoints[0], roi.getPolygon().ypoints[0]), 
+								(roi.getPolygon().xpoints[-1], roi.getPolygon().ypoints[-1]))
+	if angle < 0:
 		xs = [x for x in roi.getPolygon().xpoints];
 		ys = [y for y in roi.getPolygon().ypoints];
 		xs.reverse();
 		ys.reverse();
 		roi = PolygonRoi(xs, ys, Roi.POLYLINE);
-		#new_aa = abs(angle_between_vecs(anchors[0], anchors[1], 
-		#									(roi.getPolygon().xpoints[0], roi.getPolygon().ypoints[0]), 
-		#									(roi.getPolygon().xpoints[-1], roi.getPolygon().ypoints[-1])));
-		#print("new absolute angle between line joining anchors and line joining edge ends = " + str(new_aa));
 	return roi;

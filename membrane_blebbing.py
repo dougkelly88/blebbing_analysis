@@ -153,7 +153,6 @@ def main():
 
 		#	identify which side of the segmented roi to use and perform interpolation/smoothing:
 		membrane_edge = mb.get_membrane_edge(roi, fixed_anchors, fixed_midpoint);
-		membrane_edge = mb.flip_edge(membrane_edge, anchors);
 		imp.setRoi(membrane_edge);
 		imp.show();
 		IJ.run(imp, "Interpolate", "interval=0.5 smooth");
@@ -164,7 +163,7 @@ def main():
 	# perform user QC before saving anything
 	if params.perform_user_qc:
 		imp.hide();
-		membrane_edges, fixed_anchors_list = mbui.perform_user_qc(membrane_test_channel_imp, membrane_edges, anchors, fixed_anchors_list, output_folder);
+		membrane_edges, fixed_anchors_list = mbui.perform_user_qc(membrane_test_channel_imp, membrane_edges, fixed_anchors_list, params);
 		imp.show();
 
 	# save membrane channel with original anchors, fixed anchors and membrane edge for assessment of performance
