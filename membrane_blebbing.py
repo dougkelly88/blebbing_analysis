@@ -168,10 +168,14 @@ def main():
 		membrane_edges, fixed_anchors_list = mbui.perform_user_qc(membrane_test_channel_imp, membrane_edges, fixed_anchors_list, params);
 		imp.show();
 
+	lengths_areas_and_arearois = [mb.bleb_area(medge) for medge in membrane_edges];
+	mb_lengths = [laaroi[0] * params.pixel_physical_size for laaroi in lengths_areas_and_arearois]
+	mb_areas =[laaroi[1] * math.pow(params.pixel_physical_size,2) for laaroi in lengths_areas_and_arearois];
+	mb_area_rois =[laaroi[2] for laaroi in lengths_areas_and_arearois];
 	# save membrane channel with original anchors, fixed anchors and membrane edge for assessment of performance
 	new_split = ChannelSplitter.split(imp);
 	new_membrane_channel_imp = new_split[membrane_channel-1]
-	mbfig.save_membrane_edge_image(new_membrane_channel_imp, fixed_anchors_list, membrane_edges, params);
+	mbfig.save_membrane_edge_image(new_membrane_channel_imp, fixed_anchors_list, membrane_edges, mb_area_rois, params);
 	
 	for fridx in range(0, n_frames):
 		# generate curvature - this needs to be looped over slices
@@ -207,10 +211,10 @@ def main():
 	mbio.save_profile_as_csv(curvature_profiles, os.path.join(output_folder, "curvatures.csv"), "curvature")
 	FileSaver(membrane_channel_imp).saveAsTiffStack(os.path.join(output_folder, "binary_membrane_stack.tif"));
 	bleb_len_imp, bleb_ls = mbfig.plot_bleb_evolution([t * params.frame_interval for t in range(0, len(membrane_edges))], 
-											[mb.roi_length(medge) for medge in membrane_edges], 
+											mb_lengths, 
 											"Edge length (" + params.pixel_unit + ")");
 	bleb_a_imp, bleb_as = mbfig.plot_bleb_evolution([t * params.frame_interval for t in range(0, len(membrane_edges))], 
-											[mb.bleb_area(medge)[0] * math.pow(params.pixel_physical_size,2) for medge in membrane_edges], 
+											mb_areas, 
 											"Bleb area (" + params.pixel_unit + "^2)");
 	FileSaver(bleb_len_imp).saveAsTiff(os.path.join(output_folder, "bleb perimeter length.tif"));
 	FileSaver(bleb_a_imp).saveAsTiff(os.path.join(output_folder, "bleb area.tif"));

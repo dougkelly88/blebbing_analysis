@@ -224,10 +224,10 @@ def roi_length(membrane_edge):
 
 def bleb_area(membrane_edge):
 	"""calculate the area of the drawn bleb, accounting for membrane crossing line joining anchors"""
-	poly = membrane_edge.getPolygon();
+	poly = membrane_edge.getFloatPolygon();
 	xs = [x for x in poly.xpoints];
 	ys = [y for y in poly.ypoints];
-	rotangle = membrane_edge.getAngle(xs[0], ys[0], xs[-1], ys[-1]) / 180 * math.pi;
+	rotangle = membrane_edge.getAngle(int(round(xs[0])), int(round(ys[0])), int(round(xs[-1])), int(round(ys[-1]))) / 180 * math.pi;
 	rotY = [(x * math.sin(rotangle) + y * math.cos(rotangle)) for x, y in zip(xs, ys)];
 	meanRotY = sum(rotY)/len(rotY);
 	seg1 = rotY[:int(round(len(rotY)/2))];
@@ -241,10 +241,12 @@ def bleb_area(membrane_edge):
 		idx2 = int(round(len(rotY)/2)) + seg2.index(max(seg2));
 	area_poly_xs = xs[idx1:idx2+1];
 	area_poly_ys = ys[idx1:idx2+1];
+	len_roi = PolygonRoi(area_poly_xs, area_poly_ys, Roi.POLYLINE);
+	length = len_roi.getLength();
 	area_roi = PolygonRoi(area_poly_xs, area_poly_ys, Roi.POLYGON);
 	area = area_roi.getStatistics().area;
 	#print(area);
-	return area, area_roi;
+	return length, area, area_roi;
 
 def apply_photobleach_correction_stack(params, actin_channel_imp):
 	"""if toggled on, scale stack of labeled-species images to have constant mean intensity"""

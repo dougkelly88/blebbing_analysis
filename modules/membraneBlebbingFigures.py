@@ -234,16 +234,31 @@ def merge_kymographs(kym1_imp, kym2_imp, params):
 	mrg_imp.show();
 	return mrg_imp;
 
-def save_membrane_edge_image(membrane_channel_imp, fixed_anchors_list, membrane_edges, params):
+def save_membrane_edge_image(membrane_channel_imp, fixed_anchors_list, membrane_edges, area_rois, params):
 	"""Save an image with the membrane channel overlaid with original anchor positions, fixed anchor positions, and membrane edge"""
-	#imp = Duplicator().run(membrane_channel_imp);
 	IJ.run(membrane_channel_imp, "RGB Color", "");
 	anchors = params.manual_anchor_positions;
 	midpoint = params.manual_anchor_midpoint[0];
+	#w = membrane_channel_imp.getWidth();
+	#h = membrane_channel_imp.getHeight();
 	for fridx in range(0, membrane_channel_imp.getNFrames()):
 		membrane_channel_imp.setPosition(fridx + 1);
+		#framep = membrane_channel_imp.getProcessor();
+		#rpix = framep.toFloat(0,None).getPixels();
+		#bpix = framep.toFloat(2,None).getPixels();
+		#float_poly = area_rois[fridx].getContainedFloatPoints();
+		#for x, y in zip(float_poly.xpoints, float_poly.ypoints):
+		#	xidx = int(round(x));
+		#	yidx = int(round(y));
+		#	rpix[(yidx + 1) * w + (xidx + 1)] = 0;
+		#	bpix[(yidx + 1) * w + (xidx + 1)] = 0;
+		#framep.setPixels(0, FloatProcessor(w, h, rpix));
+		#framep.setPixels(2, FloatProcessor(w, h, bpix));
 		membrane_channel_imp.setRoi(membrane_edges[fridx]);
 		IJ.setForegroundColor(0, 255, 255);
+		IJ.run(membrane_channel_imp, "Draw", "slice");
+		membrane_channel_imp.setRoi(area_rois[fridx]);
+		IJ.setForegroundColor(0, 255, 0);
 		IJ.run(membrane_channel_imp, "Draw", "slice");
 		for p in anchors:
 			roi = PointRoi(p[0], p[1]);
