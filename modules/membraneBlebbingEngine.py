@@ -92,10 +92,17 @@ def get_membrane_edge(roi, fixed_anchors, fixed_midpoint):
 	theta_e2 = angle_between_vecs(fixed_anchors[0], fixed_anchors[1], fixed_anchors[0], e2_mean);
 	sign = lambda x: (1, -1)[x < 0]
 	if sign(theta_e1) is not sign(theta_e2):
+		#print("using angle to decide on edge ID - vectors linking anchor1 and mean edge position lie on either side of anchor line");
 		theta_midpoint = angle_between_vecs(fixed_anchors[0], fixed_anchors[1], fixed_anchors[0], fixed_midpoint);
-		use_edge = (e1, e2)[sign(theta_midpoint) == sign(theta_e2)];
+		use_edge = e2 if (sign(theta_midpoint) == sign(theta_e2)) else e1;
 	else:
-		use_edge = (e1, e2)[vector_length(anchors_midpoint, e1_mean) > vector_length(anchors_midpoint, e2_mean)]
+		#print("using distance to decide on edge ID - vectors linking anchor1 and mean edge position lie on same side of anchor line");
+		#print("position anchor midpoint = " + str(anchors_midpoint));
+		#print("position e1 mean = " + str(e1_mean));
+		#print("length anchor midpoint to e1 mean = " + str(vector_length(anchors_midpoint, e1_mean)));
+		#print("position e2 mean = " + str(e2_mean));
+		#print("length anchor midpoint to e2 mean = " + str(vector_length(anchors_midpoint, e2_mean)));
+		use_edge = e1 if (vector_length(anchors_midpoint, e1_mean) > vector_length(anchors_midpoint, e2_mean)) else e2;
 	return 	PolygonRoi(use_edge, Roi.POLYLINE);
 
 def angle_between_vecs(u_start, u_end, v_start, v_end):
