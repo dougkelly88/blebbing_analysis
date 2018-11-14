@@ -13,7 +13,7 @@ from ij.plugin import ChannelSplitter, Duplicator, ZProjector
 from ij import Prefs
 from loci.plugins import BF as bf
 
-release = False;
+release = True;
 
 if not release:
 	script_path = os.path.dirname(os.path.realpath(__file__));
