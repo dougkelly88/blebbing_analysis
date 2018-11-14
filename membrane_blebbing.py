@@ -84,6 +84,7 @@ def main():
 	params = mbio.get_metadata(params);
 	params.setCurvatureLengthUm(round(params.curvature_length_um / params.pixel_physical_size) * params.pixel_physical_size);
 	params.persistParameters();
+	IJ.run(imp, "Set Scale...", "distance=0 known=0 pixel=1 unit=pixel");
 	imp.show();
 	if imp.getNChannels() > 1:
 		imp.setPosition(params.membrane_channel_number, 1, 1);
@@ -150,12 +151,13 @@ def main():
 		fixed_anchors = mb.fix_anchors_to_membrane(anchors, roi);
 		fixed_anchors_list.append(fixed_anchors);
 		fixed_midpoint = midpoint[0];
-
-		#	identify which side of the segmented roi to use and perform interpolation/smoothing:
+		# evolve anchors...
+		anchors = fixed_anchors;
+		# identify which side of the segmented roi to use and perform interpolation/smoothing:
 		membrane_edge = mb.get_membrane_edge(roi, fixed_anchors, fixed_midpoint);
 		imp.setRoi(membrane_edge);
 		imp.show();
-		IJ.run(imp, "Interpolate", "interval=0.5 smooth");
+		IJ.run(imp, "Interpolate", "interval=1.0 smooth adjust");
 		IJ.run(imp, "Fit Spline", "");
 		membrane_edge = imp.getRoi();
 		membrane_edges.append(membrane_edge);

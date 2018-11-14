@@ -121,7 +121,6 @@ def MyWaitForUser(title, message):
 
 def perform_user_qc(imp, edges, fixed_anchors_list, params):
 	"""allow the user to intervene to fix erroneously identified membrane edges"""
-	anchors = params.manual_anchor_positions;
 	output_folder = params.output_path;
 	imp.show();
 	autoset_zoom(imp);
@@ -140,6 +139,10 @@ def perform_user_qc(imp, edges, fixed_anchors_list, params):
 	imp.removeImageListener(listener);
 	for fridx in range(0, imp.getNFrames()):
 		if qcd_edges[fridx].getType() == Roi.FREELINE:
+			if (fridx == 0):
+				anchors = params.manual_anchor_positions;
+			else:
+				anchors = fixed_anchors_list[fridx - 1];
 			qcd_edges[fridx] = mb.flip_edge(qcd_edges[fridx], anchors);
 			fixed_anchors = mb.fix_anchors_to_membrane(anchors, qcd_edges[fridx]);
 			fixed_anchors_list[fridx] = fixed_anchors;
@@ -147,13 +150,13 @@ def perform_user_qc(imp, edges, fixed_anchors_list, params):
 			polypoints = [(x,y) for x,y in zip(poly.xpoints, poly.ypoints)];
 			idx = [polypoints.index(fixed_anchors[0]), polypoints.index(fixed_anchors[1])];
 			idx.sort();
-			polypoints = polypoints = polypoints[idx[0]:idx[1]];
+			polypoints = polypoints[idx[0]:idx[1]];
 			newedge = PolygonRoi([x for (x,y) in polypoints], 
 									[y for (x,y) in polypoints], 
 									Roi.POLYLINE);
 			imp.setPosition(fridx + 1);
 			imp.setRoi(newedge);
-			IJ.run(imp, "Interpolate", "interval=0.5 smooth");
+			IJ.run(imp, "Interpolate", "interval=1.0 smooth adjust");
 			IJ.run(imp, "Fit Spline", "");
 			qcd_edges[fridx] = imp.getRoi();
 	mbio.save_qcd_edges(qcd_edges, output_folder);

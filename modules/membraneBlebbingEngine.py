@@ -110,7 +110,7 @@ def vector_length(start, end):
 
 def generate_l_spaced_points(roi, l): 
 	"""generate arrays of points along the membrane that are separated by path length l - currently in pixels"""
-	poly = roi.getInterpolatedPolygon();
+	poly = roi.getInterpolatedPolygon(1.0, True);
 	p1, cp, p2 = ([] for i in range(3));
 	for idx,(x,y) in enumerate(zip(poly.xpoints,poly.ypoints)):
 		if ((idx > 0) and (idx < poly.npoints)): # ignore first and last points: by definition these won't have anything useful on either side
@@ -153,7 +153,7 @@ def generate_l_spaced_points(roi, l):
 
 def calculate_curvature_profile(curv_points, roi, remove_negative_curvatures):
 	"""generate a line profile of local curvatures using three-point method and SSS theorem (see http://mathworld.wolfram.com/SSSTheorem.html)"""
-	poly = roi.getInterpolatedPolygon();
+	poly = roi.getInterpolatedPolygon(1.0, True);
 	curvature_profile = [((x,y),0) for (x,y) in zip(poly.xpoints, poly.ypoints)];
 	pos = [p for (p, c) in curvature_profile]
 	for (cp, p1, p2) in zip(curv_points[1], curv_points[0], curv_points[2]):
@@ -207,11 +207,12 @@ def keep_largest_blob(imp):
 def maximum_line_profile(imp, roi, pixel_width):
 	"""return a line profile taking the maximum value over n pixels perpendicular to roi line"""
 	imp.setRoi(roi);
+	IJ.run(imp, "Interpolate", "interval=1.0 smooth adjust");
 	ip = Straightener().straightenLine(imp, pixel_width);
 	width = ip.getWidth();
 	height = ip.getHeight();
 	max_profile = [];
-	poly = roi.getInterpolatedPolygon();
+	poly = roi.getInterpolatedPolygon(1.0, True);
 	for idx,(x,y) in enumerate(zip(poly.xpoints,poly.ypoints)):
 		pix = ip.getLine(idx, 0, idx, height);
 		max_profile.append(((x, y), max(pix)));
