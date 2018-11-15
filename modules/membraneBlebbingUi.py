@@ -9,11 +9,50 @@ from ij.gui import WaitForUserDialog, GenericDialog, NonBlockingGenericDialog, R
 from ij.plugin import Duplicator
 from ij.process import AutoThresholder
 from java.awt import GraphicsEnvironment
+from java.awt.event import ItemListener, ItemEvent
+from loci.plugins import BF as bf
 
 from Parameters import Parameters
 from UpdateRoiImageListener import UpdateRoiImageListener
 import membraneBlebbingEngine as mb
 import membraneBlebbingFileio as mbio
+
+class PreviewThresholdingListener(ItemListener):
+	def __init__(self, params, imp=None):
+		"""Constructor"""
+		self.params = params;
+		self.imp = imp;
+		print("Listener initialised " + str(self));
+		print("ImagePlus passed " + str(imp));
+		print("Parameters passed " + str(params));
+	
+	def itemStateChanged(self, event):
+		"""Event that fires when checkbox state changes"""
+		if event.stateChange == ItemEvent.SELECTED:
+			print("SELECTED");
+			if self.imp is not None:
+				self.imp.show();
+			else: 
+				imps = bf.openImagePlus(self.params.input_image_path);
+				self.imp = imps[0];
+				print("imp loaded");
+				self.imp.show();
+				autoset_zoom(self.imp);
+				# for now, assume that if the image is two channel, second channel is membrane
+				nch = self.imp.getNChannels();
+				if nch >= 2:
+					self.imp.setC(2);
+		else:
+			print("DESELECTED");
+			self.imp.hide();
+	
+	def getPreviewImagePlus(self):
+		"""Retrieve PreviewThresholdingListener's ImagePlus"""
+		return self.imp;
+
+	def setThresholdMethod(self, method):
+		"""Set the thresholding method to be used in the preview"""
+		self.params.threshold_method = method;
 
 def autoset_zoom(imp):
 	"""set the zoom of the current imageplus to give a reasonable window size,  based on reasonable guess at screen resolution"""
@@ -163,10 +202,13 @@ def perform_user_qc(imp, edges, fixed_anchors_list, params):
 	imp.close();
 	return qcd_edges, fixed_anchors_list;
 
-def analysis_parameters_gui():
+def analysis_parameters_gui(params=None):
 	"""GUI for setting analysis parameters at the start of a run. TODO: more effectively separate model and view"""
-	params = Parameters(load_last_params = True);
-	dialog = GenericDialog("Analysis parameters");
+	if params == None:
+		params = Parameters(load_last_params = True);
+	preview_chk_listener = PreviewThresholdingListener(params);
+	# get image file
+	dialog = NonBlockingGenericDialog("Analysis parameters");
 	dialog.addNumericField("Curvature length parameter (um):", 
 							round(params.curvature_length_um, 2), 
 							2);
@@ -176,6 +218,10 @@ def analysis_parameters_gui():
 	dialog.addChoice("Threshold method: ", 
 						params.listThresholdMethods(),
 						params.threshold_method);
+	dialog.addPreviewCheckbox(None, "Preview thresholding");
+	preview_chk = dialog.getPreviewCheckbox();
+	preview_chk.addItemListener(preview_chk_listener);
+	preview_chk.setEnabled(False);
 	dialog.addChoice("Curvature overlay LUT: ", 
 						IJ.getLuts(), 
 						params.curvature_overlay_lut_string);
@@ -222,4 +268,8 @@ def analysis_parameters_gui():
 	params.toggleCloseOnCompletion(dialog.getNextBoolean());
 	params.setMetadataSource(dialog.getNextRadioButton());
 	params.persistParameters();
-	return params;
+	if dialog.wasOKed:
+		imp = preview_chk_listener.getPreviewImagePlus();
+		return params, imp;
+	else:
+	   return None;

@@ -32,32 +32,33 @@ import membraneBlebbingEngine as mb;
 import membraneBlebbingFigures as mbfig;
 from Parameters import Parameters
 
-def main():
-	### debug ###############################################################
-	#print (sys.version_info);
-	#print(sys.path);
-	#file_path = "D:\\data\\Inverse blebbing\\MAX_2dpf marcksl1b-EGFP inj_TgLifeact-mCh_movie e4_split-bleb1.tif";
-	#output_root = "D:\\data\\Inverse blebbing\\output";
-	#from datetime import datetime
-	#timestamp = datetime.strftime(datetime.now(), '%Y-%m-%d %H-%M-%S');
-	#output_folder = os.path.join(output_root, (timestamp + ' output')); 
-	#os.mkdir(output_folder); 
-	########################################################################
-	
+def setup():
+	"""user setup of file paths, parameters etc."""
 	# ensure consistent preference settings
 	Prefs.blackBackground = False;
 
-	# prompt user for input parameters
-	params = mbui.analysis_parameters_gui();
+	params = Parameters(load_last_params=True);
 
 	# prompt user for file locations
 	file_path, output_folder = mbio.file_location_chooser(params.input_image_path);
 	params.setInputImagePath(file_path);
 	params.setOutputPath(output_folder);
 
-	# get image file
-	imps = bf.openImagePlus(file_path);
-	imp = imps[0];
+	# prompt user for input parameters
+	params, imp = mbui.analysis_parameters_gui(params);
+	if params == None:
+		return;
+	elif imp == None:
+		imps = bf.openImagePlus(file_path);
+		imp = imps[0];
+		print("imp loaded");
+	params = mbio.get_metadata(params);
+
+	return imp, params;
+
+def run(imp, params):
+	"""run segmentation, edge identification, curvature calculation and image output"""
+	print("running...");
 	h = imp.height;
 	w = imp.width;
 	d = imp.getNSlices();
@@ -81,7 +82,6 @@ def main():
 	#						"acquisition metadata to generate an appropriate hyperstack. ", 
 	#						"Continue?"]);
 
-	params = mbio.get_metadata(params);
 	params.setCurvatureLengthUm(round(params.curvature_length_um / params.pixel_physical_size) * params.pixel_physical_size);
 	params.persistParameters();
 	IJ.run(imp, "Set Scale...", "distance=0 known=0 pixel=1 unit=pixel");
@@ -205,35 +205,36 @@ def main():
 	# curvature/membrane channel
 	norm_curv_kym = mbfig.generate_kymograph(curvature_profiles, params.curvature_kymograph_lut_string, "Curvature kymograph - distal point at middle");
 	curv_kym = mbfig.generate_plain_kymograph(curvature_profiles, params.curvature_kymograph_lut_string, "Curvature kymograph");
-	FileSaver(norm_curv_kym).saveAsTiff(os.path.join(output_folder, "normalised position curvature kymograph.tif"));
-	FileSaver(curv_kym).saveAsTiff(os.path.join(output_folder, "raw curvature kymograph.tif"));
+	FileSaver(norm_curv_kym).saveAsTiff(os.path.join(params.output_path, "normalised position curvature kymograph.tif"));
+	FileSaver(curv_kym).saveAsTiff(os.path.join(params.output_path, "raw curvature kymograph.tif"));
 	overlaid_curvature_imp, raw_curvature_imp = mbfig.overlay_curvatures(imp, curvature_stack, curvature_profiles, membrane_channel, params, annotate=True);
-	mbio.save_profile_as_csv(curvature_profiles, os.path.join(output_folder, "curvatures.csv"), "curvature")
-	FileSaver(membrane_channel_imp).saveAsTiffStack(os.path.join(output_folder, "binary_membrane_stack.tif"));
+	mbio.save_profile_as_csv(curvature_profiles, os.path.join(params.output_path, "curvatures.csv"), "curvature")
+	FileSaver(membrane_channel_imp).saveAsTiffStack(os.path.join(params.output_path, "binary_membrane_stack.tif"));
 	bleb_len_imp, bleb_ls = mbfig.plot_bleb_evolution([t * params.frame_interval for t in range(0, len(membrane_edges))], 
 											mb_lengths, 
 											"Edge length (" + params.pixel_unit + ")");
 	bleb_a_imp, bleb_as = mbfig.plot_bleb_evolution([t * params.frame_interval for t in range(0, len(membrane_edges))], 
 											mb_areas, 
 											"Bleb area (" + params.pixel_unit + "^2)");
-	FileSaver(bleb_len_imp).saveAsTiff(os.path.join(output_folder, "bleb perimeter length.tif"));
-	FileSaver(bleb_a_imp).saveAsTiff(os.path.join(output_folder, "bleb area.tif"));
-	mbio.save_1d_profile_as_csv(bleb_ls, os.path.join(output_folder, "bleb perimeter length.csv"), [("Time, " + params.interval_unit), "Length, " + params.pixel_unit]);
-	mbio.save_1d_profile_as_csv(bleb_as, os.path.join(output_folder, "bleb area.csv"), [("Time, " + params.interval_unit), "Area, " + params.pixel_unit + "^2"]);
+	FileSaver(bleb_len_imp).saveAsTiff(os.path.join(params.output_path, "bleb perimeter length.tif"));
+	FileSaver(bleb_a_imp).saveAsTiff(os.path.join(params.output_path, "bleb area.tif"));
+	mbio.save_1d_profile_as_csv(bleb_ls, os.path.join(params.output_path, "bleb perimeter length.csv"), [("Time, " + params.interval_unit), "Length, " + params.pixel_unit]);
+	mbio.save_1d_profile_as_csv(bleb_as, os.path.join(params.output_path, "bleb area.csv"), [("Time, " + params.interval_unit), "Area, " + params.pixel_unit + "^2"]);
 	
 	# actin channel
 	if n_channels >= 2:
 		norm_actin_kym = mbfig.generate_kymograph(actin_profiles, params.actin_kymograph_lut_string, (params.labeled_species + " intensity - distal point at middle"));
 		actin_kym = mbfig.generate_plain_kymograph(actin_profiles, params.actin_kymograph_lut_string, (params.labeled_species + " intensity"));
-		FileSaver(norm_actin_kym).saveAsTiff(os.path.join(output_folder, "normalised position " + params.labeled_species + " kymograph.tif"));
-		FileSaver(actin_kym).saveAsTiff(os.path.join(output_folder, "raw " + params.labeled_species + " kymograph.tif"));
-		mbio.save_profile_as_csv(actin_profiles, os.path.join(output_folder, (params.labeled_species + " intensities.csv")), (params.labeled_species + " intensity"))
+		FileSaver(norm_actin_kym).saveAsTiff(os.path.join(params.output_path, "normalised position " + params.labeled_species + " kymograph.tif"));
+		FileSaver(actin_kym).saveAsTiff(os.path.join(params.output_path, "raw " + params.labeled_species + " kymograph.tif"));
+		mbio.save_profile_as_csv(actin_profiles, os.path.join(params.output_path, (params.labeled_species + " intensities.csv")), (params.labeled_species + " intensity"))
 		mrg_imp = mbfig.merge_kymographs(norm_actin_kym, norm_curv_kym, params);
-		FileSaver(mrg_imp).saveAsTiff(os.path.join(output_folder, "merged intensity and curvature kymograph.tif"));
+		FileSaver(mrg_imp).saveAsTiff(os.path.join(params.output_path, "merged intensity and curvature kymograph.tif"));
 		#mbfig.generate_intensity_weighted_curvature(raw_curvature_imp, curvature_profiles, actin_channel_imp, "physics");
 
 	params.saveParametersToJson(os.path.join(output_folder, "parameters used.json"));
 	imp.changes = False;
+	imp.killRoi();
 	IJ.setTool("zoom");
 	if params.close_on_completion:
 		imp.close();
@@ -248,6 +249,20 @@ def main():
 			norm_actin_kym.close();
 			actin_kym.close();
 
+def main():
+	### debug ###############################################################
+	#print (sys.version_info);
+	#print(sys.path);
+	#file_path = "D:\\data\\Inverse blebbing\\MAX_2dpf marcksl1b-EGFP inj_TgLifeact-mCh_movie e4_split-bleb1.tif";
+	#output_root = "D:\\data\\Inverse blebbing\\output";
+	#from datetime import datetime
+	#timestamp = datetime.strftime(datetime.now(), '%Y-%m-%d %H-%M-%S');
+	#output_folder = os.path.join(output_root, (timestamp + ' output')); 
+	#os.mkdir(output_folder); 
+	########################################################################
+	
+	imp, params = setup();
+	run(imp, params);
 
 # It's best practice to create a function that contains the code that is executed when running the script.
 # This enables us to stop the script by just calling return.
