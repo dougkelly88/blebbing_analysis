@@ -34,6 +34,7 @@ class Parameters:
 						metadata_source_file = None, 
 						photobleaching_correction = False, 
 						perform_user_qc = False, 
+						constrain_anchors = False,
 						intensity_profile_width_um = 0.325, 
 						membrane_channel_number = 2):
 		self.__blebbingparams__ = True;
@@ -63,6 +64,7 @@ class Parameters:
 
 			self.labeled_species = labeled_species;
 			
+			self.constrain_anchors = constrain_anchors;
 			self.perform_user_qc = perform_user_qc;
 			self.photobleaching_correction = photobleaching_correction;
 			self.filter_negative_curvatures = filter_negative_curvatures;
@@ -80,6 +82,9 @@ class Parameters:
 			self.membrane_channel_number = membrane_channel_number;
 
 		self.software_version = Parameters._version_string;
+
+	def toggleConstrainAnchors(self, constrain_anchors):
+		self.constrain_anchors = constrain_anchors;
 
 	def setIntensityProfileWidthUm(self, width_um):
 		self.intensity_profile_width_um = width_um;
@@ -217,6 +222,7 @@ class Parameters:
 				self.setMetadataSourceFile(dct["metadata_source_file"]);
 				self.togglePhotobleachingCorrection(dct["photobleaching_correction"]);
 				self.togglePerformUserQC(dct["perform_user_qc"]);
+				self.toggleConstrainAnchors(dct["constrain_anchors"]);
 				self.setIntensityProfileWidthUm(dct["intensity_profile_width_um"]);
 				self.setMembraneChannelNumber(dct["membrane_channel_number"]);
 			else:

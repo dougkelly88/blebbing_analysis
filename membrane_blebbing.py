@@ -108,12 +108,12 @@ def run(imp, params):
 	n_frames = imp.getNFrames();
 
 	# binarise/segment
-	anchors = mbui.prompt_for_points(imp, 
+	anchors, anchor_t = mbui.prompt_for_points(imp, 
 						"Select channel + extrema", 
 						"Select the membrane-label channel, and position \n" + 
 						"exactly TWO points at extremes of membrane", 
 						2);
-	midpoint = mbui.prompt_for_points(imp, 
+	midpoint, dummy = mbui.prompt_for_points(imp, 
 								"Choose midpoint", 
 								"Now select a point halfway between the extremes, distant from the membrane in the direction of bleb formation. ", 
 								1);
@@ -148,7 +148,7 @@ def run(imp, params):
 		# 	fix anchors:
 		IJ.run(membrane_channel_imp, "Create Selection", "");
 		roi = membrane_channel_imp.getRoi();
-		fixed_anchors = mb.fix_anchors_to_membrane(anchors, roi);
+		fixed_anchors = mb.fix_anchors_to_membrane(anchors, roi, params);
 		fixed_anchors_list.append(fixed_anchors);
 		fixed_midpoint = midpoint[0];
 		# evolve anchors...

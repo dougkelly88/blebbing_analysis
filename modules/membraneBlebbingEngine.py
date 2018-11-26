@@ -51,19 +51,49 @@ def make_and_clean_binary(imp, threshold_method):
 		IJ.run(imp, "Erode", "stack");
 	return imp;
 
-def fix_anchors_to_membrane(anchors_list, membrane_roi):
+def distances_from_point_along_path(path_roi, point):
+	"""For each point along a line ROI, calculate the distance from a given point"""
+	poly = path_roi.getPolygon();
+	pts = zip(poly.xpoints, poly.ypoints)
+	print(pts)
+	distances = [0] * len(pts);
+	try:
+		pidx = pts.index(point);
+	except ValueError:
+		# point doesn't exist on membrane, find closest point on membrane
+		dsq = [(math.pow((x - point[0]),2) + math.pow((y - point[1]),2)) for (x, y) in pts];
+		pidx = dsq.index(min(dsq));
+	for idx in range(pidx+1, poly.npoints):
+		distances[idx] = distances[idx-1] + vector_length(pts[idx], pts[idx-1]);
+	for idx in range(pidx-1, -1, -1):
+		distances[idx] = distances[idx+1] + vector_length(pts[idx], pts[idx+1]);
+	return distances;
+
+#def check_anchor_distance_and_gradient(old_anchors_list, old_membrane_rois, new_anchors, new_roi, params):
+#	"""check whether latest set of anchors has significant deviation in space and in gradient from last anchors"""
+#	maximum_creep_speed_um_s = 0.2;
+#	position_tolerance_microns = params.frame_interval * maximum_creep_speed_um_s;
+#	gradient_angle_tolerance = 30.0/180 * math.pi;
+#	scale_for_gradient_calc_um = 0.5;
+	
+#	for anc_idx in range(0,2):
+#		dr = vector_length(old_anchors_list[-1][anc_idx], new_anchors[anc_idx]);
+#		if (dr * params.pixel_physical_size) > position_tolerance_microns:
+#			new_anchors[anc_idx] = old_anchors_list[-1][anc_idx];
+#		else:
+
+#	return new_anchors, new_roi;
+
+def fix_anchors_to_membrane(anchors_list, membrane_roi, params):
 	"""move user-defined anchor points onto automatically-segmented membrane. TODO: make more efficient?"""
 	outline = membrane_roi.getPolygon();
+	pts = zip(outline.xpoints, outline.ypoints);
 	fixed_anchors_set = set();
 	for anchor_idx, anchor in enumerate(anchors_list):
 		fixed_anchor = anchor;
-		last_dsq = 100000;
-		for (x,y) in zip(outline.xpoints,outline.ypoints):
-			d2 = math.pow((x - anchor[0]), 2) + math.pow((y - anchor[1]), 2);
-			if d2 < last_dsq:
-				last_dsq = d2;
-				fixed_anchor = (x, y);
-		fixed_anchors_set.add(fixed_anchor);
+		dsq = [(math.pow((x - anchor[0]),2) + math.pow((y - anchor[1]),2)) for (x, y) in pts];
+		pidx = dsq.index(min(dsq))
+		fixed_anchors_set.add(pts[pidx]);
 	if (len(fixed_anchors_set) < (anchor_idx+1)):
 		raise ValueError('degeneracy between anchor points!');
 	sortlist = list(fixed_anchors_set);

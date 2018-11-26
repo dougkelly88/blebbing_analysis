@@ -115,7 +115,9 @@ def prompt_for_points(imp, title, message, n_points):
 		if ((roi is None) or (selected_points != n_points)):
 			MyWaitForUser("Error!", "Wrong number of points selected! Please try again...");
 			imp.killRoi();
-	return [(p.x, p.y) for p in roi.getContainedPoints()];
+		frame_number = roi.getTPosition(); # doesn't work for some reason - but should be more robust than assuming frame is correct?
+		frame_number = imp.getT();
+	return [(p.x, p.y) for p in roi.getContainedPoints()], frame_number;
 
 def time_crop(imp):
 	"""trim a time series based on interactively-defined start and end points"""
@@ -183,7 +185,7 @@ def perform_user_qc(imp, edges, fixed_anchors_list, params):
 			else:
 				anchors = fixed_anchors_list[fridx - 1];
 			qcd_edges[fridx] = mb.flip_edge(qcd_edges[fridx], anchors);
-			fixed_anchors = mb.fix_anchors_to_membrane(anchors, qcd_edges[fridx]);
+			fixed_anchors = mb.fix_anchors_to_membrane(anchors, qcd_edges[fridx], params);
 			fixed_anchors_list[fridx] = fixed_anchors;
 			poly =  qcd_edges[fridx].getPolygon();
 			polypoints = [(x,y) for x,y in zip(poly.xpoints, poly.ypoints)];
@@ -243,6 +245,8 @@ def analysis_parameters_gui(params=None):
 						params.photobleaching_correction);
 	dialog.addCheckbox("Perform quality control of membrane edges?", 
 						params.perform_user_qc);
+	dialog.addCheckbox("Add distance/gradient constraints on anchor positions?", 
+						params.constrain_anchors);
 	dialog.addCheckbox("Perform spatial cropping?", 
 						params.perform_spatial_crop);
 	dialog.addCheckbox("Perform time cropping?", 
@@ -263,6 +267,7 @@ def analysis_parameters_gui(params=None):
 	params.setFilterNegativeCurvatures(dialog.getNextBoolean());
 	params.togglePhotobleachingCorrection(dialog.getNextBoolean());
 	params.togglePerformUserQC(dialog.getNextBoolean());
+	params.toggleConstrainAnchors(dialog.getNextBoolean());
 	params.toggleSpatialCrop(dialog.getNextBoolean());
 	params.toggleTimeCrop(dialog.getNextBoolean());
 	params.toggleCloseOnCompletion(dialog.getNextBoolean());
