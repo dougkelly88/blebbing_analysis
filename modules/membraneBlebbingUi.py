@@ -187,6 +187,8 @@ def analysis_parameters_gui():
 						params.actin_kymograph_lut_string);
 	dialog.addStringField("Labelled species for intensity analysis: ", 
 							params.labeled_species);
+	dialog.addCheckbox("Use intensity channel for segmentation too?", 
+						params.use_single_channel);
 	dialog.addRadioButtonGroup("Metadata source: ", 
 								["Image metadata", "Acquisition metadata"], 
 								1, 2, 
@@ -214,6 +216,7 @@ def analysis_parameters_gui():
 	params.setCurvatureKymographLUT(choices[2].getSelectedItem());
 	params.setActinKymographLUT(choices[3].getSelectedItem()); # similarly, whether getNextChoice has method to get label - this way, less dependent on order not changing...
 	params.setLabeledSpecies(dialog.getNextString());
+	params.setUseSingleChannel(dialog.getNextBoolean());
 	params.setFilterNegativeCurvatures(dialog.getNextBoolean());
 	params.togglePhotobleachingCorrection(dialog.getNextBoolean());
 	params.togglePerformUserQC(dialog.getNextBoolean());

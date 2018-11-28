@@ -11,7 +11,7 @@ class Parameters:
 
 	_persist_parameters_filename = "IJ_membrane_blebbing_params.json";
 	_persist_parameters_folder = "IJ_membrane_blebbing";
-	_version_string = "1.0.11";
+	_version_string = "1.0.12";
 
 	def __init__(self, load_last_params = False,
 						input_image_path = None, 
@@ -35,7 +35,8 @@ class Parameters:
 						photobleaching_correction = False, 
 						perform_user_qc = False, 
 						intensity_profile_width_um = 0.325, 
-						membrane_channel_number = 2):
+						membrane_channel_number = 2, 
+						use_single_channel = False):
 		self.__blebbingparams__ = True;
 
 		success = True;
@@ -78,11 +79,15 @@ class Parameters:
 			self.intensity_profile_width_um = intensity_profile_width_um;
 
 			self.membrane_channel_number = membrane_channel_number;
+			self.use_single_channel = use_single_channel;
 
 		self.software_version = Parameters._version_string;
 
 	def setIntensityProfileWidthUm(self, width_um):
 		self.intensity_profile_width_um = width_um;
+
+	def setUseSingleChannel(self, use_single_channel):
+		self.use_single_channel = use_single_channel;
 
 	def setMembraneChannelNumber(self, membrane_channel_number):
 		self.membrane_channel_number = membrane_channel_number;
@@ -219,6 +224,7 @@ class Parameters:
 				self.togglePerformUserQC(dct["perform_user_qc"]);
 				self.setIntensityProfileWidthUm(dct["intensity_profile_width_um"]);
 				self.setMembraneChannelNumber(dct["membrane_channel_number"]);
+				self.setUseSingleChannel(dct["use_single_channel"]);
 			else:
 				raise ValueError("JSON file doesn't translate to membrane blebbing analysis parameters")
 		except IOError:

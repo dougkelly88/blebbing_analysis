@@ -128,8 +128,12 @@ def main():
 	membrane_channel_imp = split_channels[membrane_channel-1];
 	membrane_test_channel_imp = Duplicator().run(membrane_channel_imp);
 	if n_channels >= 2:
-		actin_channel = (membrane_channel + 1) % n_channels;
-		actin_channel_imp = split_channels[actin_channel-1];
+		if params.use_single_channel:
+			actin_channel = membrane_channel
+			actin_channel_imp = Duplicator().run(membrane_channel_imp);
+		else:
+			actin_channel = (membrane_channel + 1) % n_channels;
+			actin_channel_imp = split_channels[actin_channel-1];
 		t0_actin_mean = None;
 
 	# perform binary manipulations
