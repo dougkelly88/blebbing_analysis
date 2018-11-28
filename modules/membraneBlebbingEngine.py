@@ -316,6 +316,18 @@ def calculate_percentile(imp, roi, percentile):
 		npc_percentile = vals[k] + (vals[k+1] - vals[k]) * (1 - percentile);
 	return npc_percentile;
 
+def evolve_anchors(previous_anchors, new_fixed_anchors):
+	"""use average positions of last <=3 frames to define guess at new anchor position"""
+	previous_anchors.append(new_fixed_anchors);
+	if len(previous_anchors) > 3:
+		previous_anchors.pop(0);
+	new_anchors = [];
+	for a_idx in range(0,len(new_fixed_anchors)):
+		sublist = [anchors[a_idx] for anchors in previous_anchors]
+		new_anchors.append((sum([x for (x, y) in sublist])/len(previous_anchors), 
+						sum([y for (x, y) in sublist])/len(previous_anchors)));
+	return previous_anchors, new_anchors;
+
 def flip_edge(roi, anchors):
 	"""Check whether the edge is drawn in the expected orientation, and flip if not"""
 	manual_roi_start = (roi.getPolygon().xpoints[0], roi.getPolygon().ypoints[0]);

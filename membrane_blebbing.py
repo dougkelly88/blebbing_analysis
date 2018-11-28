@@ -142,6 +142,7 @@ def main():
 	membrane_edges = [];
 	curv_limits = (10E4, 0);
 	fixed_anchors_list = [];
+	previous_anchors = [];
 	for fridx in range(0, n_frames):
 		imp.setPosition(membrane_channel, 1, fridx+1);
 		membrane_channel_imp.setPosition(fridx+1);
@@ -152,7 +153,7 @@ def main():
 		fixed_anchors_list.append(fixed_anchors);
 		fixed_midpoint = midpoint[0];
 		# evolve anchors...
-		anchors = fixed_anchors;
+		previous_anchors, anchors = mb.evolve_anchors(previous_anchors, fixed_anchors);
 		# identify which side of the segmented roi to use and perform interpolation/smoothing:
 		membrane_edge = mb.get_membrane_edge(roi, fixed_anchors, fixed_midpoint);
 		imp.setRoi(membrane_edge);
