@@ -89,12 +89,15 @@ def get_membrane_edge(roi, fixed_anchors, fixed_midpoint):
 	e2_mean = (sum(e2.xpoints)/e2.npoints, sum(e2.ypoints)/e2.npoints);
 	
 	theta_e1 = angle_between_vecs(fixed_anchors[0], fixed_anchors[1], fixed_anchors[0], e1_mean);
+	#print("Angle between anchor line and anchor0 to e1mean pos = " + str(theta_e1));
 	theta_e2 = angle_between_vecs(fixed_anchors[0], fixed_anchors[1], fixed_anchors[0], e2_mean);
+	#print("Angle between anchor line and anchor0 to e2mean pos = " + str(theta_e2));
 	sign = lambda x: (1, -1)[x < 0]
 	if sign(theta_e1) is not sign(theta_e2):
-		#print("using angle to decide on edge ID - vectors linking anchor1 and mean edge position lie on either side of anchor line");
+		#print("using angle to decide on edge ID - vectors linking anchor1 and mean edge positions lie on either side of anchor line");
 		theta_midpoint = angle_between_vecs(fixed_anchors[0], fixed_anchors[1], fixed_anchors[0], fixed_midpoint);
-		use_edge = e2 if (sign(theta_midpoint) == sign(theta_e2)) else e1;
+		#print("Angle between anchor line and anchor0 to manual midpoint pos = " + str(theta_midpoint));
+		(use_edge, other_edge) = (e2, e1) if (sign(theta_midpoint) == sign(theta_e2)) else (e1, e2);
 	else:
 		#print("using distance to decide on edge ID - vectors linking anchor1 and mean edge position lie on same side of anchor line");
 		#print("position anchor midpoint = " + str(anchors_midpoint));
@@ -102,8 +105,12 @@ def get_membrane_edge(roi, fixed_anchors, fixed_midpoint):
 		#print("length anchor midpoint to e1 mean = " + str(vector_length(anchors_midpoint, e1_mean)));
 		#print("position e2 mean = " + str(e2_mean));
 		#print("length anchor midpoint to e2 mean = " + str(vector_length(anchors_midpoint, e2_mean)));
-		use_edge = e1 if (vector_length(anchors_midpoint, e1_mean) > vector_length(anchors_midpoint, e2_mean)) else e2;
-	return 	PolygonRoi(use_edge, Roi.POLYLINE);
+		#if (vector_length(anchors_midpoint, e1_mean) > vector_length(anchors_midpoint, e2_mean)):
+		#	print("Using e1");
+		#else:
+		#	print("Using e2");
+		(use_edge, other_edge) = (e1, e2) if (vector_length(anchors_midpoint, e1_mean) > vector_length(anchors_midpoint, e2_mean)) else (e2, e1);
+	return 	PolygonRoi(use_edge, Roi.POLYLINE), PolygonRoi(other_edge, Roi.POLYLINE);
 
 def angle_between_vecs(u_start, u_end, v_start, v_end):
 	"""return angle between two vectors"""

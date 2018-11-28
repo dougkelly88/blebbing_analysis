@@ -144,6 +144,7 @@ def main():
 	actin_profiles = [];
 	curvature_profiles = [];
 	membrane_edges = [];
+	alternate_edges = [];
 	curv_limits = (10E4, 0);
 	fixed_anchors_list = [];
 	previous_anchors = [];
@@ -159,18 +160,23 @@ def main():
 		# evolve anchors...
 		previous_anchors, anchors = mb.evolve_anchors(previous_anchors, fixed_anchors);
 		# identify which side of the segmented roi to use and perform interpolation/smoothing:
-		membrane_edge = mb.get_membrane_edge(roi, fixed_anchors, fixed_midpoint);
+		membrane_edge, alternate_edge = mb.get_membrane_edge(roi, fixed_anchors, fixed_midpoint);
 		imp.setRoi(membrane_edge);
 		imp.show();
 		IJ.run(imp, "Interpolate", "interval=1.0 smooth adjust");
 		IJ.run(imp, "Fit Spline", "");
 		membrane_edge = imp.getRoi();
 		membrane_edges.append(membrane_edge);
+		imp.setRoi(alternate_edge);
+		IJ.run(imp, "Interpolate", "interval=1.0 smooth adjust");
+		IJ.run(imp, "Fit Spline", "");
+		alternate_edge = imp.getRoi();
+		alternate_edges.append(alternate_edge);
 
 	# perform user QC before saving anything
 	if params.perform_user_qc:
 		imp.hide();
-		membrane_edges, fixed_anchors_list = mbui.perform_user_qc(membrane_test_channel_imp, membrane_edges, fixed_anchors_list, params);
+		membrane_edges, fixed_anchors_list = mbui.perform_user_qc(membrane_test_channel_imp, membrane_edges, alternate_edges, fixed_anchors_list, params);
 		imp.show();
 
 	lengths_areas_and_arearois = [mb.bleb_area(medge) for medge in membrane_edges];

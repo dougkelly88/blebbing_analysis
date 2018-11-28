@@ -119,20 +119,40 @@ def MyWaitForUser(title, message):
 	if dialog.wasCanceled():
 		raise KeyboardInterrupt("Run canceled");
 
-def perform_user_qc(imp, edges, fixed_anchors_list, params):
+def perform_user_qc(imp, edges, alt_edges, fixed_anchors_list, params):
 	"""allow the user to intervene to fix erroneously identified membrane edges"""
 	output_folder = params.output_path;
+	current_edges = edges;
 	imp.show();
 	autoset_zoom(imp);
 	imp.setPosition(1);
-	imp.setRoi(edges[0]);
-	listener = UpdateRoiImageListener(edges);
+	imp.setRoi(current_edges[0]);
+	listener = UpdateRoiImageListener(current_edges);
 	imp.addImageListener(listener);
 	IJ.setTool("freeline");
-	MyWaitForUser("User quality control", 
-					["Please redraw the membrane edges as necessary, ",
-					"making sure to draw beyond anchor points at either end...",
-					"Click OK when done. "]);
+	do_flip = True;
+	while do_flip:
+		dialog = NonBlockingGenericDialog("User quality control");
+		dialog.enableYesNoCancel("Continue", "Flip all edges");
+		dialog.setCancelLabel("Cancel analysis");
+		dialog.addMessage("Please redraw the membrane edges as necessary, \n" + 
+						"making sure to draw beyond anchor points at either end...\n" + 
+						"Click OK when done. ");
+		dialog.showDialog();
+		if dialog.wasCanceled():
+			raise KeyboardInterrupt("Run canceled");
+		elif dialog.wasOKed():
+			do_flip = False;
+		else:
+			print("flip edges");
+			do_flip = True;
+			imp.removeImageListener(listener);
+			current_edges = alt_edges if (current_edges == edges) else edges;
+			imp.setPosition(1);
+			imp.setRoi(current_edges[0]);
+			listener = UpdateRoiImageListener(current_edges);
+			imp.addImageListener(listener);
+
 	last_roi = imp.getRoi();
 	qcd_edges = listener.getRoiList();
 	qcd_edges[imp.getT() - 1] = last_roi;
