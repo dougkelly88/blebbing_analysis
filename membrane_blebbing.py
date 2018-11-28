@@ -89,6 +89,7 @@ def main():
 	if imp.getNChannels() > 1:
 		imp.setPosition(params.membrane_channel_number, 1, 1);
 	mbui.autoset_zoom(imp);
+	IJ.run("Enhance Contrast", "saturated=0.35");
 
 	# prompt user to select ROI
 	if params.perform_spatial_crop:
@@ -108,6 +109,7 @@ def main():
 	n_frames = imp.getNFrames();
 
 	# binarise/segment
+	IJ.run("Enhance Contrast", "saturated=0.35");
 	anchors = mbui.prompt_for_points(imp, 
 						"Select channel + extrema", 
 						"Select the membrane-label channel, and position \n" + 
