@@ -108,160 +108,187 @@ def main():
 	n_channels = imp.getNChannels();
 	n_frames = imp.getNFrames();
 
-	# binarise/segment
-	IJ.run("Enhance Contrast", "saturated=0.35");
-	anchors = mbui.prompt_for_points(imp, 
-						"Select channel + extrema", 
-						"Select the membrane-label channel, and position \n" + 
-						"exactly TWO points at extremes of membrane", 
-						2);
-	midpoint = mbui.prompt_for_points(imp, 
-								"Choose midpoint", 
-								"Now select a point halfway between the extremes, distant from the membrane in the direction of bleb formation. ", 
-								1);
-	membrane_channel = imp.getChannel();
-	params.setMembraneChannelNumber(membrane_channel);
-	params.persistParameters();
-	
-	params.setManualAnchorMidpoint(midpoint);
-	params.setManualAnchorPositions(anchors);
+	# functionalise further...
+	repeats = 1;
+	if params.inner_outer_comparison:
+		inner_intensity = [];
+		outer_intensity = [];
+		repeats = 2;
 
-	split_channels = ChannelSplitter.split(imp);
-	membrane_channel_imp = split_channels[membrane_channel-1];
-	membrane_test_channel_imp = Duplicator().run(membrane_channel_imp);
-	if n_channels >= 2:
-		if params.use_single_channel:
-			actin_channel = membrane_channel
-			actin_channel_imp = Duplicator().run(membrane_channel_imp);
-		else:
-			actin_channel = (membrane_channel + 1) % n_channels;
-			actin_channel_imp = split_channels[actin_channel-1];
-		t0_actin_mean = None;
-
-	# perform binary manipulations
-	membrane_channel_imp = mb.make_and_clean_binary(membrane_channel_imp, params.threshold_method);
-	
-	# generate edge - this needs to be looped over slices
-	curvature_stack = ImageStack(w, h);
-	actin_profiles = [];
-	curvature_profiles = [];
-	membrane_edges = [];
-	alternate_edges = [];
-	curv_limits = (10E4, 0);
-	fixed_anchors_list = [];
-	previous_anchors = [];
-	for fridx in range(0, n_frames):
-		imp.setPosition(membrane_channel, 1, fridx+1);
-		membrane_channel_imp.setPosition(fridx+1);
-		# 	fix anchors:
-		IJ.run(membrane_channel_imp, "Create Selection", "");
-		roi = membrane_channel_imp.getRoi();
-		fixed_anchors = mb.fix_anchors_to_membrane(anchors, roi);
-		fixed_anchors_list.append(fixed_anchors);
-		fixed_midpoint = midpoint[0];
-		# evolve anchors...
-		previous_anchors, anchors = mb.evolve_anchors(previous_anchors, fixed_anchors);
-		# identify which side of the segmented roi to use and perform interpolation/smoothing:
-		membrane_edge, alternate_edge = mb.get_membrane_edge(roi, fixed_anchors, fixed_midpoint);
-		imp.setRoi(membrane_edge);
-		imp.show();
-		IJ.run(imp, "Interpolate", "interval=1.0 smooth adjust");
-		IJ.run(imp, "Fit Spline", "");
-		membrane_edge = imp.getRoi();
-		membrane_edges.append(membrane_edge);
-		imp.setRoi(alternate_edge);
-		IJ.run(imp, "Interpolate", "interval=1.0 smooth adjust");
-		IJ.run(imp, "Fit Spline", "");
-		alternate_edge = imp.getRoi();
-		alternate_edges.append(alternate_edge);
-
-	# perform user QC before saving anything
-	if params.perform_user_qc:
-		imp.hide();
-		membrane_edges, fixed_anchors_list = mbui.perform_user_qc(membrane_test_channel_imp, membrane_edges, alternate_edges, fixed_anchors_list, params);
-		imp.show();
-
-	lengths_areas_and_arearois = [mb.bleb_area(medge) for medge in membrane_edges];
-	mb_lengths = [laaroi[0] * params.pixel_physical_size for laaroi in lengths_areas_and_arearois]
-	mb_areas =[laaroi[1] * math.pow(params.pixel_physical_size,2) for laaroi in lengths_areas_and_arearois];
-	mb_area_rois =[laaroi[2] for laaroi in lengths_areas_and_arearois];
-	# save membrane channel with original anchors, fixed anchors and membrane edge for assessment of performance
-	new_split = ChannelSplitter.split(imp);
-	new_membrane_channel_imp = new_split[membrane_channel-1]
-	mbfig.save_membrane_edge_image(new_membrane_channel_imp, fixed_anchors_list, membrane_edges, mb_area_rois, params);
-	
-	for fridx in range(0, n_frames):
-		# generate curvature - this needs to be looped over slices
-		membrane_edge = membrane_edges[fridx];
-		curv_points = mb.generate_l_spaced_points(membrane_edge, int(round(params.curvature_length_um / params.pixel_physical_size)));
-		curv_profile = mb.calculate_curvature_profile(curv_points,
-														membrane_edge, 
-														params.filter_negative_curvatures);
-		curvature_profiles.append(curv_profile);
-		curv_limits = (min(curv_limits[0], min([c[1] for c in curvature_profiles[-1]])), 
-						max(curv_limits[1], max([c[1] for c in curvature_profiles[-1]])));
-		curvature_stack = mbfig.generate_curvature_overlays(curvature_profiles[-1], curvature_stack)
+	for r in range(0, repeats):
+		# binarise/segment
+		IJ.selectWindow(imp.getTitle());
+		IJ.run("Enhance Contrast", "saturated=0.35");
+		extra_prompt_str = "";
+		if params.inner_outer_comparison:
+			if r == (repeats - 1):
+				extra_prompt_str = " OUTER";
+				params.setOutputPath(os.path.join(os.path.dirname(params.output_path), "outer"));
+				os.mkdir(params.output_path);
+			else:
+				extra_prompt_str = " INNER";
+				params.setOutputPath(os.path.join(params.output_path, "inner"));
+				os.mkdir(params.output_path);
+		anchors = mbui.prompt_for_points(imp, 
+							"Select channel + extrema", 
+							"Select the membrane-label channel, and position \n" + 
+							"exactly TWO points at extremes of" + extra_prompt_str + " membrane", 
+							2);
+		midpoint = mbui.prompt_for_points(imp, 
+									"Choose midpoint", 
+									"Now select a point halfway between the extremes, distant from the membrane in the direction of bleb formation. ", 
+									1);
+		membrane_channel = imp.getChannel();
+		params.setMembraneChannelNumber(membrane_channel);
+		params.persistParameters();
 		
-		# generate actin-channel line profile if actin channel present
-		if n_channels >= 2:
-			actin_channel_imp.setPosition(fridx+1);
-			actin_channel_imp, t0_actin_mean = mb.apply_photobleach_correction_framewise(params, 
-																						actin_channel_imp, 
-																						membrane_channel_imp, 
-																						t0_value=t0_actin_mean);
-			actin_profile = mb.maximum_line_profile(actin_channel_imp, 
-													membrane_edge, 
-													int(round(params.intensity_profile_width_um / params.pixel_physical_size)));
-			actin_profiles.append(actin_profile);
-
-	# output colormapped images and kymographs 
-	# curvature/membrane channel
-	norm_curv_kym = mbfig.generate_kymograph(curvature_profiles, params.curvature_kymograph_lut_string, "Curvature kymograph - distal point at middle");
-	curv_kym = mbfig.generate_plain_kymograph(curvature_profiles, params.curvature_kymograph_lut_string, "Curvature kymograph");
-	FileSaver(norm_curv_kym).saveAsTiff(os.path.join(output_folder, "normalised position curvature kymograph.tif"));
-	FileSaver(curv_kym).saveAsTiff(os.path.join(output_folder, "raw curvature kymograph.tif"));
-	overlaid_curvature_imp, raw_curvature_imp = mbfig.overlay_curvatures(imp, curvature_stack, curvature_profiles, membrane_channel, params, annotate=True);
-	mbio.save_profile_as_csv(curvature_profiles, os.path.join(output_folder, "curvatures.csv"), "curvature")
-	FileSaver(membrane_channel_imp).saveAsTiffStack(os.path.join(output_folder, "binary_membrane_stack.tif"));
-	bleb_len_imp, bleb_ls = mbfig.plot_bleb_evolution([t * params.frame_interval for t in range(0, len(membrane_edges))], 
-											mb_lengths, 
-											"Edge length (" + params.pixel_unit + ")");
-	bleb_a_imp, bleb_as = mbfig.plot_bleb_evolution([t * params.frame_interval for t in range(0, len(membrane_edges))], 
-											mb_areas, 
-											"Bleb area (" + params.pixel_unit + "^2)");
-	FileSaver(bleb_len_imp).saveAsTiff(os.path.join(output_folder, "bleb perimeter length.tif"));
-	FileSaver(bleb_a_imp).saveAsTiff(os.path.join(output_folder, "bleb area.tif"));
-	mbio.save_1d_profile_as_csv(bleb_ls, os.path.join(output_folder, "bleb perimeter length.csv"), [("Time, " + params.interval_unit), "Length, " + params.pixel_unit]);
-	mbio.save_1d_profile_as_csv(bleb_as, os.path.join(output_folder, "bleb area.csv"), [("Time, " + params.interval_unit), "Area, " + params.pixel_unit + "^2"]);
+		params.setManualAnchorMidpoint(midpoint);
+		params.setManualAnchorPositions(anchors);
 	
-	# actin channel
-	if n_channels >= 2:
-		norm_actin_kym = mbfig.generate_kymograph(actin_profiles, params.actin_kymograph_lut_string, (params.labeled_species + " intensity - distal point at middle"));
-		actin_kym = mbfig.generate_plain_kymograph(actin_profiles, params.actin_kymograph_lut_string, (params.labeled_species + " intensity"));
-		FileSaver(norm_actin_kym).saveAsTiff(os.path.join(output_folder, "normalised position " + params.labeled_species + " kymograph.tif"));
-		FileSaver(actin_kym).saveAsTiff(os.path.join(output_folder, "raw " + params.labeled_species + " kymograph.tif"));
-		mbio.save_profile_as_csv(actin_profiles, os.path.join(output_folder, (params.labeled_species + " intensities.csv")), (params.labeled_species + " intensity"))
-		mrg_imp = mbfig.merge_kymographs(norm_actin_kym, norm_curv_kym, params);
-		FileSaver(mrg_imp).saveAsTiff(os.path.join(output_folder, "merged intensity and curvature kymograph.tif"));
-		#mbfig.generate_intensity_weighted_curvature(raw_curvature_imp, curvature_profiles, actin_channel_imp, "physics");
-
-	params.saveParametersToJson(os.path.join(output_folder, "parameters used.json"));
-	imp.changes = False;
-	IJ.setTool("zoom");
-	if params.close_on_completion:
-		imp.close();
-		bleb_a_imp.close();
-		bleb_len_imp.close();
-		raw_curvature_imp.close();
-		overlaid_curvature_imp.close();
-		norm_curv_kym.close();
-		curv_kym.close();
+		split_channels = ChannelSplitter.split(imp);
+		membrane_channel_imp = split_channels[membrane_channel-1];
+		membrane_test_channel_imp = Duplicator().run(membrane_channel_imp);
 		if n_channels >= 2:
-			mrg_imp.close();
-			norm_actin_kym.close();
-			actin_kym.close();
-
-
+			if params.use_single_channel:
+				actin_channel = membrane_channel
+				actin_channel_imp = Duplicator().run(membrane_channel_imp);
+			else:
+				actin_channel = (membrane_channel + 1) % n_channels;
+				actin_channel_imp = split_channels[actin_channel-1];
+			t0_actin_mean = None;
+	
+		# perform binary manipulations
+		membrane_channel_imp = mb.make_and_clean_binary(membrane_channel_imp, params.threshold_method);
+		
+		# generate edge - this needs to be looped over slices
+		curvature_stack = ImageStack(w, h);
+		actin_profiles = [];
+		curvature_profiles = [];
+		membrane_edges = [];
+		alternate_edges = [];
+		curv_limits = (10E4, 0);
+		fixed_anchors_list = [];
+		previous_anchors = [];
+		for fridx in range(0, n_frames):
+			imp.setPosition(membrane_channel, 1, fridx+1);
+			membrane_channel_imp.setPosition(fridx+1);
+			# 	fix anchors:
+			IJ.run(membrane_channel_imp, "Create Selection", "");
+			roi = membrane_channel_imp.getRoi();
+			fixed_anchors = mb.fix_anchors_to_membrane(anchors, roi);
+			fixed_anchors_list.append(fixed_anchors);
+			fixed_midpoint = midpoint[0];
+			# evolve anchors...
+			previous_anchors, anchors = mb.evolve_anchors(previous_anchors, fixed_anchors);
+			# identify which side of the segmented roi to use and perform interpolation/smoothing:
+			membrane_edge, alternate_edge = mb.get_membrane_edge(roi, fixed_anchors, fixed_midpoint);
+			imp.setRoi(membrane_edge);
+			imp.show();
+			IJ.run(imp, "Interpolate", "interval=1.0 smooth adjust");
+			IJ.run(imp, "Fit Spline", "");
+			membrane_edge = imp.getRoi();
+			membrane_edges.append(membrane_edge);
+			imp.setRoi(alternate_edge);
+			IJ.run(imp, "Interpolate", "interval=1.0 smooth adjust");
+			IJ.run(imp, "Fit Spline", "");
+			alternate_edge = imp.getRoi();
+			alternate_edges.append(alternate_edge);
+	
+		# perform user QC before saving anything
+		if params.perform_user_qc:
+			imp.hide();
+			membrane_edges, fixed_anchors_list = mbui.perform_user_qc(membrane_test_channel_imp, membrane_edges, alternate_edges, fixed_anchors_list, params);
+			imp.show();
+	
+		lengths_areas_and_arearois = [mb.bleb_area(medge) for medge in membrane_edges];
+		mb_lengths = [laaroi[0] * params.pixel_physical_size for laaroi in lengths_areas_and_arearois]
+		mb_areas =[laaroi[1] * math.pow(params.pixel_physical_size,2) for laaroi in lengths_areas_and_arearois];
+		mb_area_rois =[laaroi[2] for laaroi in lengths_areas_and_arearois];
+		# save membrane channel with original anchors, fixed anchors and membrane edge for assessment of performance
+		new_split = ChannelSplitter.split(imp);
+		new_membrane_channel_imp = new_split[membrane_channel-1]
+		mbfig.save_membrane_edge_image(new_membrane_channel_imp, fixed_anchors_list, membrane_edges, mb_area_rois, params);
+		
+		for fridx in range(0, n_frames):
+			# generate curvature - this needs to be looped over slices
+			membrane_edge = membrane_edges[fridx];
+			curv_points = mb.generate_l_spaced_points(membrane_edge, int(round(params.curvature_length_um / params.pixel_physical_size)));
+			curv_profile = mb.calculate_curvature_profile(curv_points,
+															membrane_edge, 
+															params.filter_negative_curvatures);
+			curvature_profiles.append(curv_profile);
+			curv_limits = (min(curv_limits[0], min([c[1] for c in curvature_profiles[-1]])), 
+							max(curv_limits[1], max([c[1] for c in curvature_profiles[-1]])));
+			curvature_stack = mbfig.generate_curvature_overlays(curvature_profiles[-1], curvature_stack)
+			
+			# generate actin-channel line profile if actin channel present
+			if n_channels >= 2:
+				actin_channel_imp.setPosition(fridx+1);
+				actin_channel_imp, t0_actin_mean = mb.apply_photobleach_correction_framewise(params, 
+																							actin_channel_imp, 
+																							membrane_channel_imp, 
+																							t0_value=t0_actin_mean);
+				actin_profile = mb.maximum_line_profile(actin_channel_imp, 
+														membrane_edge, 
+														int(round(params.intensity_profile_width_um / params.pixel_physical_size)));
+				actin_profiles.append(actin_profile);
+				if params.inner_outer_comparison:
+					mean_intensity = float(sum([a for ((x, y), a) in actin_profile]))/len(actin_profile);
+					outer_intensity.append(mean_intensity) if r==(repeats-1) else inner_intensity.append(mean_intensity);
+	
+		# output colormapped images and kymographs 
+		# curvature/membrane channel
+		norm_curv_kym = mbfig.generate_kymograph(curvature_profiles, params.curvature_kymograph_lut_string, "Curvature kymograph - distal point at middle");
+		curv_kym = mbfig.generate_plain_kymograph(curvature_profiles, params.curvature_kymograph_lut_string, "Curvature kymograph");
+		FileSaver(norm_curv_kym).saveAsTiff(os.path.join(params.output_path, "normalised position curvature kymograph.tif"));
+		FileSaver(curv_kym).saveAsTiff(os.path.join(params.output_path, "raw curvature kymograph.tif"));
+		overlaid_curvature_imp, raw_curvature_imp = mbfig.overlay_curvatures(imp, curvature_stack, curvature_profiles, membrane_channel, params, annotate=True);
+		mbio.save_profile_as_csv(curvature_profiles, os.path.join(params.output_path, "curvatures.csv"), "curvature")
+		FileSaver(membrane_channel_imp).saveAsTiffStack(os.path.join(params.output_path, "binary_membrane_stack.tif"));
+		bleb_len_imp, bleb_ls = mbfig.plot_bleb_evolution([t * params.frame_interval for t in range(0, len(membrane_edges))], 
+												mb_lengths, 
+												"Edge length (" + params.pixel_unit + ")");
+		bleb_a_imp, bleb_as = mbfig.plot_bleb_evolution([t * params.frame_interval for t in range(0, len(membrane_edges))], 
+												mb_areas, 
+												"Bleb area (" + params.pixel_unit + "^2)");
+		FileSaver(bleb_len_imp).saveAsTiff(os.path.join(params.output_path, "bleb perimeter length.tif"));
+		FileSaver(bleb_a_imp).saveAsTiff(os.path.join(params.output_path, "bleb area.tif"));
+		mbio.save_1d_profile_as_csv(bleb_ls, os.path.join(params.output_path, "bleb perimeter length.csv"), [("Time, " + params.interval_unit), "Length, " + params.pixel_unit]);
+		mbio.save_1d_profile_as_csv(bleb_as, os.path.join(params.output_path, "bleb area.csv"), [("Time, " + params.interval_unit), "Area, " + params.pixel_unit + "^2"]);
+		
+		# actin channel
+		if n_channels >= 2:
+			norm_actin_kym = mbfig.generate_kymograph(actin_profiles, params.actin_kymograph_lut_string, (params.labeled_species + " intensity - distal point at middle"));
+			actin_kym = mbfig.generate_plain_kymograph(actin_profiles, params.actin_kymograph_lut_string, (params.labeled_species + " intensity"));
+			FileSaver(norm_actin_kym).saveAsTiff(os.path.join(params.output_path, "normalised position " + params.labeled_species + " kymograph.tif"));
+			FileSaver(actin_kym).saveAsTiff(os.path.join(params.output_path, "raw " + params.labeled_species + " kymograph.tif"));
+			mbio.save_profile_as_csv(actin_profiles, os.path.join(params.output_path, (params.labeled_species + " intensities.csv")), (params.labeled_species + " intensity"))
+			mrg_imp = mbfig.merge_kymographs(norm_actin_kym, norm_curv_kym, params);
+			FileSaver(mrg_imp).saveAsTiff(os.path.join(params.output_path, "merged intensity and curvature kymograph.tif"));
+			#mbfig.generate_intensity_weighted_curvature(raw_curvature_imp, curvature_profiles, actin_channel_imp, "physics");
+	
+		params.saveParametersToJson(os.path.join(params.output_path, "parameters used.json"));
+		imp.changes = False;
+		IJ.setTool("zoom");
+		if params.close_on_completion or (params.inner_outer_comparison and r!=(repeats-1)):
+			bleb_a_imp.close();
+			bleb_len_imp.close();
+			raw_curvature_imp.close();
+			overlaid_curvature_imp.close();
+			norm_curv_kym.close();
+			curv_kym.close();
+			if n_channels >= 2:
+				mrg_imp.close();
+				norm_actin_kym.close();
+				actin_kym.close();
+		elif params.close_on_completion and (r==(repeats-1)):
+			imp.close();
+	
+	if params.inner_outer_comparison:
+		output_folder = os.path.dirname(params.output_path);
+		profile = [[((inner, outer), (float(outer)/inner)) for inner, outer in zip(inner_intensity, outer_intensity)]];
+		mbio.save_profile_as_csv(profile, os.path.join(output_folder, "Intensity ratios.csv"), "outer/inner", "inner", "outer");
+	
 # It's best practice to create a function that contains the code that is executed when running the script.
 # This enables us to stop the script by just calling return.
 if __name__ in ['__builtin__','__main__']:

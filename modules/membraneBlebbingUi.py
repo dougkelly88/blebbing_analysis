@@ -225,6 +225,8 @@ def analysis_parameters_gui():
 						params.perform_time_crop);
 	dialog.addCheckbox("Close images on completion?", 
 						params.close_on_completion);
+	dialog.addCheckbox("Compare inner and outer curvature regions?", 
+						params.inner_outer_comparison);
 	dialog.showDialog();
 	if dialog.wasCanceled():
 		raise KeyboardInterrupt("Run canceled");
@@ -244,5 +246,6 @@ def analysis_parameters_gui():
 	params.toggleTimeCrop(dialog.getNextBoolean());
 	params.toggleCloseOnCompletion(dialog.getNextBoolean());
 	params.setMetadataSource(dialog.getNextRadioButton());
+	params.setDoInnerOuterComparison(dialog.getNextBoolean());
 	params.persistParameters();
 	return params;

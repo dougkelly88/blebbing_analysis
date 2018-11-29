@@ -36,7 +36,8 @@ class Parameters:
 						perform_user_qc = False, 
 						intensity_profile_width_um = 0.325, 
 						membrane_channel_number = 2, 
-						use_single_channel = False):
+						use_single_channel = False, 
+						inner_outer_comparison = False):
 		self.__blebbingparams__ = True;
 
 		success = True;
@@ -81,10 +82,15 @@ class Parameters:
 			self.membrane_channel_number = membrane_channel_number;
 			self.use_single_channel = use_single_channel;
 
+			self.inner_outer_comparison = inner_outer_comparison;
+
 		self.software_version = Parameters._version_string;
 
 	def setIntensityProfileWidthUm(self, width_um):
 		self.intensity_profile_width_um = width_um;
+
+	def setDoInnerOuterComparison(self, inner_outer_comparison):
+		self.inner_outer_comparison = inner_outer_comparison;
 
 	def setUseSingleChannel(self, use_single_channel):
 		self.use_single_channel = use_single_channel;
@@ -225,6 +231,7 @@ class Parameters:
 				self.setIntensityProfileWidthUm(dct["intensity_profile_width_um"]);
 				self.setMembraneChannelNumber(dct["membrane_channel_number"]);
 				self.setUseSingleChannel(dct["use_single_channel"]);
+				self.setDoInnerOuterComparison(dct["inner_outer_comparison"]);
 			else:
 				raise ValueError("JSON file doesn't translate to membrane blebbing analysis parameters")
 		except IOError:
