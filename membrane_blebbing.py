@@ -56,7 +56,8 @@ def main():
 	params.setOutputPath(output_folder);
 
 	# get image file
-	imps = bf.openImagePlus(file_path);
+	import_opts, params = mbui.choose_series(file_path, params);
+	imps = bf.openImagePlus(import_opts);
 	imp = imps[0];
 	h = imp.height;
 	w = imp.width;

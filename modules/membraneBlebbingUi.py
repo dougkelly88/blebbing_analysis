@@ -9,6 +9,8 @@ from ij.gui import WaitForUserDialog, GenericDialog, NonBlockingGenericDialog, R
 from ij.plugin import Duplicator
 from ij.process import AutoThresholder
 from java.awt import GraphicsEnvironment
+from loci.formats import ImageReader, MetadataTools
+from loci.plugins.in import ImporterOptions
 
 from Parameters import Parameters
 from UpdateRoiImageListener import UpdateRoiImageListener
@@ -249,3 +251,34 @@ def analysis_parameters_gui():
 	params.setDoInnerOuterComparison(dialog.getNextBoolean());
 	params.persistParameters();
 	return params;
+
+def choose_series(filepath, params):
+	"""if input file contains more than one image series (xy position), prompt user to choose which one to use"""
+	# todo: add thumbnails, based loosely on https://github.com/ome/bio-formats-imagej/blob/master/src/main/java/loci/plugins/in/SeriesDialog.java
+	import_opts = ImporterOptions();
+	import_opts.setId(filepath);
+	
+	reader = ImageReader();
+	ome_meta = MetadataTools.createOMEXMLMetadata();
+	reader.setMetadataStore(ome_meta);
+	reader.setId(filepath);
+	no_series = reader.getSeriesCount();
+	if no_series == 1:
+		return import_opts;
+	else:
+		series_names = [ome_meta.getImageName(idx) for idx in range(no_series)];
+		dialog = GenericDialog("Select series to load...");
+		dialog.addMessage("There are multiple series in this file! \n" + 
+						"This is probably because there are multiple XY stage positions.");
+		dialog.addRadioButtonGroup("Please choose which series to use: ", series_names, no_series, 1, series_names[0]);
+		dialog.showDialog();
+		if dialog.wasCanceled():
+			raise KeyboardInterrupt("Run canceled");
+		if dialog.wasOKed():
+			selected_item = dialog.getNextRadioButton();
+			selected_index = series_names.index(selected_item);
+			params.setSelectedSeriesIndex(selected_index);
+			for idx in range(0, no_series):
+				import_opts.setSeriesOn(idx, True) if (idx==selected_index) else import_opts.setSeriesOn(idx, False);
+	reader.close();
+	return import_opts, params
