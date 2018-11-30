@@ -82,9 +82,9 @@ def prompt_for_points(imp, title, message, n_points):
 
 def time_crop(imp):
 	"""trim a time series based on interactively-defined start and end points"""
-	MyWaitForUser("Choose first time frame and click OK...");
+	MyWaitForUser("First T...", "Choose first time frame and click OK...");
 	start_frame = imp.getT();
-	MyWaitForUser("Now choose last time frame and click OK...");
+	MyWaitForUser("Last T...", "Now choose last time frame and click OK...");
 	end_frame = imp.getT();
 	slices = imp.getNSlices();
 	channels = imp.getNChannels();
