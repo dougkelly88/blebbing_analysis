@@ -2,3 +2,4 @@
 *.tif
 *.tiff
 test data/
+*-checkpoint.ipynb
