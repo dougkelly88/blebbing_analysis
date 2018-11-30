@@ -99,9 +99,11 @@ def main():
 			mbui.autoset_zoom(imp);
 
 	# prompt user to do time cropping
+	timelist = [];
 	if params.perform_time_crop:
 		imp, start_end_tuple = mbui.time_crop(imp)
 		params.setTimeCropStartEnd(start_end_tuple);
+		timelist = [idx for idx in range(start_end_tuple[0], start_end_tuple[1]+1)]
 
 	h = imp.height;
 	w = imp.width;

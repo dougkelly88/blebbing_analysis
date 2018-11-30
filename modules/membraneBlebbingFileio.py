@@ -31,17 +31,19 @@ def file_location_chooser(default_directory):
 	os.mkdir(output_folder);
 	return file_path, output_folder;
 
-def save_profile_as_csv(profiles, file_path, data_name, xname='x', yname='y'):
+def save_profile_as_csv(profiles, file_path, data_name, xname='x', yname='y', time_list=[]):
 	"""save profiles with 2d independent variable, e.g. curvature profile"""
 	f = open(file_path, 'wb');
 	writer = csv.writer(f);
 	writer.writerow(['Frame', xname, yname, data_name]);
+	if not time_list:
+			time_list = [idx for idx in range(0, len(profiles))];
 	for idx, profile in enumerate(profiles):
 		for subidx, ((x, y), p) in enumerate(profile):
 			if len(profiles) == 1:
-				writer.writerow([subidx, x, y, p]);
+				writer.writerow([time_list[subidx], x, y, p]);
 			else:
-				writer.writerow([idx, x, y, p]);
+				writer.writerow([time_list[idx], x, y, p]);
 	f.close();
 
 def load_csv_as_profile(file_path):
