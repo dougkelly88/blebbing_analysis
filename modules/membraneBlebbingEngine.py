@@ -222,6 +222,8 @@ def maximum_line_profile(imp, roi, pixel_width):
 	"""return a line profile taking the maximum value over n pixels perpendicular to roi line"""
 	imp.setRoi(roi);
 	IJ.run(imp, "Interpolate", "interval=1.0 smooth adjust");
+	if pixel_width < 1:
+		pixel_width = 1;
 	ip = Straightener().straightenLine(imp, pixel_width);
 	width = ip.getWidth();
 	height = ip.getHeight();
