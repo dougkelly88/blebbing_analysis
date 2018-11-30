@@ -166,7 +166,7 @@ def perform_user_qc(imp, edges, alt_edges, fixed_anchors_list, params):
 			else:
 				anchors = fixed_anchors_list[fridx - 1];
 			qcd_edges[fridx] = mb.flip_edge(qcd_edges[fridx], anchors);
-			fixed_anchors = mb.fix_anchors_to_membrane(anchors, qcd_edges[fridx]);
+			fixed_anchors = mb.fix_anchors_to_membrane(anchors, qcd_edges[fridx], params);
 			fixed_anchors_list[fridx] = fixed_anchors;
 			poly =  qcd_edges[fridx].getPolygon();
 			polypoints = [(x,y) for x,y in zip(poly.xpoints, poly.ypoints)];

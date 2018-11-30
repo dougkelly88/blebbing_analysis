@@ -49,20 +49,33 @@ def make_and_clean_binary(imp, threshold_method):
 	if "Edge" in threshold_method:
 		IJ.run(imp, "Erode", "stack");
 		IJ.run(imp, "Erode", "stack");
+	#imp.show();
+	#WaitForUserDialog("Check masks").show();
+	#imp.hide();
 	return imp;
 
-def fix_anchors_to_membrane(anchors_list, membrane_roi):
+def fix_anchors_to_membrane(anchors_list, membrane_roi, params):
 	"""move user-defined anchor points onto automatically-segmented membrane. TODO: make more efficient?"""
-	outline = membrane_roi.getPolygon();
+	outline = membrane_roi.getInterpolatedPolygon(0.25, False);
 	fixed_anchors_set = set();
 	for anchor_idx, anchor in enumerate(anchors_list):
 		fixed_anchor = anchor;
-		last_dsq = 100000;
-		for (x,y) in zip(outline.xpoints,outline.ypoints):
-			d2 = math.pow((x - anchor[0]), 2) + math.pow((y - anchor[1]), 2);
-			if d2 < last_dsq:
-				last_dsq = d2;
-				fixed_anchor = (x, y);
+		if params.inner_outer_comparison:
+			pts = [(x, y) for (x, y)  in zip(outline.xpoints, outline.ypoints) if y==anchor[1]];
+			if len(pts) < 1:
+				raise ValueError("NO PIXELS ALONG THE MEMBRANE FALL AT THE SAME Y POSITION AS THE ANCHOR!");
+			fixed_anchor = pts[[abs(x-anchor[0]) for (x,y) in pts].index(min([abs(x-anchor[0]) for (x,y) in pts]))];
+			#d2 = x - anchor[0];
+			#if d2 < last_dsq:
+			#	last_dsq = d2;
+			#	fixed_anchor = (x, anchor[1]);
+		else:
+			last_dsq = 100000;
+			for (x,y) in zip(outline.xpoints,outline.ypoints):
+				d2 = math.pow((x - anchor[0]), 2) + math.pow((y - anchor[1]), 2);
+				if d2 < last_dsq:
+					last_dsq = d2;
+					fixed_anchor = (x, y);
 		fixed_anchors_set.add(fixed_anchor);
 	if (len(fixed_anchors_set) < (anchor_idx+1)):
 		raise ValueError('degeneracy between anchor points!');
@@ -72,7 +85,7 @@ def fix_anchors_to_membrane(anchors_list, membrane_roi):
 
 def get_membrane_edge(roi, fixed_anchors, fixed_midpoint):
 	"""figure out which edge of the roi is the membrane, since IJ might start the roi from anywhere along the perimeter w.r.t. the user defined anchors"""
-	poly = roi.getPolygon();
+	poly = roi.getInterpolatedPolygon(0.25, False);
 	term_index_1 = [(x, y) for x, y in zip(poly.xpoints,poly.ypoints)].index(fixed_anchors[0]);
 	term_index_2 = [(x, y) for x, y in zip(poly.xpoints,poly.ypoints)].index(fixed_anchors[1]);
 	start_idx = min(term_index_1, term_index_2);

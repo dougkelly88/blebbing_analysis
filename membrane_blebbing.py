@@ -178,11 +178,13 @@ def main():
 			# 	fix anchors:
 			IJ.run(membrane_channel_imp, "Create Selection", "");
 			roi = membrane_channel_imp.getRoi();
-			fixed_anchors = mb.fix_anchors_to_membrane(anchors, roi);
+			fixed_anchors = mb.fix_anchors_to_membrane(anchors, roi, params);
 			fixed_anchors_list.append(fixed_anchors);
 			fixed_midpoint = midpoint[0];
 			# evolve anchors...
-			previous_anchors, anchors = mb.evolve_anchors(previous_anchors, fixed_anchors);
+			if not params.inner_outer_comparison:
+				previous_anchors, anchors = mb.evolve_anchors(previous_anchors, fixed_anchors);
+			
 			# identify which side of the segmented roi to use and perform interpolation/smoothing:
 			membrane_edge, alternate_edge = mb.get_membrane_edge(roi, fixed_anchors, fixed_midpoint);
 			imp.setRoi(membrane_edge);
