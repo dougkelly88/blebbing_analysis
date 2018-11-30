@@ -290,7 +290,7 @@ def main():
 	if params.inner_outer_comparison:
 		output_folder = os.path.dirname(params.output_path);
 		profile = [[((inner, outer), (float(outer)/inner)) for inner, outer in zip(inner_intensity, outer_intensity)]];
-		mbio.save_profile_as_csv(profile, os.path.join(output_folder, "Intensity ratios.csv"), "outer/inner", "inner", "outer");
+		mbio.save_profile_as_csv(profile, os.path.join(output_folder, "Intensity ratios.csv"), "outer/inner", "inner", "outer", timelist);
 	
 # It's best practice to create a function that contains the code that is executed when running the script.
 # This enables us to stop the script by just calling return.
