@@ -31,11 +31,11 @@ def file_location_chooser(default_directory):
 	os.mkdir(output_folder);
 	return file_path, output_folder;
 
-def save_profile_as_csv(profiles, file_path, data_name, xname='x', yname='y', time_list=[]):
+def save_profile_as_csv(profiles, file_path, data_name, xname='x', yname='y', tname='Frame', time_list=[]):
 	"""save profiles with 2d independent variable, e.g. curvature profile"""
 	f = open(file_path, 'wb');
 	writer = csv.writer(f);
-	writer.writerow(['Frame', xname, yname, data_name]);
+	writer.writerow([tname, xname, yname, data_name]);
 	if not time_list:
 			time_list = [idx for idx in range(0, len(profiles))];
 	for idx, profile in enumerate(profiles):
@@ -117,7 +117,7 @@ def get_metadata(params):
 			raise IOError('no metadata file chosen');
 		acq_metadata_dict = import_iq3_metadata(file_path);
 		params.setFrameInterval(acq_metadata_dict['frame_interval']);
-		params.setIntervalUnit('s');
+		params.setIntervalUnit(acq_metadata_dict['time_unit']);
 		params.setPixelPhysicalSize(acq_metadata_dict['x_physical_size']);
 		params.setPixelSizeUnit(acq_metadata_dict['x_unit']);
 		params.setMetadataSourceFile(file_path);

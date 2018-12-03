@@ -99,11 +99,12 @@ def main():
 			mbui.autoset_zoom(imp);
 
 	# prompt user to do time cropping
-	timelist = [];
+	timelist = [idx * params.frame_interval for idx in range(n_frames)];
+	tname = "Time, " + params.interval_unit
 	if params.perform_time_crop:
 		imp, start_end_tuple = mbui.time_crop(imp)
 		params.setTimeCropStartEnd(start_end_tuple);
-		timelist = [idx for idx in range(start_end_tuple[0], start_end_tuple[1]+1)]
+		timelist = [idx * params.frame_interval for idx in range(start_end_tuple[0], start_end_tuple[1]+1)]
 
 	h = imp.height;
 	w = imp.width;
@@ -267,7 +268,12 @@ def main():
 			actin_kym = mbfig.generate_plain_kymograph(actin_profiles, params.actin_kymograph_lut_string, (params.labeled_species + " intensity"));
 			FileSaver(norm_actin_kym).saveAsTiff(os.path.join(params.output_path, "normalised position " + params.labeled_species + " kymograph.tif"));
 			FileSaver(actin_kym).saveAsTiff(os.path.join(params.output_path, "raw " + params.labeled_species + " kymograph.tif"));
-			mbio.save_profile_as_csv(actin_profiles, os.path.join(params.output_path, (params.labeled_species + " intensities.csv")), (params.labeled_species + " intensity"))
+			mbio.save_profile_as_csv(actin_profiles, 
+									os.path.join(params.output_path, 
+									(params.labeled_species + " intensities.csv")), 
+									(params.labeled_species + " intensity"), 
+									tname=tname, 
+									time_list=timelist)
 			mrg_imp = mbfig.merge_kymographs(norm_actin_kym, norm_curv_kym, params);
 			FileSaver(mrg_imp).saveAsTiff(os.path.join(params.output_path, "merged intensity and curvature kymograph.tif"));
 			#mbfig.generate_intensity_weighted_curvature(raw_curvature_imp, curvature_profiles, actin_channel_imp, "physics");
@@ -292,7 +298,13 @@ def main():
 	if params.inner_outer_comparison:
 		output_folder = os.path.dirname(params.output_path);
 		profile = [[((inner, outer), (float(outer)/inner)) for inner, outer in zip(inner_intensity, outer_intensity)]];
-		mbio.save_profile_as_csv(profile, os.path.join(output_folder, "Intensity ratios.csv"), "outer/inner", "inner", "outer", timelist);
+		mbio.save_profile_as_csv(profile, 
+								os.path.join(output_folder, "Intensity ratios.csv"), 
+								"outer/inner", 
+								xname="inner", 
+								yname="outer",
+								tname=tname, 
+								time_list=timelist);
 	
 # It's best practice to create a function that contains the code that is executed when running the script.
 # This enables us to stop the script by just calling return.
