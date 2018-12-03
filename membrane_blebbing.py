@@ -115,8 +115,10 @@ def main():
 	# functionalise further...
 	repeats = 1;
 	if params.inner_outer_comparison:
-		inner_intensity = [];
-		outer_intensity = [];
+		inner_intensity_mean = [];
+		outer_intensity_mean = [];
+		inner_intensity_sd = [];
+		outer_intensity_sd = [];
 		repeats = 2;
 
 	IJ.selectWindow(imp.getTitle());
@@ -240,8 +242,10 @@ def main():
 				actin_profiles.append(actin_profile);
 				if params.inner_outer_comparison:
 					mean_intensity = float(sum([a for ((x, y), a) in actin_profile]))/len(actin_profile);
-					outer_intensity.append(mean_intensity) if r==(repeats-1) else inner_intensity.append(mean_intensity);
-	
+					outer_intensity_mean.append(mean_intensity) if r==(repeats-1) else inner_intensity_mean.append(mean_intensity);
+					sd = math.sqrt(sum((x - mean_intensity)**2 for ((x, y), a) in actin_profile) / len(actin_profile));
+					outer_intensity_sd.append(sd) if r==(repeats-1) else inner_intensity_sd.append(sd);
+						
 		# output colormapped images and kymographs 
 		# curvature/membrane channel
 		norm_curv_kym = mbfig.generate_kymograph(curvature_profiles, params.curvature_kymograph_lut_string, "Curvature kymograph - distal point at middle");
@@ -297,12 +301,20 @@ def main():
 	
 	if params.inner_outer_comparison:
 		output_folder = os.path.dirname(params.output_path);
-		profile = [[((inner, outer), (float(outer)/inner)) for inner, outer in zip(inner_intensity, outer_intensity)]];
+		profile = [[((inner, outer), (float(outer)/inner)) for inner, outer in zip(inner_intensity_mean, outer_intensity_mean)]];
 		mbio.save_profile_as_csv(profile, 
 								os.path.join(output_folder, "Intensity ratios.csv"), 
 								"outer/inner", 
 								xname="inner", 
 								yname="outer",
+								tname=tname, 
+								time_list=timelist);
+		sd_profile = [[((inner, outer), (float(outer)/inner)) for inner, outer in zip(inner_intensity_sd, outer_intensity_sd)]];
+		mbio.save_profile_as_csv(profile, 
+								os.path.join(output_folder, "Intensity standard deviation ratios.csv"), 
+								"outer sd/inner sd", 
+								xname="inner sd", 
+								yname="outer sd",
 								tname=tname, 
 								time_list=timelist);
 	
