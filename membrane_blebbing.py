@@ -118,10 +118,10 @@ def main():
 		outer_intensity = [];
 		repeats = 2;
 
+	IJ.selectWindow(imp.getTitle());
+	IJ.run("Enhance Contrast", "saturated=0.35");
 	for r in range(0, repeats):
 		# binarise/segment
-		IJ.selectWindow(imp.getTitle());
-		IJ.run("Enhance Contrast", "saturated=0.35");
 		extra_prompt_str = "";
 		if params.inner_outer_comparison:
 			if r == (repeats - 1):
