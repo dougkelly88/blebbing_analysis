@@ -266,7 +266,7 @@ def choose_series(filepath, params):
 	reader.setId(filepath);
 	no_series = reader.getSeriesCount();
 	if no_series == 1:
-		return import_opts;
+		return import_opts, params;
 	else:
 		series_names = [ome_meta.getImageName(idx) for idx in range(no_series)];
 		dialog = GenericDialog("Select series to load...");
