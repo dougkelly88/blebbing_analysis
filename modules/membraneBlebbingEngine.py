@@ -5,13 +5,12 @@
 # imports
 import math
 from ij import IJ, ImagePlus;
-from ij.gui import PolygonRoi, Roi
-from ij.process import FloatPolygon
+from ij.gui import PolygonRoi, Roi, WaitForUserDialog
+from ij.process import FloatPolygon, FloatProcessor
 from ij.plugin import Straightener, Duplicator, ImageCalculator
-from ij.plugin.filter import ParticleAnalyzer
+from ij.plugin.filter import ParticleAnalyzer, GaussianBlur
 from ij.plugin.frame import RoiManager
 from ij.measure import ResultsTable
-from ij.gui import WaitForUserDialog
 
 def make_and_clean_binary(imp, threshold_method):
 	"""convert the membrane identification channel into binary for segmentation"""
@@ -367,3 +366,120 @@ def flip_edge(roi, anchors):
 		ys.reverse();
 		roi = PolygonRoi(xs, ys, Roi.POLYLINE);
 	return roi;
+
+# functions ported from ij.plugin.Selection to implement functionality of 
+# IJ.run("Fit spline...") without updating imp
+# from (https://github.com/imagej/imagej1/blob/master/ij/plugin/Selection.java)
+def selectionInterpolateAndFitSpline(roi, interval=1.0, smooth=True):
+	"""implement IJ.run(imp, "Interpolate", "interval=1.0 smooth adjust");IJ.run(imp, "Fit Spline", "");"""
+	roi = PolygonRoi(roi.getInterpolatedPolygon(-1.0 * interval, smooth), Roi.FREELINE);
+	if roi.subPixelResolution():
+		roi = selectionTrimFloatPolygon(roi, roi.getUncalibratedLength());
+	else:
+		roi = selectionTrimPolygon(roi, roi.getUncalibratedLength());
+	roi.fitSpline();
+	return roi;
+
+def selectionTrimPolygon(roi, length):
+	x = roi.getXCoordinates();
+	y = roi.getYCoordinates();
+	n = roi.getNCoordinates();
+	x = selectionSmooth(x, n);
+	y = selectionSmooth(y, n);
+	curvature = selectionGetCurvature(x, y, n);
+	r = roi.getBounds();
+	threshold = selectionRodbard(length);
+	distance = math.sqrt((x[1]-x[0])*(x[1]-x[0])+(y[1]-y[0])*(y[1]-y[0]));
+	x[0] += r.x; 
+	y[0]+=r.y;
+	i2 = 1;
+	x2=0;
+	y2=0;
+	for i in range(1, n-1): 
+	    x1=x[i]; y1=y[i]; x2=x[i+1]; y2=y[i+1];
+	    distance += math.sqrt((x2-x1)*(x2-x1)+(y2-y1)*(y2-y1)) + 1;
+	    distance += curvature[i]*2;
+	    if (distance>=threshold):
+	        x[i2] = x2 + r.x;
+	        y[i2] = y2 + r.y;
+	        i2+=1;
+	        distance = 0.0;
+	
+	typ = Roi.POLYLINE if roi.getType()==Roi.FREELIN else Roi.POLYGON;
+	if (typ==Roi.POLYLINE and distance>0.0):
+	    x[i2] = x2 + r.x;
+	    y[i2] = y2 + r.y;
+	    i2+=1;
+	p = PolygonRoi(x, y, i2, typ);
+	return p;
+
+def selectionTrimFloatPolygon(roi, length): 
+	poly = roi.getFloatPolygon();
+	x = poly.xpoints;
+	y = poly.ypoints;
+	n = poly.npoints;
+	x = selectionSmooth(x, n);
+	y = selectionSmooth(y, n);
+	curvature = selectionGetCurvature(x, y, n);
+	threshold = selectionRodbard(length);
+	#IJ.log("trim: "+length+" "+threshold);
+	distance = math.sqrt((x[1]-x[0])*(x[1]-x[0])+(y[1]-y[0])*(y[1]-y[0]));
+	i2 = 1;
+	x2=0;
+	y2=0;
+	for i in range(1, n-1):
+	    x1=x[i]; y1=y[i]; x2=x[i+1]; y2=y[i+1];
+	    distance += math.sqrt((x2-x1)*(x2-x1)+(y2-y1)*(y2-y1)) + 1;
+	    distance += curvature[i]*2;
+	    if (distance>=threshold):
+	        x[i2] = float(x2);
+	        y[i2] = float(y2);
+	        i2+=1;
+	        distance = 0.0;
+	    
+	typ = Roi.POLYLINE if roi.getType()==Roi.FREELINE else Roi.POLYGON;
+	if (typ==Roi.POLYLINE and distance>0.0):
+	    x[i2] = float(x2);
+	    y[i2] = float(y2);
+	    i2+=1;
+	p = PolygonRoi(x, y, i2, typ);
+	return p;
+
+def selectionSmooth(a, n):
+    fp = FloatProcessor(n, 1);
+    for i in range(n):
+        fp.setf(i, 0, a[i]);
+    gb = GaussianBlur();
+    gb.blur1Direction(fp, 2.0, 0.01, True, 0);
+    for i in range(n):
+        a[i] = fp.getf(i, 0);
+    return a;
+
+def selectionGetCurvature(x, y, n):
+	kernel = [1, 1, 1, 1, 1];
+	x2 = [];
+	y2 = [];
+	for i in range(n):
+	    x2.append(x[i]);
+	    y2.append(y[i]);
+	ipx = FloatProcessor(n, 1, x, None);
+	ipy = FloatProcessor(n, 1, y, None);
+	ipx.convolve(kernel, len(kernel), 1);
+	ipy.convolve(kernel, len(kernel), 1);
+	indexes = []
+	curvature = [];
+	for i in range(n):
+	    indexes.append(i);
+	    curvature.append(float(math.sqrt((x2[i]-x[i])*(x2[i]-x[i])+(y2[i]-y[i])*(y2[i]-y[i]))));
+	return curvature;
+
+def selectionRodbard(x):
+    # y = (a-d)/(1 + (x/c)^b) + d
+    # a=3.9, b=.88, c=700, d=44.0
+    if (x == 0.0):
+        ex = 5.0;
+    else:
+        ex = math.exp(math.log(x/700.0)*0.88);
+    y = 3.9-44.0;
+    y = y/(1.0+ex);
+    return y+44.0;

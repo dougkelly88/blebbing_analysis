@@ -194,12 +194,13 @@ def main():
 			imp.show();
 			IJ.run(imp, "Interpolate", "interval=1.0 smooth adjust");
 			IJ.run(imp, "Fit Spline", "");
-			membrane_edge = imp.getRoi();
+			#membrane_edge = mb.selectionInterpolateAndFitSpline(membrane_edge);
 			membrane_edges.append(membrane_edge);
 			imp.setRoi(alternate_edge);
 			IJ.run(imp, "Interpolate", "interval=1.0 smooth adjust");
 			IJ.run(imp, "Fit Spline", "");
 			alternate_edge = imp.getRoi();
+			#alternate_edge = mb.selectionInterpolateAndFitSpline(alternate_edge);
 			alternate_edges.append(alternate_edge);
 	
 		# perform user QC before saving anything
