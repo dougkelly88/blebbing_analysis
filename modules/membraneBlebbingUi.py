@@ -8,9 +8,11 @@ from ij import IJ
 from ij.gui import WaitForUserDialog, GenericDialog, NonBlockingGenericDialog, Roi, PolygonRoi
 from ij.plugin import Duplicator
 from ij.process import AutoThresholder
-from java.awt import GraphicsEnvironment
+from java.awt import GraphicsEnvironment, Panel, Dimension, Checkbox, CheckboxGroup
+from javax.swing import Box
 from loci.formats import ImageReader, MetadataTools
-from loci.plugins.in import ImporterOptions
+from loci.formats.gui import BufferedImageReader
+from loci.plugins.in import ImporterOptions, ThumbLoader
 
 from Parameters import Parameters
 from UpdateRoiImageListener import UpdateRoiImageListener
@@ -254,7 +256,7 @@ def analysis_parameters_gui():
 
 def choose_series(filepath, params):
 	"""if input file contains more than one image series (xy position), prompt user to choose which one to use"""
-	# todo: add thumbnails, based loosely on https://github.com/ome/bio-formats-imagej/blob/master/src/main/java/loci/plugins/in/SeriesDialog.java
+	# todo: if necessary (e.g. if lots of series), can improve thumbnail visuals based loosely on https://github.com/ome/bio-formats-imagej/blob/master/src/main/java/loci/plugins/in/SeriesDialog.java
 	import_opts = ImporterOptions();
 	import_opts.setId(filepath);
 	
@@ -269,13 +271,23 @@ def choose_series(filepath, params):
 		series_names = [ome_meta.getImageName(idx) for idx in range(no_series)];
 		dialog = GenericDialog("Select series to load...");
 		dialog.addMessage("There are multiple series in this file! \n" + 
-						"This is probably because there are multiple XY stage positions.");
-		dialog.addRadioButtonGroup("Please choose which series to use: ", series_names, no_series, 1, series_names[0]);
+						"This is probably because there are multiple XY stage positions. \n " + 
+						"Please choose which series to load: ");
+		thumbreader = BufferedImageReader(reader);
+		cbg = CheckboxGroup();
+		for idx in range(no_series):
+			p = Panel();
+			p.add(Box.createRigidArea(Dimension(thumbreader.getThumbSizeX(), thumbreader.getThumbSizeY())));
+			ThumbLoader.loadThumb(thumbreader, idx, p, True);
+			dialog.addPanel(p);
+			cb = Checkbox(series_names[idx], cbg, idx==0);
+			p.add(cb);
+
 		dialog.showDialog();
 		if dialog.wasCanceled():
 			raise KeyboardInterrupt("Run canceled");
 		if dialog.wasOKed():
-			selected_item = dialog.getNextRadioButton();
+			selected_item = cbg.getSelectedCheckbox().getLabel();
 			selected_index = series_names.index(selected_item);
 			params.setSelectedSeriesIndex(selected_index);
 			for idx in range(0, no_series):
