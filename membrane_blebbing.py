@@ -190,11 +190,12 @@ def main():
 			
 			# identify which side of the segmented roi to use and perform interpolation/smoothing:
 			membrane_edge, alternate_edge = mb.get_membrane_edge(roi, fixed_anchors, fixed_midpoint);
-			imp.setRoi(membrane_edge);
 			imp.show();
+			imp.setRoi(membrane_edge);
 			IJ.run(imp, "Interpolate", "interval=1.0 smooth adjust");
 			IJ.run(imp, "Fit Spline", "");
 			#membrane_edge = mb.selectionInterpolateAndFitSpline(membrane_edge);
+			membrane_edge = imp.getRoi();
 			membrane_edges.append(membrane_edge);
 			imp.setRoi(alternate_edge);
 			IJ.run(imp, "Interpolate", "interval=1.0 smooth adjust");
