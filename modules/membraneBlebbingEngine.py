@@ -60,7 +60,7 @@ def fix_anchors_to_membrane(anchors_list, membrane_roi, params):
 	for anchor_idx, anchor in enumerate(anchors_list):
 		fixed_anchor = anchor;
 		if params.inner_outer_comparison:
-			pts = [(x, y) for (x, y)  in zip(outline.xpoints, outline.ypoints) if y==anchor[1]];
+			pts = [(x, y) for (x, y)  in zip(outline.xpoints, outline.ypoints) if int(round(y))==anchor[1]];
 			if len(pts) < 1:
 				raise ValueError("NO PIXELS ALONG THE MEMBRANE FALL AT THE SAME Y POSITION AS THE ANCHOR!");
 			fixed_anchor = pts[[abs(x-anchor[0]) for (x,y) in pts].index(min([abs(x-anchor[0]) for (x,y) in pts]))];
@@ -122,7 +122,7 @@ def get_membrane_edge(roi, fixed_anchors, fixed_midpoint):
 		#else:
 		#	print("Using e2");
 		(use_edge, other_edge) = (e1, e2) if (vector_length(anchors_midpoint, e1_mean) > vector_length(anchors_midpoint, e2_mean)) else (e2, e1);
-	return 	PolygonRoi(use_edge, Roi.POLYLINE), PolygonRoi(other_edge, Roi.POLYLINE);
+	return PolygonRoi(use_edge, Roi.POLYLINE), PolygonRoi(other_edge, Roi.POLYLINE);
 
 def angle_between_vecs(u_start, u_end, v_start, v_end):
 	"""return angle between two vectors"""
