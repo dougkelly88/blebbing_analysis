@@ -109,6 +109,7 @@ def warning_dialog(message):
 	dialog.showDialog();
 	if dialog.wasCanceled():
 		raise KeyboardInterrupt("Run canceled");
+	return;
 
 def MyWaitForUser(title, message):
 	"""non-modal dialog with option to cancel the analysis"""
@@ -122,6 +123,7 @@ def MyWaitForUser(title, message):
 	dialog.showDialog();
 	if dialog.wasCanceled():
 		raise KeyboardInterrupt("Run canceled");
+	return;
 
 def perform_user_qc(imp, edges, alt_edges, fixed_anchors_list, params):
 	"""allow the user to intervene to fix erroneously identified membrane edges"""
@@ -170,7 +172,7 @@ def perform_user_qc(imp, edges, alt_edges, fixed_anchors_list, params):
 			qcd_edges[fridx] = mb.flip_edge(qcd_edges[fridx], anchors);
 			fixed_anchors = mb.fix_anchors_to_membrane(anchors, qcd_edges[fridx], params);
 			fixed_anchors_list[fridx] = fixed_anchors;
-			poly =  qcd_edges[fridx].getPolygon();
+			poly =  qcd_edges[fridx].getInterpolatedPolygon(0.25, False);
 			polypoints = [(x,y) for x,y in zip(poly.xpoints, poly.ypoints)];
 			idx = [polypoints.index(fixed_anchors[0]), polypoints.index(fixed_anchors[1])];
 			idx.sort();
