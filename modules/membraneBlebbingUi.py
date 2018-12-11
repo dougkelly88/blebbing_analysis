@@ -163,6 +163,7 @@ def perform_user_qc(imp, edges, alt_edges, fixed_anchors_list, params):
 	qcd_edges = listener.getRoiList();
 	qcd_edges[imp.getT() - 1] = last_roi;
 	imp.removeImageListener(listener);
+	mbio.save_qcd_edges(qcd_edges, output_folder);
 	for fridx in range(0, imp.getNFrames()):
 		if qcd_edges[fridx].getType() == Roi.FREELINE:
 			if (fridx == 0):
