@@ -220,6 +220,8 @@ def analysis_parameters_gui():
 								["Image metadata", "Acquisition metadata"], 
 								1, 2, 
 								params.metadata_source);
+	dialog.addCheckbox("Constrain anchors close to manual selections?", 
+						params.constrain_anchors);
 	dialog.addCheckbox("Filter out negative curvatures", 
 						params.filter_negative_curvatures);
 	dialog.addCheckbox("Account for photobleaching?", 
@@ -246,6 +248,7 @@ def analysis_parameters_gui():
 	params.setActinKymographLUT(choices[3].getSelectedItem()); # similarly, whether getNextChoice has method to get label - this way, less dependent on order not changing...
 	params.setLabeledSpecies(dialog.getNextString());
 	params.setUseSingleChannel(dialog.getNextBoolean());
+	params.toggleConstrainAnchors(dialog.getNextBoolean());
 	params.setFilterNegativeCurvatures(dialog.getNextBoolean());
 	params.togglePhotobleachingCorrection(dialog.getNextBoolean());
 	params.togglePerformUserQC(dialog.getNextBoolean());

@@ -185,7 +185,7 @@ def main():
 			fixed_anchors_list.append(fixed_anchors);
 			fixed_midpoint = midpoint[0];
 			# evolve anchors...
-			if not params.inner_outer_comparison:
+			if not params.inner_outer_comparison and not params.constrain_anchors:
 				previous_anchors, anchors = mb.evolve_anchors(previous_anchors, fixed_anchors);
 			
 			# identify which side of the segmented roi to use and perform interpolation/smoothing:

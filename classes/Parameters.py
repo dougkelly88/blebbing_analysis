@@ -38,7 +38,8 @@ class Parameters:
 						membrane_channel_number = 2, 
 						use_single_channel = False, 
 						inner_outer_comparison = False, 
-						selected_series_index = 0):
+						selected_series_index = 0, 
+						constrain_anchors = False):
 		self.__blebbingparams__ = True;
 
 		success = True;
@@ -86,7 +87,12 @@ class Parameters:
 			self.inner_outer_comparison = inner_outer_comparison;
 			self.selected_series_index = selected_series_index;
 
+			self.constrain_anchors = constrain_anchors;
+
 		self.software_version = Parameters._version_string;
+
+	def toggleConstrainAnchors(self, constrain_anchors):
+		self.constrain_anchors = constrain_anchors;
 
 	def setSelectedSeriesIndex(self, selected_series_index):
 		self.selected_series_index =selected_series_index;
@@ -238,6 +244,7 @@ class Parameters:
 				self.setUseSingleChannel(dct["use_single_channel"]);
 				self.setDoInnerOuterComparison(dct["inner_outer_comparison"]);
 				self.setSelectedSeriesIndex(dct["selected_series_index"]);
+				self.toggleConstrainAnchors(dct["constrain_anchors"]);
 			else:
 				raise ValueError("JSON file doesn't translate to membrane blebbing analysis parameters")
 		except IOError:
