@@ -12,7 +12,7 @@ script_path = os.path.dirname(os.path.realpath(__file__))
 sys.path.insert(0, script_path);
 
 from ij import IJ, ImagePlus, ImageStack
-from ij.gui import Plot, GenericDialog, TextRoi, PointRoi
+from ij.gui import Plot, GenericDialog, TextRoi, PointRoi, WaitForUserDialog, Roi
 from ij.io import FileSaver
 from ij.measure import Measurements
 from ij.plugin import RGBStackMerge, Duplicator
@@ -169,11 +169,13 @@ def generate_plain_kymograph(data_to_plot, colormap_string, title_string):
 	imp.show();
 	return imp;
 
-def generate_kymograph(data_to_plot, colormap_string, title_string):
+def generate_kymograph(data_to_plot, colormap_string, title_string, trim=True):
 	"""Display one-channel kymograph with point furthest from the edges along the middle of the kymograph """
 	kym_height = 2 * max([len(data) for data in data_to_plot]) + 1;
 	ip = FloatProcessor(len(data_to_plot), kym_height);
 	# normalise such that point furthest from the anchors is in the middle of the kymograph
+	maxy = 0; 
+	miny = kym_height;
 	for idx, data in enumerate(data_to_plot):
 		dist = [mb.vector_length(data[0][0], p) *
 				mb.vector_length(data[-1][0], p)
@@ -186,8 +188,21 @@ def generate_kymograph(data_to_plot, colormap_string, title_string):
 		for kidx, didx in zip(range(((kym_height - 1)/2 + 1) - distal_idx, ((kym_height - 1)/2 + 1)), 
 						range(0, distal_idx)):
 			pix[kidx * len(data_to_plot) + idx] = data[didx][1];
+		maxy = ((kym_height - 1)/2 + 1) + len(data) - distal_idx if (((kym_height - 1)/2 + 1) + len(data) - distal_idx) > maxy else maxy;
+		miny = ((kym_height - 1)/2 + 1) - distal_idx if (((kym_height - 1)/2 + 1) - distal_idx) < miny else miny;
 	imp = ImagePlus(title_string, ip);
 	IJ.run(imp, colormap_string, "")
+	if trim:
+		maxtomiddle = maxy - (kym_height - 1)/2 + 1;
+		mintomiddle = (kym_height - 1)/2 + 1 - miny;
+		if maxtomiddle > mintomiddle:
+			miny = (kym_height - 1)/2 + 1 - maxtomiddle;
+		else:
+			maxy = (kym_height - 1)/2 + 1 + mintomiddle;
+		if (maxy - miny)/2 == round((maxy - miny)/2):
+			maxy = maxy - 1;
+		imp.setRoi(Roi(0,miny,imp.getWidth(),(maxy-miny)));
+		imp = imp.crop();
 	imp.show();
 	return imp;
 
