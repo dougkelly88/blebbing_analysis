@@ -144,6 +144,7 @@ def main():
 									"Choose midpoint", 
 									"Now select a point halfway between the extremes, distant from the membrane in the direction of bleb formation. ", 
 									1);
+		anchors = mb.order_anchors(anchors, midpoint);
 		membrane_channel = imp.getChannel();
 		params.setMembraneChannelNumber(membrane_channel);
 		params.persistParameters();
@@ -187,8 +188,8 @@ def main():
 			# evolve anchors...
 			if not params.inner_outer_comparison and not params.constrain_anchors:
 				previous_anchors, anchors = mb.evolve_anchors(previous_anchors, fixed_anchors);
-			
 			# identify which side of the segmented roi to use and perform interpolation/smoothing:
+			print(fixed_anchors);
 			membrane_edge, alternate_edge = mb.get_membrane_edge(roi, fixed_anchors, fixed_midpoint);
 			imp.show();
 			imp.setRoi(membrane_edge);
@@ -223,6 +224,8 @@ def main():
 			# generate curvature - this needs to be looped over slices
 			membrane_edge = membrane_edges[fridx];
 			curv_points = mb.generate_l_spaced_points(membrane_edge, int(round(params.curvature_length_um / params.pixel_physical_size)));
+			#print("First point in membrane_edge = " + str(curv_points[0][0]));
+			#print("Frame = " + str(fridx));
 			curv_profile = mb.calculate_curvature_profile(curv_points,
 															membrane_edge, 
 															params.filter_negative_curvatures);

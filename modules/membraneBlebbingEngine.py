@@ -122,7 +122,11 @@ def get_membrane_edge(roi, fixed_anchors, fixed_midpoint):
 		#else:
 		#	print("Using e2");
 		(use_edge, other_edge) = (e1, e2) if (vector_length(anchors_midpoint, e1_mean) > vector_length(anchors_midpoint, e2_mean)) else (e2, e1);
-	return PolygonRoi(use_edge, Roi.POLYLINE), PolygonRoi(other_edge, Roi.POLYLINE);
+	use_roi = PolygonRoi(use_edge, Roi.POLYLINE);
+	other_roi = PolygonRoi(other_edge, Roi.POLYLINE);
+	use_roi = check_edge_order(fixed_anchors, use_roi);
+	other_roi = check_edge_order(fixed_anchors, other_roi);
+	return use_roi, other_roi;
 
 def angle_between_vecs(u_start, u_end, v_start, v_end):
 	"""return angle between two vectors"""
@@ -205,6 +209,25 @@ def calculate_curvature_profile(curv_points, roi, remove_negative_curvatures):
 		if (remove_negative_curvatures and (curv < 0)):
 			curv = 0;
 		curvature_profile[pos.index(cp)] = (cp, curv);
+	return curvature_profile;
+
+def approx_calculate_curvature_profile(curv_points, roi, remove_negative_curvatures):
+	"""generate a line profile of local curvatures using three-point method and Menger curvature (https://en.wikipedia.org/wiki/Menger_curvature#Definition)"""
+	# also ref https://stackoverflow.com/questions/41144224/calculate-curvature-for-3-points-x-y for signed area
+	poly = roi.getInterpolatedPolygon(1.0, True);
+	curvature_profile = [((x,y),0) for (x,y) in zip(poly.xpoints, poly.ypoints)];
+	pos = [p for (p, c) in curvature_profile]
+	for (p1, cp, p2) in zip(curv_points[0], curv_points[1], curv_points[2]):
+		signedA = (cp[0] - p1[0])*(p2[1] - p1[1]) - (cp[1] - p1[1])*(p2[0] - p1[0]);
+		try:
+			curv = 4 * signedA / (vector_length(p1,cp) * vector_length(cp,p2) * vector_length(p2, p1));
+		except ValueError:
+			curv = 0;
+		if (remove_negative_curvatures and (curv < 0)):
+			curv = 0;
+		curvature_profile[pos.index(cp)] = (cp, -curv);
+	curvs_only = [cv for cp, cv in curvature_profile];
+	#print("Curvature with the max abs value in this profile is: " + str(curvs_only[[abs(cv) for cv in curvs_only].index(max([abs(cv) for cv in curvs_only]))]));
 	return curvature_profile;
 
 def keep_largest_blob(imp):
@@ -349,23 +372,48 @@ def evolve_anchors(previous_anchors, new_fixed_anchors):
 						sum([y for (x, y) in sublist])/len(previous_anchors)));
 	return previous_anchors, new_anchors;
 
-def flip_edge(roi, anchors):
-	"""Check whether the edge is drawn in the expected orientation, and flip if not"""
-	manual_roi_start = (roi.getPolygon().xpoints[0], roi.getPolygon().ypoints[0]);
-	if vector_length(manual_roi_start, anchors[0]) < vector_length(manual_roi_start, anchors[1]):
-		new_anchors = list(reversed(anchors));
-	else:
-		new_anchors = anchors;
-	angle = angle_between_vecs(new_anchors[0], new_anchors[1], 
-								(roi.getPolygon().xpoints[0], roi.getPolygon().ypoints[0]), 
-								(roi.getPolygon().xpoints[-1], roi.getPolygon().ypoints[-1]))
-	if angle < 0:
-		xs = [x for x in roi.getPolygon().xpoints];
-		ys = [y for y in roi.getPolygon().ypoints];
+#def flip_edge(roi, anchors):
+#	"""Check whether the edge is drawn in the expected orientation, and flip if not"""
+#	manual_roi_start = (roi.getPolygon().xpoints[0], roi.getPolygon().ypoints[0]);
+#	if vector_length(manual_roi_start, anchors[0]) < vector_length(manual_roi_start, anchors[1]):
+#		new_anchors = list(reversed(anchors));
+#	else:
+#		new_anchors = anchors;
+#	angle = angle_between_vecs(new_anchors[0], new_anchors[1], 
+#								(roi.getPolygon().xpoints[0], roi.getPolygon().ypoints[0]), 
+#								(roi.getPolygon().xpoints[-1], roi.getPolygon().ypoints[-1]))
+#	if angle < 0:
+#		xs = [x for x in roi.getPolygon().xpoints];
+#		ys = [y for y in roi.getPolygon().ypoints];
+#		xs.reverse();
+#		ys.reverse();
+#		roi = PolygonRoi(xs, ys, Roi.POLYLINE);
+#	return roi;
+
+def check_edge_order(anchors, edge):
+	"""Check that edge runs from first anchor to second as expected"""
+	poly = edge.getPolygon();
+	start = (poly.xpoints[0], poly.ypoints[0]);
+	print("Length roi start to anchor1: " + str(vector_length(start, anchors[0])));
+	print("Length roi start to anchor2: " + str(vector_length(start, anchors[1])));
+	if vector_length(start, anchors[0]) > vector_length(start, anchors[1]):
+		print("reversing edge...");
+		xs = [x for x in poly.xpoints];
+		ys = [y for y in poly.ypoints];
 		xs.reverse();
 		ys.reverse();
-		roi = PolygonRoi(xs, ys, Roi.POLYLINE);
-	return roi;
+		edge = PolygonRoi(xs, ys, Roi.POLYLINE);
+	return edge;
+
+def order_anchors(anchors, midpoint):
+	"""Ensure that anchor1 -> midpoint -> anchor2 is always clockwise"""
+	angle = angle_between_vecs(anchors[0], anchors[1], anchors[0], midpoint[0]);
+	print("Angle between anchor line and anchor1 -> midpoint: " + str(180*angle/math.pi));
+	angle = (math.pi + angle) % (2 * math.pi) - math.pi;
+	if angle < 0:
+		print("Switching anchors");
+		anchors = [anchors[1], anchors[0]];
+	return anchors;
 
 # functions ported from ij.plugin.Selection to implement functionality of 
 # IJ.run("Fit spline...") without updating imp

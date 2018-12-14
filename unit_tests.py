@@ -46,9 +46,10 @@ class TestMbEngine(unittest.TestCase):
 		ypts = [y for y in range(1, 6)];
 		xpts = [2 for y in range(1, 6)];
 		imp.show();
+		params = Parameters(inner_outer_comparison=False);
 		roi = PolygonRoi(xpts, ypts, Roi.POLYLINE);
-		self.assertEqual([(2,4), (2,2)], mb.fix_anchors_to_membrane([(1,2), (3,4)],roi))
-		self.assertRaises(ValueError, mb.fix_anchors_to_membrane, [(1,2), (1,2)], roi)
+		self.assertEqual([(2,4), (2,2)], mb.fix_anchors_to_membrane([(1,2), (3,4)],roi,params))
+		self.assertRaises(ValueError, mb.fix_anchors_to_membrane, [(1,2), (1,2)], roi,params)
 		imp.close();
 
 	def test_generate_l_spaced_points(self):
@@ -105,7 +106,7 @@ class TestMbEngine(unittest.TestCase):
 		xpts = [1, 1, 2, 2, 3, 4, 5, 6, 6, 7, 7];
 		ypts = [2, 1, 1, 3, 3, 3, 3, 3, 1, 1, 2];
 		roi = PolygonRoi(xpts, ypts, Roi.POLYLINE);
-		area, area_roi = mb.bleb_area(roi)
+		length, area, area_roi = mb.bleb_area(roi)
 		self.assertEqual(area, 4);
 
 	def test_keep_largest_blob(self):
