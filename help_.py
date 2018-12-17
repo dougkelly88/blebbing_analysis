@@ -4,6 +4,9 @@
 
 import math, os, sys
 from ij.gui import NonBlockingGenericDialog
+from javax.swing import JTextArea, JScrollPane
+from java.awt import Panel, Dimension
+from java.lang import StringBuilder
 
 script_path = os.path.dirname(os.path.realpath(__file__));
 if "Fiji.app" in script_path:
@@ -27,8 +30,22 @@ except:
 	raise IOError("Error reading README.txt");
 finally:
 	f.close();
-	
-dialog = NonBlockingGenericDialog(title);
+
+sb = StringBuilder();
 for line in text:
-	dialog.addMessage(line);
+	sb.append(line);
+
+panel = Panel();
+
+txtArea = JTextArea(sb.toString());
+txtArea.setEditable(False);
+txtArea.setLineWrap(True);
+txtArea.setWrapStyleWord(True);
+scrollpane = JScrollPane(txtArea);
+scrollpane.setPreferredSize(Dimension(500,200));
+panel.add(scrollpane)
+dialog = NonBlockingGenericDialog(title);
+#for line in text:
+#	dialog.addMessage(line);
+dialog.addPanel(panel);
 dialog.showDialog();
