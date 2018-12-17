@@ -170,9 +170,8 @@ def perform_user_qc(imp, edges, alt_edges, fixed_anchors_list, params):
 				anchors = params.manual_anchor_positions;
 			else:
 				anchors = fixed_anchors_list[fridx - 1];
-			qcd_edges[fridx] = mb.check_edge_order(anchors, qcd_edges[fridx]);
-			#qcd_edges[fridx] = mb.flip_edge(qcd_edges[fridx], anchors);
 			fixed_anchors = mb.fix_anchors_to_membrane(anchors, qcd_edges[fridx], params);
+			fixed_anchors = mb.order_anchors(fixed_anchors, params.manual_anchor_midpoint);
 			fixed_anchors_list[fridx] = fixed_anchors;
 			poly =  qcd_edges[fridx].getInterpolatedPolygon(0.25, False);
 			polypoints = [(x,y) for x,y in zip(poly.xpoints, poly.ypoints)];
@@ -182,6 +181,7 @@ def perform_user_qc(imp, edges, alt_edges, fixed_anchors_list, params):
 			newedge = PolygonRoi([x for (x,y) in polypoints], 
 									[y for (x,y) in polypoints], 
 									Roi.POLYLINE);
+			newedge = mb.check_edge_order(anchors, newedge);
 			imp.setPosition(fridx + 1);
 			imp.setRoi(newedge);
 			IJ.run(imp, "Interpolate", "interval=1.0 smooth adjust");

@@ -144,12 +144,11 @@ def main():
 									"Choose midpoint", 
 									"Now select a point halfway between the extremes, distant from the membrane in the direction of bleb formation. ", 
 									1);
-		anchors = mb.order_anchors(anchors, midpoint);
 		membrane_channel = imp.getChannel();
 		params.setMembraneChannelNumber(membrane_channel);
 		params.persistParameters();
-		
 		params.setManualAnchorMidpoint(midpoint);
+		anchors = mb.order_anchors(anchors, midpoint);
 		params.setManualAnchorPositions(anchors);
 	
 		split_channels = ChannelSplitter.split(imp);
@@ -183,7 +182,6 @@ def main():
 			IJ.run(membrane_channel_imp, "Create Selection", "");
 			roi = membrane_channel_imp.getRoi();
 			fixed_anchors = mb.fix_anchors_to_membrane(anchors, roi, params);
-			fixed_anchors_list.append(fixed_anchors);
 			fixed_midpoint = midpoint[0];
 			# evolve anchors...
 			if not params.inner_outer_comparison and not params.constrain_anchors:
@@ -191,18 +189,22 @@ def main():
 			# identify which side of the segmented roi to use and perform interpolation/smoothing:
 			print(fixed_anchors);
 			membrane_edge, alternate_edge = mb.get_membrane_edge(roi, fixed_anchors, fixed_midpoint);
+			fixed_anchors = mb.order_anchors(fixed_anchors, midpoint);
+			fixed_anchors_list.append(fixed_anchors);
+			membrane_edge = mb.check_edge_order(fixed_anchors, membrane_edge);
+			alternate_edge = mb.check_edge_order(fixed_anchors, alternate_edge);
 			imp.show();
 			imp.setRoi(membrane_edge);
 			IJ.run(imp, "Interpolate", "interval=1.0 smooth adjust");
 			IJ.run(imp, "Fit Spline", "");
 			#membrane_edge = mb.selectionInterpolateAndFitSpline(membrane_edge);
 			membrane_edge = imp.getRoi();
-			membrane_edges.append(membrane_edge);
 			imp.setRoi(alternate_edge);
 			IJ.run(imp, "Interpolate", "interval=1.0 smooth adjust");
 			IJ.run(imp, "Fit Spline", "");
 			alternate_edge = imp.getRoi();
 			#alternate_edge = mb.selectionInterpolateAndFitSpline(alternate_edge);
+			membrane_edges.append(membrane_edge);
 			alternate_edges.append(alternate_edge);
 	
 		# perform user QC before saving anything

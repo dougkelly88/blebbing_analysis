@@ -95,6 +95,55 @@ class TestMbEngine(unittest.TestCase):
 		ctest4 = cp[int(round(len(cp)/2))][1];
 		self.assertEqual(ctest4, 0);
 		
+	def test2_calculate_curvature_profile(self):
+		"""test that signs attributed to curvatures are correct for different edge orientations"""
+		w = 500; h = 500;
+		R = 200;
+		length_param_pix = 50;
+		x1 = []; y1 = []; c1 = (0, int(float(h)/2));
+		x2 = []; y2 = []; c2 = (int(float(w)/2),  0);
+		x3 = []; y3 = []; c3 = (w, int(float(h)));
+		x4 = []; y4 = []; c4 = (int(float(w)/2), h);
+		thetas = [((float(tidx)/1000) * (2 * math.pi)) - math.pi/4 for tidx in range(1000)]
+		for theta in thetas:
+			if theta < math.pi/4:
+				x1.append(R * math.cos(theta) + c1[0]);
+				y1.append(R * math.sin(theta) + c1[1]);
+			elif theta < 3 * math.pi/4:
+				x2.append(R * math.cos(theta) + c2[0]);
+				y2.append(R * math.sin(theta) + c2[1]);
+			elif theta < 5 * math.pi/4:
+				x3.append(R * math.cos(theta) + c3[0]);
+				y3.append(R * math.sin(theta) + c3[1]);
+			elif theta < 7 * math.pi/4:
+				x4.append(R * math.cos(theta) + c4[0]);
+				y4.append(R * math.sin(theta) + c4[1]);
+		edges = [PolygonRoi(x1, y1, Roi.POLYLINE), 
+			PolygonRoi(x2, y2, Roi.POLYLINE), 
+			PolygonRoi(x3, y3, Roi.POLYLINE), 
+			PolygonRoi(x4, y4, Roi.POLYLINE)];
+		anchorses = [[(x1[0], y1[0]), (x1[-1], y1[-1])], 
+				[(x2[0], y2[0]), (x2[-1], y2[-1])], 
+				[(x3[0], y3[0]), (x3[-1], y3[-1])], 
+				[(x4[0], y4[0]), (x4[-1], y4[-1])]];
+		cs = [c1, c2, c3, c4];
+		for eidx, (edge, c, anchors) in enumerate(zip(edges, cs, anchorses)):
+			for mp_dir in range(2):
+				if not mp_dir:
+					midpoint = c;
+				else:
+					midpoint = (int(float(w)/2), int(float(h)/2));
+				anchors = mb.order_anchors(anchors, [midpoint]);
+				edge = mb.check_edge_order(anchors, edge);
+				curv_pts = mb.generate_l_spaced_points(edge, length_param_pix);
+				curv_profile = mb.calculate_curvature_profile(curv_pts,
+														edge, 
+														False);
+				curvs_only = [cv for cp, cv in curv_profile];
+				mean_curv = sum(curvs_only)/len(curvs_only);
+				self.assertEqual(mean_curv > 0, mp_dir);
+				
+
 	def test_roi_length(self):
 		ypts = [y for y in range(0, 3)];
 		xpts = [1 for y in range(0, 3)];

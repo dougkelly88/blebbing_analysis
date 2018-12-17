@@ -101,9 +101,14 @@ for eidx, (edge, c, anchors) in enumerate(zip(edges, cs, anchorses)):
 		imp.setDisplayRange(0,5);
 		edge = mb.check_edge_order(anchors, edge);
 		curv_pts = mb.generate_l_spaced_points(edge, length_param_pix);
+		if eidx==7:
+			verbose = True;
+		else:
+			verbose = False;
+			
 		curv_profile = mb.calculate_curvature_profile(curv_pts,
 														edge, 
-														False);
+														False, verbose);
 		curvs_only = [cv for cp, cv in curv_profile];
 		mean_curv = sum(curvs_only)/len(curvs_only);
 		print("Average curve profile value = " + str(mean_curv));
@@ -112,15 +117,15 @@ for eidx, (edge, c, anchors) in enumerate(zip(edges, cs, anchorses)):
 		else:
 			sign_str = " NEGATIVE";
 		imp.setRoi(PolygonRoi(list(edge.getPolygon().xpoints), list(edge.getPolygon().ypoints), Roi.FREELINE));
-		curv_stack = ImageStack(imp.getWidth(), imp.getHeight());
-		curv_stack = mbfig.generate_curvature_overlays(curv_profile, curv_stack);
-		curv_stack = mbfig.generate_curvature_overlays(curv_profile, curv_stack);
-		overlaid_curvature_imp, raw_curvature_imp = mbfig.overlay_curvatures(imp, curv_stack, [curv_profile, curv_profile], 1, params, annotate=True)
-		overlaid_curvature_imp.show();
-		raw_curvature_imp.show();
-		WaitForUserDialog(str(eidx) + ", direction " + str(mp_dir) + ": " + sign_str + ", should be " + target_sign_str).show();
-		overlaid_curvature_imp.close();
-		raw_curvature_imp.close();
+		#curv_stack = ImageStack(imp.getWidth(), imp.getHeight());
+		#curv_stack = mbfig.generate_curvature_overlays(curv_profile, curv_stack);
+		#curv_stack = mbfig.generate_curvature_overlays(curv_profile, curv_stack);
+		#overlaid_curvature_imp, raw_curvature_imp = mbfig.overlay_curvatures(imp, curv_stack, [curv_profile, curv_profile], 1, params, annotate=True)
+		#overlaid_curvature_imp.show();
+		#raw_curvature_imp.show();
+		WaitForUserDialog(str(eidx+1) + ", direction " + str(mp_dir) + ": " + sign_str + ", should be " + target_sign_str).show();
+		#overlaid_curvature_imp.close();
+		#raw_curvature_imp.close();
 		for idx, pt in enumerate([anchors[0], anchors[1], midpoint]):
 			imp.setRoi(Roi(pt[0] - 3, pt[1] - 3, 7, 7));
 			IJ.run(imp, "Set...", "value=0 slice");

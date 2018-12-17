@@ -124,8 +124,6 @@ def get_membrane_edge(roi, fixed_anchors, fixed_midpoint):
 		(use_edge, other_edge) = (e1, e2) if (vector_length(anchors_midpoint, e1_mean) > vector_length(anchors_midpoint, e2_mean)) else (e2, e1);
 	use_roi = PolygonRoi(use_edge, Roi.POLYLINE);
 	other_roi = PolygonRoi(other_edge, Roi.POLYLINE);
-	use_roi = check_edge_order(fixed_anchors, use_roi);
-	other_roi = check_edge_order(fixed_anchors, other_roi);
 	return use_roi, other_roi;
 
 def angle_between_vecs(u_start, u_end, v_start, v_end):
@@ -181,12 +179,17 @@ def generate_l_spaced_points(roi, l):
 					p2.append((xx, yy));
 	return (p1, cp, p2);
 
-def calculate_curvature_profile(curv_points, roi, remove_negative_curvatures):
+def calculate_curvature_profile(curv_points, roi, remove_negative_curvatures, verbose=False):
 	"""generate a line profile of local curvatures using three-point method and SSS theorem (see http://mathworld.wolfram.com/SSSTheorem.html)"""
 	poly = roi.getInterpolatedPolygon(1.0, True);
 	curvature_profile = [((x,y),0) for (x,y) in zip(poly.xpoints, poly.ypoints)];
 	pos = [p for (p, c) in curvature_profile]
 	for (cp, p1, p2) in zip(curv_points[1], curv_points[0], curv_points[2]):
+		if verbose:
+			print("Edge index = " + str(pos.index(cp)))
+			print("P1 = " + str(p1));
+			print("CP = " + str(cp));
+			print("P2 = " + str(p2));
 		a = math.sqrt( math.pow((cp[0] - p1[0]), 2) + math.pow((cp[1] - p1[1]), 2) );
 		b = math.sqrt( math.pow((cp[0] - p2[0]), 2) + math.pow((cp[1] - p2[1]), 2) );
 		c = math.sqrt( math.pow((p2[0] - p1[0]), 2) + math.pow((p2[1] - p1[1]), 2) );
@@ -208,6 +211,8 @@ def calculate_curvature_profile(curv_points, roi, remove_negative_curvatures):
 			curv = sign * 1/R;
 		if (remove_negative_curvatures and (curv < 0)):
 			curv = 0;
+		if verbose:
+			print("Curvature = " + str(curv));
 		curvature_profile[pos.index(cp)] = (cp, curv);
 	return curvature_profile;
 
@@ -394,10 +399,7 @@ def check_edge_order(anchors, edge):
 	"""Check that edge runs from first anchor to second as expected"""
 	poly = edge.getPolygon();
 	start = (poly.xpoints[0], poly.ypoints[0]);
-	print("Length roi start to anchor1: " + str(vector_length(start, anchors[0])));
-	print("Length roi start to anchor2: " + str(vector_length(start, anchors[1])));
 	if vector_length(start, anchors[0]) > vector_length(start, anchors[1]):
-		print("reversing edge...");
 		xs = [x for x in poly.xpoints];
 		ys = [y for y in poly.ypoints];
 		xs.reverse();
@@ -408,10 +410,8 @@ def check_edge_order(anchors, edge):
 def order_anchors(anchors, midpoint):
 	"""Ensure that anchor1 -> midpoint -> anchor2 is always clockwise"""
 	angle = angle_between_vecs(anchors[0], anchors[1], anchors[0], midpoint[0]);
-	print("Angle between anchor line and anchor1 -> midpoint: " + str(180*angle/math.pi));
 	angle = (math.pi + angle) % (2 * math.pi) - math.pi;
 	if angle < 0:
-		print("Switching anchors");
 		anchors = [anchors[1], anchors[0]];
 	return anchors;
 
