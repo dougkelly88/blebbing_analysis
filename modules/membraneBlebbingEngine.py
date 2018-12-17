@@ -264,7 +264,10 @@ def maximum_line_profile(imp, roi, pixel_width):
 	IJ.run(imp, "Interpolate", "interval=1.0 smooth adjust");
 	if pixel_width < 1:
 		pixel_width = 1;
+	pixel_width = int(2 * math.ceil(float(pixel_width)/2));
 	ip = Straightener().straightenLine(imp, pixel_width);
+	#imp2 = ImagePlus("Straightened", ip);
+	#imp2.show()
 	width = ip.getWidth();
 	height = ip.getHeight();
 	max_profile = [];

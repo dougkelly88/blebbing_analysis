@@ -178,6 +178,21 @@ class TestMbEngine(unittest.TestCase):
 		roi = imp.getRoi();
 		self.assertEqual(roi.getStatistics().area, w);
 
+	def test_maximum_line_profile(self):
+		"""test that maximum line profile is generated as expected for straight line"""
+		imp = IJ.createImage("test", 3, 4, 1, 8);
+		ip = imp.getProcessor();
+		pix = ip.getPixels();
+		pix[0] = 10; pix[1] = 20; pix[2] = 30;
+		pix[3] = 60; pix[4] = 40; pix[5] = 50;
+		pix[6] = 80; pix[7] = 90; pix[8] = 70;
+		pix[9] = 100; pix[10] = 110; pix[11] = 120;
+		roi = PolygonRoi([1, 1], [0, 3], Roi.POLYLINE);
+		imp.setRoi(roi);
+		mlp = mb.maximum_line_profile(imp, roi, 3);
+		vals = [i for ((x, y), i) in mlp];
+		self.assertEqual(vals, [30, 60, 90, 120]);
+		
 	def test_apply_photobleach_correction_framewise(self):
 		"""confirm that photobleaching correction equalises mean values across a stack"""
 		# create test images: 
