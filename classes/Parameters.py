@@ -209,6 +209,12 @@ class Parameters:
 		else:
 			raise ValueError('Requested actin kymograph LUT is not a valid IJ LUT');
 
+	def setIntervalUnit(self, unit_string):
+		"""set interval unit and format for sanity"""
+		if unit_string == "sec":
+			unit_string = "s";
+		self.interval_unit = unit_string;
+
 	def saveParametersToJson(self, file_path):
 		try:
 			f = open(file_path, 'w');
@@ -246,7 +252,7 @@ class Parameters:
 				self.pixel_physical_size = float(dct["pixel_physical_size"]);
 				self.pixel_unit = dct["pixel_unit"];
 				self.frame_interval = float(dct["frame_interval"]);
-				self.interval_unit = dct["interval_unit"];
+				self.setIntervalUnit(dct["interval_unit"]);
 				try:
 					self.setCurvatureOverlayLUT(dct["curvature_overlay_lut_string"]);
 					self.setCurvatureKymographLUT(dct["curvature_kymograph_lut_string"]);
