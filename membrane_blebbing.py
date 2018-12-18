@@ -187,7 +187,6 @@ def main():
 			if not params.inner_outer_comparison and not params.constrain_anchors:
 				previous_anchors, anchors = mb.evolve_anchors(previous_anchors, fixed_anchors);
 			# identify which side of the segmented roi to use and perform interpolation/smoothing:
-			print(fixed_anchors);
 			membrane_edge, alternate_edge = mb.get_membrane_edge(roi, fixed_anchors, fixed_midpoint);
 			fixed_anchors = mb.order_anchors(fixed_anchors, midpoint);
 			fixed_anchors_list.append(fixed_anchors);
