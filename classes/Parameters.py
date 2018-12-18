@@ -3,8 +3,6 @@
 # D. J. Kelly, 2018-10-26, douglas.kelly@riken.jp
 
 import json, os, platform
-from ij import IJ
-from ij.process import AutoThresholder
 
 class Parameters:
 	"""Class to hold analysis parameters"""
@@ -176,6 +174,7 @@ class Parameters:
 			raise ValueError('Requested threshold methd is not a valid IJ threshold method')
 
 	def listThresholdMethods(self):
+		from ij.process import AutoThresholder
 		threshold_methods = AutoThresholder.getMethods();
 		local_threshold_methods = ["Bernsen", "Contrast", "Mean", "Median", "MidGrey", "Niblack", "Otsu", "Phansalkar", "Sauvola"]; # from https://github.com/fiji/Auto_Local_Threshold/blob/master/src/main/java/fiji/threshold/Auto_Local_Threshold.java (2018-11-02)
 		for meth in local_threshold_methods:
@@ -190,18 +189,21 @@ class Parameters:
 			raise ValueError('Curvature length parameter must be positive');
 
 	def setCurvatureOverlayLUT(self, lut_string):
+		from ij import IJ
 		if lut_string in IJ.getLuts():
 			self.curvature_overlay_lut_string = lut_string;
 		else:
 			raise ValueError('Requested curvature overlay LUT is not a valid IJ LUT');
 			
 	def setCurvatureKymographLUT(self, lut_string):
+		from ij import IJ
 		if lut_string in IJ.getLuts():
 			self.curvature_kymograph_lut_string = lut_string;
 		else:
 			raise ValueError('Requested curvature kymograph LUT is not a valid IJ LUT');
 
 	def setActinKymographLUT(self, lut_string):
+		from ij import IJ
 		if lut_string in IJ.getLuts():
 			self.actin_kymograph_lut_string = lut_string;
 		else:
@@ -222,13 +224,9 @@ class Parameters:
 				self.setInputImagePath(dct["input_image_path"]);
 				self.setOutputPath(dct["output_path"]);
 				self.setCurvatureLengthUm(dct["curvature_length_um"]);
-				self.setThresholdMethod(dct["threshold_method"])
 				self.setSpatialCrop(dct["spatial_crop"]);
 				self.setManualAnchorPositions(dct["manual_anchor_positions"]);
 				self.setManualAnchorMidpoint(dct["manual_anchor_midpoint"]);
-				self.setCurvatureOverlayLUT(dct["curvature_overlay_lut_string"]);
-				self.setCurvatureKymographLUT(dct["curvature_kymograph_lut_string"]);
-				self.setActinKymographLUT(dct["actin_kymograph_lut_string"]);
 				self.setLabeledSpecies(dct["labeled_species"]);
 				self.setFilterNegativeCurvatures(dct["filter_negative_curvatures"]);
 				self.setTimeCropStartEnd(dct["time_crop_start_end"]);
@@ -245,6 +243,20 @@ class Parameters:
 				self.setDoInnerOuterComparison(dct["inner_outer_comparison"]);
 				self.setSelectedSeriesIndex(dct["selected_series_index"]);
 				self.toggleConstrainAnchors(dct["constrain_anchors"]);
+				self.pixel_physical_size = float(dct["pixel_physical_size"]);
+				self.pixel_unit = dct["pixel_unit"];
+				self.frame_interval = float(dct["frame_interval"]);
+				self.interval_unit = dct["interval_unit"];
+				try:
+					self.setCurvatureOverlayLUT(dct["curvature_overlay_lut_string"]);
+					self.setCurvatureKymographLUT(dct["curvature_kymograph_lut_string"]);
+					self.setActinKymographLUT(dct["actin_kymograph_lut_string"]);
+					self.setThresholdMethod(dct["threshold_method"]);
+				except:
+					self.curvature_overlay_lut_string = dct["curvature_overlay_lut_string"];
+					self.curvature_kymograph_lut_string = dct["curvature_kymograph_lut_string"];
+					self.actin_kymograph_lut_string = dct["actin_kymograph_lut_string"];
+					self.threshold_method = dct["threshold_method"];
 			else:
 				raise ValueError("JSON file doesn't translate to membrane blebbing analysis parameters")
 		except IOError:
@@ -297,6 +309,10 @@ class Parameters:
 			print("Error: " + e.message);
 			return "";
 		return temp_path;
+
+	def __str__(self):
+		"""return string representation of the Parameters object"""
+		return str(self.__dict__);
 
 #params = Parameters();
 #print(params.__dict__);
