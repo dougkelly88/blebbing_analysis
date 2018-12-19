@@ -142,7 +142,11 @@ def import_iq3_metadata(metadata_path):
 				if (bool(m)):
 					meta_dict.update(m.groupdict())
 		p_num = re.compile('[+-]?\d+\.?\d*')
-		for key, value in meta_dict.iteritems():
+		try:
+			iteritems = meta_dict.iteritems();
+		except:
+			iteritems = meta_dict.items();
+		for key, value in iteritems:
 			if p_num.match(value):
 				try:
 					meta_dict[key] = float(value)
