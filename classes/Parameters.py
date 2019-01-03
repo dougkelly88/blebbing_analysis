@@ -229,6 +229,10 @@ class Parameters:
 			if "__blebbingparams__" in dct:
 				self.setInputImagePath(dct["input_image_path"]);
 				self.setOutputPath(dct["output_path"]);
+				self.pixel_physical_size = float(dct["pixel_physical_size"]);
+				self.pixel_unit = dct["pixel_unit"];
+				self.frame_interval = float(dct["frame_interval"]);
+				self.setIntervalUnit(dct["interval_unit"]);
 				self.setCurvatureLengthUm(dct["curvature_length_um"]);
 				self.setSpatialCrop(dct["spatial_crop"]);
 				self.setManualAnchorPositions(dct["manual_anchor_positions"]);
@@ -249,16 +253,14 @@ class Parameters:
 				self.setDoInnerOuterComparison(dct["inner_outer_comparison"]);
 				self.setSelectedSeriesIndex(dct["selected_series_index"]);
 				self.toggleConstrainAnchors(dct["constrain_anchors"]);
-				self.pixel_physical_size = float(dct["pixel_physical_size"]);
-				self.pixel_unit = dct["pixel_unit"];
-				self.frame_interval = float(dct["frame_interval"]);
-				self.setIntervalUnit(dct["interval_unit"]);
 				try:
 					self.setCurvatureOverlayLUT(dct["curvature_overlay_lut_string"]);
 					self.setCurvatureKymographLUT(dct["curvature_kymograph_lut_string"]);
 					self.setActinKymographLUT(dct["actin_kymograph_lut_string"]);
 					self.setThresholdMethod(dct["threshold_method"]);
 				except:
+					# if outside of IJ environment, OK to load previous software version...
+					self.software_version = dct["software_version"];
 					self.curvature_overlay_lut_string = dct["curvature_overlay_lut_string"];
 					self.curvature_kymograph_lut_string = dct["curvature_kymograph_lut_string"];
 					self.actin_kymograph_lut_string = dct["actin_kymograph_lut_string"];
