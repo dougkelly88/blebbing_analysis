@@ -48,10 +48,28 @@ def main():
 	Prefs.blackBackground = False;
 
 	# prompt user for input parameters
-	params = mbui.analysis_parameters_gui();
+	params, rerun_analysis = mbui.analysis_parameters_gui();
 
 	# prompt user for file locations
-	file_path, output_folder = mbio.file_location_chooser(params.input_image_path);
+	old_params = None;
+	if rerun_analysis:
+		if params.inner_outer_comparison:
+			raise NotImplementedError("rerunning analysis is not yet implemented for comparisons of inner and outer membranes!");
+		old_params = Parameters();
+		output_folder_old, output_folder = mbio.rerun_location_chooser(params.input_image_path);
+		old_params.loadParametersFromJson(os.path.join(output_folder_old, 'parameters used.json'));
+		if os.path.isfile(old_params.input_image_path):
+			file_path = old_params.input_image_path;
+		else:
+			mbui.warning_dialog(["The original data can't be found at the location specified in saved parameters. ", 
+								"(Possibly something as simple as a change in network drive mapping has occurred)",
+								"Please specify the location of the original image file..."]);
+			file_path = mbio.input_file_location_chooser(output_folder_old);
+			params.setMembraneChannelNumber(old_params.membrane_channel_number);
+			params.setManualAnchorPositions(old_params.manual_anchor_positions);
+			params.setManualAnchorMidpoint(old_params.manual_anchor_midpoint);
+	else:
+		file_path, output_folder = mbio.file_location_chooser(params.input_image_path);
 	params.setInputImagePath(file_path);
 	params.setOutputPath(output_folder);
 
