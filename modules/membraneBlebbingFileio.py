@@ -84,8 +84,19 @@ def save_qcd_edges(edges, output_folder):
 	edge_point_list = [zip(poly.xpoints, poly.ypoints) for poly in [edge.getPolygon() for edge in edges]];
 	file_path = os.path.join(output_folder, "user_defined_edges.json");
 	f = open(file_path, 'w');
-	json.dump(edge_point_list, f);
-	f.close();
+	try:
+		json.dump(edge_point_list, f);
+	finally:
+		f.close();
+
+def load_qcd_edges(input_file_path):
+    """load edges from JSON"""
+    f = open(input_file_path, 'r');
+    try:
+        edges = json.loads(f.read());
+    finally:
+        f.close();
+    return edges;
 
 def get_metadata(params):
 	"""get image metadata, either from the image file or from acquisition-time metadata"""
