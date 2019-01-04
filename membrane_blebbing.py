@@ -152,14 +152,14 @@ def main():
 		params.setManualAnchorPositions(anchors);
 	
 		split_channels = ChannelSplitter.split(imp);
-		membrane_channel_imp = split_channels[membrane_channel-1];
+		membrane_channel_imp = split_channels[params.membrane_channel_number-1];
 		membrane_test_channel_imp = Duplicator().run(membrane_channel_imp);
 		if n_channels >= 2:
 			if params.use_single_channel:
-				actin_channel = membrane_channel
+				actin_channel = params.membrane_channel_number;
 				actin_channel_imp = Duplicator().run(membrane_channel_imp);
 			else:
-				actin_channel = (membrane_channel + 1) % n_channels;
+				actin_channel = (params.membrane_channel_number + 1) % n_channels;
 				actin_channel_imp = split_channels[actin_channel-1];
 			t0_actin_mean = None;
 	
@@ -212,13 +212,14 @@ def main():
 			membrane_edges, fixed_anchors_list = mbui.perform_user_qc(membrane_test_channel_imp, membrane_edges, alternate_edges, fixed_anchors_list, params);
 			imp.show();
 	
+		# do calculations independent of source of edges
 		lengths_areas_and_arearois = [mb.bleb_area(medge) for medge in membrane_edges];
 		mb_lengths = [laaroi[0] * params.pixel_physical_size for laaroi in lengths_areas_and_arearois]
 		mb_areas =[laaroi[1] * math.pow(params.pixel_physical_size,2) for laaroi in lengths_areas_and_arearois];
 		mb_area_rois =[laaroi[2] for laaroi in lengths_areas_and_arearois];
 		# save membrane channel with original anchors, fixed anchors and membrane edge for assessment of performance
 		new_split = ChannelSplitter.split(imp);
-		new_membrane_channel_imp = new_split[membrane_channel-1]
+		new_membrane_channel_imp = new_split[params.membrane_channel_number-1]
 		mbfig.save_membrane_edge_image(new_membrane_channel_imp, fixed_anchors_list, membrane_edges, mb_area_rois, params);
 		
 		for fridx in range(0, n_frames):
@@ -258,7 +259,7 @@ def main():
 		curv_kym = mbfig.generate_plain_kymograph(curvature_profiles, params.curvature_kymograph_lut_string, "Curvature kymograph");
 		FileSaver(norm_curv_kym).saveAsTiff(os.path.join(params.output_path, "normalised position curvature kymograph.tif"));
 		FileSaver(curv_kym).saveAsTiff(os.path.join(params.output_path, "raw curvature kymograph.tif"));
-		overlaid_curvature_imp, raw_curvature_imp = mbfig.overlay_curvatures(imp, curvature_stack, curvature_profiles, membrane_channel, params, annotate=True);
+		overlaid_curvature_imp, raw_curvature_imp = mbfig.overlay_curvatures(imp, curvature_stack, curvature_profiles, params.membrane_channel_number, params, annotate=True);
 		mbio.save_profile_as_csv(curvature_profiles, os.path.join(params.output_path, "curvatures.csv"), "curvature")
 		FileSaver(membrane_channel_imp).saveAsTiffStack(os.path.join(params.output_path, "binary_membrane_stack.tif"));
 		bleb_len_imp, bleb_ls = mbfig.plot_bleb_evolution([t * params.frame_interval for t in range(0, len(membrane_edges))], 
