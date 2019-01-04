@@ -88,20 +88,31 @@ def prompt_for_points(imp, title, message, n_points):
 			imp.killRoi();
 	return [(p.x, p.y) for p in roi.getContainedPoints()];
 
-def time_crop(imp):
+def time_crop(imp, params, old_params=None):
 	"""trim a time series based on interactively-defined start and end points"""
-	MyWaitForUser("First T...", "Choose first time frame and click OK...");
-	start_frame = imp.getT();
-	MyWaitForUser("Last T...", "Now choose last time frame and click OK...");
-	end_frame = imp.getT();
+	start_frame = None;
+	end_frame = None;
+	if old_params is not None:
+		if old_params.perform_time_crop:
+			start_frame = old_params.time_crop_start_end[0];
+			end_frame = old_params.time_crop_start_end[1];
+	else:
+		if params.perform_time_crop:
+			MyWaitForUser("First T...", "Choose first time frame and click OK...");
+			start_frame = imp.getT();
+			MyWaitForUser("Last T...", "Now choose last time frame and click OK...");
+			end_frame = imp.getT();
 	slices = imp.getNSlices();
 	channels = imp.getNChannels();
-	dupimp = Duplicator().run(imp, 1, channels, 1, slices, start_frame, end_frame);
-	imp.changes = False;
-	imp.close();
-	dupimp.show()
-	autoset_zoom(dupimp);
-	return dupimp, (start_frame, end_frame);
+	if start_frame is not None:
+		dupimp = Duplicator().run(imp, 1, channels, 1, slices, start_frame, end_frame);
+		imp.changes = False;
+		imp.close();
+		dupimp.show()
+		autoset_zoom(dupimp);
+		return dupimp, (start_frame, end_frame);
+	else:
+		return imp, (start_frame, end_frame);
 
 def warning_dialog(message):
 	"""show a warning dialog with a user-defined message"""
