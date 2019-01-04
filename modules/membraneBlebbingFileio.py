@@ -35,19 +35,19 @@ def input_file_location_chooser(default_directory):
 		raise IOError('no input file chosen');
 	return file_path;
 
-def rerun_location_chooser(default_directory):
+def rerun_location_chooser(default_filepath):
 	"""choose folder containing a previous analysis run to reanalyse"""
-	DirectoryChooser.setDefaultDirectory(os.path.dirname(file_path));
-	dc = DirectoryChooser('Select the root folder for saving output');
+	DirectoryChooser.setDefaultDirectory(os.path.dirname(default_filepath));
+	dc = DirectoryChooser('Select the folder containing the previous analysis output...');
 	old_output_folder = dc.getDirectory();
-	if input_root is None:
+	if old_output_folder is None:
 		raise IOError('no input path chosen');
 	# check that chosen folder contains the right files...
 	files_lst = os.listdir(old_output_folder);
 	if not all([f in files_lst for f in ['user_defined_edges.json', 'parameters used.json']]):
 		raise IOError('chosen path isn''t a valid membrane blebbing output folder');
 	timestamp = datetime.strftime(datetime.now(), '%Y-%m-%d %H-%M-%S');
-	new_output_folder = os.path.join(os.path.dirname(old_output_folder), (timestamp + ' output'));
+	new_output_folder = os.path.join(os.path.dirname(os.path.normpath(old_output_folder)), (timestamp + ' output'));
 	os.mkdir(new_output_folder);
 	return old_output_folder, new_output_folder;
 
