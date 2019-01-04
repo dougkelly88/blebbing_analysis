@@ -38,11 +38,17 @@ def autoset_zoom(imp):
 						" y=" + str(math.floor(h/2)));
 	IJ.run("Scale to Fit", "");
 
-def crop_to_ROI(imp, params):
+def crop_to_ROI(imp, params, old_params=None):
 	"""prompt user to select ROI for subsequent analysis"""
-	IJ.setTool("rect");
-	MyWaitForUser("Crop", "If desired, select an area ROI to crop to...");
-	roi = imp.getRoi();
+	roi = None;
+	if old_params is None:
+		if params.perform_spatial_crop:
+			IJ.setTool("rect");
+			MyWaitForUser("Crop", "If desired, select an area ROI to crop to...");
+			roi = imp.getRoi();
+	else:
+		if old_params.perform_spatial_crop:
+			roi = old_params.parse_roistr_to_roi();
 	crop_params = None;
 	original_imp = imp.clone();
 	if roi is not None:
