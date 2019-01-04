@@ -212,6 +212,7 @@ def analysis_parameters_gui():
 	"""GUI for setting analysis parameters at the start of a run. TODO: more effectively separate model and view"""
 	params = Parameters(load_last_params = True);
 	dialog = GenericDialog("Analysis parameters");
+	dialog.enableYesNoCancel("OK", "Re-run analysis on existing edges");
 	dialog.addNumericField("Curvature length parameter (um):", 
 							round(params.curvature_length_um, 2), 
 							2);
@@ -257,6 +258,10 @@ def analysis_parameters_gui():
 	dialog.showDialog();
 	if dialog.wasCanceled():
 		raise KeyboardInterrupt("Run canceled");
+	if dialog.wasOKed():
+		rerun_analysis = False;
+	else:
+		rerun_analysis = True;
 	choices =  dialog.getChoices();
 	params.setCurvatureLengthUm(dialog.getNextNumber()); # check whether label of numeric field is contained in getNextNumber?
 	params.setIntensityProfileWidthUm(dialog.getNextNumber());
@@ -276,7 +281,7 @@ def analysis_parameters_gui():
 	params.setMetadataSource(dialog.getNextRadioButton());
 	params.setDoInnerOuterComparison(dialog.getNextBoolean());
 	params.persistParameters();
-	return params;
+	return params, rerun_analysis;
 
 def choose_series(filepath, params):
 	"""if input file contains more than one image series (xy position), prompt user to choose which one to use"""
