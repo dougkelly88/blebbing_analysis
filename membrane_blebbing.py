@@ -93,17 +93,17 @@ def main():
 	IJ.run("Enhance Contrast", "saturated=0.35");
 
 	# prompt user to select ROI
-	if params.perform_spatial_crop:
-		original_imp, crop_params = mbui.crop_to_ROI(imp, params);
-		if crop_params is not None:
-			mbui.autoset_zoom(imp);
+	original_imp, crop_params = mbui.crop_to_ROI(imp, params, old_params);
+	if crop_params is not None:
+		params.perform_spatial_crop = True;
+		mbui.autoset_zoom(imp);
 
 	# prompt user to do time cropping
 	timelist = [idx * params.frame_interval for idx in range(n_frames)];
 	tname = "Time, " + params.interval_unit
-	if params.perform_time_crop:
-		imp, start_end_tuple = mbui.time_crop(imp)
-		params.setTimeCropStartEnd(start_end_tuple);
+	imp, start_end_tuple = mbui.time_crop(time_crop, params, old_params);
+	params.setTimeCropStartEnd(start_end_tuple);
+	if start_end_tuple[0] is not None:
 		timelist = [idx * params.frame_interval for idx in range(start_end_tuple[0], start_end_tuple[1]+1)]
 
 	h = imp.height;
