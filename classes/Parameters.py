@@ -2,7 +2,7 @@
 #
 # D. J. Kelly, 2018-10-26, douglas.kelly@riken.jp
 
-import json, os, platform
+import json, os, platform, re
 
 class Parameters:
 	"""Class to hold analysis parameters"""
@@ -214,6 +214,35 @@ class Parameters:
 		if unit_string == "sec":
 			unit_string = "s";
 		self.interval_unit = unit_string;
+
+	def parse_roistr_to_roi():
+		"""interpret string saved in parameters JSON as IJ ROI"""
+		from ij.gui import PolygonRoi, Roi;
+		rect_format_str = "java.awt.Rectangle[x=(?P<x>\d+),y=(?P<y>\d+),width=(?P<w>\d+),height=(?P<h>\d+)]";
+		m1 = re.match(rect_format_str, self.spatial_crop);
+		if bool(m1):
+			return Roi(int(m1.groupdict()['x']), int(m1.groupdict()['y']), 
+						int(m1.groupdict()['w']), int(m1.groupdict()['h']));
+		else:
+			# if original ROI wasn't a rectangle...
+			if isinstance(self.spatial_crop, str):
+				str_list = self.spatial_crop[2:-2].split('), (');
+				poly_format_str = '(?P<x>\d+)\, (?P<y>\d+)';
+				xs = [];
+				ys = [];
+				for s in str_list:
+					m2 = re.match(poly_format_str, s);
+					if bool(m2):
+						xs.append(float(m2.groupdict()['x']));
+						ys.append(float(m2.groupdict()['y']));
+			else:
+				xs = [x for (x,y) in self.spatial_crop];
+				ys = [y for (x,y) in self.spatial_crop];
+			if len(xs) > 0:
+				return PolygonRoi(xs, ys, Roi.POLYGON);
+			else:
+				return None;
+			
 
 	def saveParametersToJson(self, file_path):
 		try:
