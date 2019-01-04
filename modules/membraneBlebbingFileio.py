@@ -14,12 +14,7 @@ import membraneBlebbingUi as mbui
 def file_location_chooser(default_directory):
 	"""choose folder locations and prepare output folder"""
 	# input
-	od = OpenDialog('Choose original file...', 
-					default_directory, 
-					'*.tif');
-	file_path = od.getPath();
-	if file_path is None:
-		raise IOError('no input file chosen');
+	file_path = input_file_location_chooser(default_directory);
 	# output
 	DirectoryChooser.setDefaultDirectory(os.path.dirname(file_path));
 	dc = DirectoryChooser('Select the root folder for saving output');
@@ -30,6 +25,31 @@ def file_location_chooser(default_directory):
 	output_folder = os.path.join(output_root, (timestamp + ' output'));
 	os.mkdir(output_folder);
 	return file_path, output_folder;
+
+def input_file_location_chooser(default_directory):
+	od = OpenDialog('Choose original file...', 
+					default_directory, 
+					'*.tif');
+	file_path = od.getPath();
+	if file_path is None:
+		raise IOError('no input file chosen');
+	return file_path;
+
+def rerun_location_chooser(default_directory):
+	"""choose folder containing a previous analysis run to reanalyse"""
+	DirectoryChooser.setDefaultDirectory(os.path.dirname(file_path));
+	dc = DirectoryChooser('Select the root folder for saving output');
+	old_output_folder = dc.getDirectory();
+	if input_root is None:
+		raise IOError('no input path chosen');
+	# check that chosen folder contains the right files...
+	files_lst = os.listdir(old_output_folder);
+	if not all([f in files_lst for f in ['user_defined_edges.json', 'parameters used.json']]):
+		raise IOError('chosen path isn''t a valid membrane blebbing output folder');
+	timestamp = datetime.strftime(datetime.now(), '%Y-%m-%d %H-%M-%S');
+	new_output_folder = os.path.join(os.path.dirname(old_output_folder), (timestamp + ' output'));
+	os.mkdir(new_output_folder);
+	return old_output_folder, new_output_folder;
 
 def save_profile_as_csv(profiles, file_path, data_name, xname='x', yname='y', tname='Frame', time_list=[]):
 	"""save profiles with 2d independent variable, e.g. curvature profile"""
