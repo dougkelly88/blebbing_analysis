@@ -15,6 +15,7 @@ from loci.formats.gui import BufferedImageReader
 from loci.plugins.in import ImporterOptions, ThumbLoader
 
 from Parameters import Parameters
+from MyControlDefinition import MyControlDefinition
 from UpdateRoiImageListener import UpdateRoiImageListener
 import membraneBlebbingEngine as mb
 import membraneBlebbingFileio as mbio
@@ -207,80 +208,121 @@ def perform_user_qc(imp, edges, alt_edges, fixed_anchors_list, params):
 	imp.close();
 	return qcd_edges, fixed_anchors_list;
 
-def analysis_parameters_gui():
+def analysis_parameters_gui(rerun_analysis=False, params=None):
 	"""GUI for setting analysis parameters at the start of a run. TODO: more effectively separate model and view"""
-	params = Parameters(load_last_params = True);
+	if params is None:
+		params = Parameters(load_last_params = True);
 	dialog = GenericDialog("Analysis parameters");
-	dialog.enableYesNoCancel("OK", "Re-run analysis on existing edges");
-	dialog.addNumericField("Curvature length parameter (um):", 
-							round(params.curvature_length_um, 2), 
-							2);
-	dialog.addNumericField("Width of region for intensity analysis (um):", 
-							round(params.intensity_profile_width_um, 2), 
-							2);
-	dialog.addChoice("Threshold method: ", 
-						params.listThresholdMethods(),
-						params.threshold_method);
-	dialog.addChoice("Curvature overlay LUT: ", 
-						IJ.getLuts(), 
-						params.curvature_overlay_lut_string);
-	dialog.addChoice("Curvature kymograph LUT: ", 
-						IJ.getLuts(), 
-						params.curvature_kymograph_lut_string);
-	dialog.addChoice("Labelled species kymograph LUT: ", 
-						IJ.getLuts(), 
-						params.actin_kymograph_lut_string);
-	dialog.addStringField("Labelled species for intensity analysis: ", 
-							params.labeled_species);
-	dialog.addCheckbox("Use intensity channel for segmentation too?", 
-						params.use_single_channel);
-	dialog.addRadioButtonGroup("Metadata source: ", 
-								["Image metadata", "Acquisition metadata"], 
-								1, 2, 
-								params.metadata_source);
-	dialog.addCheckbox("Constrain anchors close to manual selections?", 
-						params.constrain_anchors);
-	dialog.addCheckbox("Filter out negative curvatures", 
-						params.filter_negative_curvatures);
-	dialog.addCheckbox("Account for photobleaching?", 
-						params.photobleaching_correction);
-	dialog.addCheckbox("Perform quality control of membrane edges?", 
-						params.perform_user_qc);
-	dialog.addCheckbox("Perform spatial cropping?", 
-						params.perform_spatial_crop);
-	dialog.addCheckbox("Perform time cropping?", 
-						params.perform_time_crop);
-	dialog.addCheckbox("Close images on completion?", 
-						params.close_on_completion);
-	dialog.addCheckbox("Compare inner and outer curvature regions?", 
-						params.inner_outer_comparison);
+	controls = [];
+	if rerun_analysis:
+		params.setUseSingleChannel(False);
+		params.togglePerformUserQC(False);
+		params.setDoInnerOuterComparison(False);
+
+	controls.append(MyControlDefinition("Curvature length parameter (um):", 
+									 MyControlDefinition.Numeric, 
+									 round(params.curvature_length_um, 2), 
+									 params.setCurvatureLengthUm));
+	controls.append(MyControlDefinition("Width of region for intensity analysis (um):", 
+									MyControlDefinition.Numeric, 
+									round(params.intensity_profile_width_um, 2), 
+									params.setIntensityProfileWidthUm))
+	controls.append(MyControlDefinition("Threshold method: ",
+									 MyControlDefinition.Choice, 
+									 params.threshold_method, 
+									 params.setThresholdMethod, 
+									 choices=params.listThresholdMethods(), 
+									 enabled=(not rerun_analysis)));
+	controls.append(MyControlDefinition("Curvature overlay LUT: ", 
+									 MyControlDefinition.Choice, 
+									 params.curvature_overlay_lut_string, 
+									 params.setCurvatureOverlayLUT, 
+									 choices=IJ.getLuts()));
+	controls.append(MyControlDefinition("Curvature kymograph LUT: ",
+									 MyControlDefinition.Choice, 
+									 params.curvature_kymograph_lut_string, 
+									 params.setCurvatureKymographLUT, 
+									 choices=IJ.getLuts()));
+	controls.append(MyControlDefinition("Labelled species kymograph LUT: ", 
+									 MyControlDefinition.Choice, 
+									 params.actin_kymograph_lut_string, 
+									 params.setActinKymographLUT, 
+									 choices=IJ.getLuts()));
+	controls.append(MyControlDefinition("Labelled species for intensity analysis: ", 
+									 MyControlDefinition.String, 
+									 params.labeled_species, 
+									 params.setLabeledSpecies));
+	controls.append(MyControlDefinition("Use intensity channel for segmentation too?", 
+									 MyControlDefinition.Checkbox, 
+									 params.use_single_channel, 
+									 params.setUseSingleChannel, 
+									 enabled=(not rerun_analysis)));
+	controls.append(MyControlDefinition("Metadata source: ", 
+									 MyControlDefinition.RadioButtonGroup, 
+									 params.metadata_source, 
+									 params.setMetadataSource, 
+									 choices=["Image metadata", "Acquisition metadata"]));
+	controls.append(MyControlDefinition("Constrain anchors close to manual selections?", 
+									 MyControlDefinition.Checkbox, 
+									 params.constrain_anchors, 
+									 params.toggleConstrainAnchors, 
+									 enabled=(not rerun_analysis)));
+	controls.append(MyControlDefinition("Filter out negative curvatures", 
+									 MyControlDefinition.Checkbox, 
+									 params.filter_negative_curvatures, 
+									 params.setFilterNegativeCurvatures));
+	controls.append(MyControlDefinition("Account for photobleaching?", 
+									 MyControlDefinition.Checkbox, 
+									 params.photobleaching_correction, 
+									 params.togglePhotobleachingCorrection));
+	controls.append(MyControlDefinition("Perform quality control of membrane edges?", 
+									 MyControlDefinition.Checkbox, 
+									 params.perform_user_qc, 
+									 params.togglePerformUserQC, 
+									 enabled=(not rerun_analysis)));
+	controls.append(MyControlDefinition("Perform spatial cropping?", 
+									 MyControlDefinition.Checkbox, 
+									 params.perform_spatial_crop, 
+									 params.toggleSpatialCrop, 
+									 enabled=(not rerun_analysis)));
+	controls.append(MyControlDefinition("Perform time cropping?",
+									 MyControlDefinition.Checkbox, 
+									 params.perform_time_crop, 
+									 params.toggleTimeCrop, 
+									 enabled=(not rerun_analysis)));
+	controls.append(MyControlDefinition("Close images on completion?", 
+									 MyControlDefinition.Checkbox, 
+									 params.close_on_completion, 
+									 params.toggleCloseOnCompletion));
+	controls.append(MyControlDefinition("Compare inner and outer curvature regions?", 
+									 MyControlDefinition.Checkbox, 
+									 params.inner_outer_comparison, 
+									 params.setDoInnerOuterComparison, 
+									 enabled=(not rerun_analysis)));
+	for control in controls:
+		control.addControl(dialog);
 	dialog.showDialog();
 	if dialog.wasCanceled():
 		raise KeyboardInterrupt("Run canceled");
-	if dialog.wasOKed():
-		rerun_analysis = False;
-	else:
-		rerun_analysis = True;
-	choices =  dialog.getChoices();
-	params.setCurvatureLengthUm(dialog.getNextNumber()); # check whether label of numeric field is contained in getNextNumber?
-	params.setIntensityProfileWidthUm(dialog.getNextNumber());
-	params.setThresholdMethod(choices[0].getSelectedItem());
-	params.setCurvatureOverlayLUT(choices[1].getSelectedItem());
-	params.setCurvatureKymographLUT(choices[2].getSelectedItem());
-	params.setActinKymographLUT(choices[3].getSelectedItem()); # similarly, whether getNextChoice has method to get label - this way, less dependent on order not changing...
-	params.setLabeledSpecies(dialog.getNextString());
-	params.setUseSingleChannel(dialog.getNextBoolean());
-	params.toggleConstrainAnchors(dialog.getNextBoolean());
-	params.setFilterNegativeCurvatures(dialog.getNextBoolean());
-	params.togglePhotobleachingCorrection(dialog.getNextBoolean());
-	params.togglePerformUserQC(dialog.getNextBoolean());
-	params.toggleSpatialCrop(dialog.getNextBoolean());
-	params.toggleTimeCrop(dialog.getNextBoolean());
-	params.toggleCloseOnCompletion(dialog.getNextBoolean());
-	params.setMetadataSource(dialog.getNextRadioButton());
-	params.setDoInnerOuterComparison(dialog.getNextBoolean());
+
+	numeric_controls = [c for c in controls if c.control_type==MyControlDefinition.Numeric];
+	for nc, nf in zip(numeric_controls, dialog.getNumericFields()):
+		nc.setter(float(nf.getText()));
+	string_controls = [c for c in controls if c.control_type==MyControlDefinition.String];
+	for sc, sf in zip(string_controls, dialog.getStringFields()):
+		sc.setter(sf.getText());
+	choice_controls = [c for c in controls if c.control_type==MyControlDefinition.Choice];
+	for cc, cf in zip(choice_controls, dialog.getChoices()):
+		cc.setter(cf.getSelectedItem());
+	checkbox_controls = [c for c in controls if c.control_type==MyControlDefinition.Checkbox];
+	for cbc, cbf in zip(checkbox_controls, dialog.getCheckboxes()):
+		cbc.setter(cbf.getState());
+	radiobuttongroup_controls = [c for c in controls if c.control_type==MyControlDefinition.RadioButtonGroup];
+	for rbc in radiobuttongroup_controls:
+		rbc.setter(rbc.checkboxes[[cb.getState() for cb in rbc.checkboxes].index(True)].getLabel());
+
 	params.persistParameters();
-	return params, rerun_analysis;
+	return params;
 
 def choose_series(filepath, params):
 	"""if input file contains more than one image series (xy position), prompt user to choose which one to use"""
