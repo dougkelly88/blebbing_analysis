@@ -48,28 +48,10 @@ def main():
 	Prefs.blackBackground = False;
 
 	# prompt user for input parameters
-	params, rerun_analysis = mbui.analysis_parameters_gui();
+	params = mbui.analysis_parameters_gui();
 
 	# prompt user for file locations
-	old_params = None;
-	if rerun_analysis:
-		if params.inner_outer_comparison:
-			raise NotImplementedError("rerunning analysis is not yet implemented for comparisons of inner and outer membranes!");
-		old_params = Parameters();
-		output_folder_old, output_folder = mbio.rerun_location_chooser(params.input_image_path);
-		old_params.loadParametersFromJson(os.path.join(output_folder_old, 'parameters used.json'));
-		if os.path.isfile(old_params.input_image_path):
-			file_path = old_params.input_image_path;
-		else:
-			mbui.warning_dialog(["The original data can't be found at the location specified in saved parameters. ", 
-								"(Possibly something as simple as a change in network drive mapping has occurred)",
-								"Please specify the location of the original image file..."]);
-			file_path = mbio.input_file_location_chooser(output_folder_old);
-			params.setMembraneChannelNumber(old_params.membrane_channel_number);
-			params.setManualAnchorPositions(old_params.manual_anchor_positions);
-			params.setManualAnchorMidpoint(old_params.manual_anchor_midpoint);
-	else:
-		file_path, output_folder = mbio.file_location_chooser(params.input_image_path);
+	file_path, output_folder = mbio.file_location_chooser(params.input_image_path);
 	params.setInputImagePath(file_path);
 	params.setOutputPath(output_folder);
 
@@ -111,7 +93,7 @@ def main():
 	IJ.run("Enhance Contrast", "saturated=0.35");
 
 	# prompt user to select ROI
-	original_imp, crop_params = mbui.crop_to_ROI(imp, params, old_params);
+	original_imp, crop_params = mbui.crop_to_ROI(imp, params);
 	if crop_params is not None:
 		params.perform_spatial_crop = True;
 		mbui.autoset_zoom(imp);
@@ -119,7 +101,7 @@ def main():
 	# prompt user to do time cropping
 	timelist = [idx * params.frame_interval for idx in range(n_frames)];
 	tname = "Time, " + params.interval_unit
-	imp, start_end_tuple = mbui.time_crop(time_crop, params, old_params);
+	imp, start_end_tuple = mbui.time_crop(imp, params);
 	params.setTimeCropStartEnd(start_end_tuple);
 	if start_end_tuple[0] is not None:
 		timelist = [idx * params.frame_interval for idx in range(start_end_tuple[0], start_end_tuple[1]+1)]
@@ -229,6 +211,8 @@ def main():
 			imp.hide();
 			membrane_edges, fixed_anchors_list = mbui.perform_user_qc(membrane_test_channel_imp, membrane_edges, alternate_edges, fixed_anchors_list, params);
 			imp.show();
+		else:
+			mbio.save_qcd_edges(membrane_edges, params.output_path);
 	
 		# do calculations independent of source of edges
 		lengths_areas_and_arearois = [mb.bleb_area(medge) for medge in membrane_edges];
