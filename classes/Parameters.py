@@ -313,6 +313,8 @@ class Parameters:
 				temp_params_path = os.path.join(temp_path, Parameters._persist_parameters_filename);
 				if os.path.isfile(temp_params_path):
 					success = self.loadParametersFromJson(temp_params_path);
+					self.spatial_crop = None;
+					self.time_crop_start_end = None;
 				else:
 					success = False;
 			else:
