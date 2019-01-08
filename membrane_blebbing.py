@@ -72,15 +72,6 @@ def main():
 							"I will do a maximum projection before proceeding", 
 							"Continue?"]);
 		imp = ZProjector.run(imp,"max all");
-	#if n_channels < 2:
-	#	mbui.warning_dialog(["There seems to be only one channel in the data. ", 
-	#						"I will assume this is correct and "])
-	#if (imp.getNDimensions() < 4) or (n_channels < 2):
-	#	mbui.warning_dialog(["There doesn't seem to be 2 or more channels in the data!", 
-	#						"If multiple channels and timepoints have been acquired, but", 
-	#						"they are in a single stack TIFF format, I can try to access", 
-	#						"acquisition metadata to generate an appropriate hyperstack. ", 
-	#						"Continue?"]);
 
 	params = mbio.get_metadata(params);
 	params.setCurvatureLengthUm(round(params.curvature_length_um / params.pixel_physical_size) * params.pixel_physical_size);
@@ -228,8 +219,6 @@ def main():
 			# generate curvature - this needs to be looped over slices
 			membrane_edge = membrane_edges[fridx];
 			curv_points = mb.generate_l_spaced_points(membrane_edge, int(round(params.curvature_length_um / params.pixel_physical_size)));
-			#print("First point in membrane_edge = " + str(curv_points[0][0]));
-			#print("Frame = " + str(fridx));
 			curv_profile = mb.calculate_curvature_profile(curv_points,
 															membrane_edge, 
 															params.filter_negative_curvatures);
@@ -256,7 +245,6 @@ def main():
 					outer_intensity_sd.append(sd) if r==(repeats-1) else inner_intensity_sd.append(sd);
 						
 		# output colormapped images and kymographs 
-		# curvature/membrane channel
 		norm_curv_kym = mbfig.generate_kymograph(curvature_profiles, params.curvature_kymograph_lut_string, "Curvature kymograph - distal point at middle");
 		curv_kym = mbfig.generate_plain_kymograph(curvature_profiles, params.curvature_kymograph_lut_string, "Curvature kymograph");
 		FileSaver(norm_curv_kym).saveAsTiff(os.path.join(params.output_path, "normalised position curvature kymograph.tif"));
