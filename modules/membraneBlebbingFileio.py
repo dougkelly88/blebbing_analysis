@@ -6,6 +6,7 @@
 import csv, json, os
 from datetime import datetime
 from ij.io import OpenDialog, DirectoryChooser
+from ij.gui import PolygonRoi, Roi
 from loci.formats import ImageReader, MetadataTools
 from ome.units import UNITS
 
@@ -110,13 +111,18 @@ def save_qcd_edges(edges, output_folder):
 		f.close();
 
 def load_qcd_edges(input_file_path):
-    """load edges from JSON"""
-    f = open(input_file_path, 'r');
-    try:
-        edges = json.loads(f.read());
-    finally:
-        f.close();
-    return edges;
+	"""load edges from JSON"""
+	f = open(input_file_path, 'r');
+	try:
+		edges = json.loads(f.read());
+	finally:
+		f.close();
+	membrane_edges = [];
+	for edge in edges:
+		xs = [pt[0] for pt in edge];
+		ys = [pt[1] for pt in edge];
+		membrane_edges.append(PolygonRoi(xs, ys, Roi.POLYLINE));
+	return membrane_edges;
 
 def get_metadata(params):
 	"""get image metadata, either from the image file or from acquisition-time metadata"""
