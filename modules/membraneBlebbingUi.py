@@ -38,17 +38,17 @@ def autoset_zoom(imp):
 						" y=" + str(math.floor(h/2)));
 	IJ.run("Scale to Fit", "");
 
-def crop_to_ROI(imp, params, old_params=None):
+def crop_to_ROI(imp, params):
 	"""prompt user to select ROI for subsequent analysis"""
 	roi = None;
-	if old_params is None:
-		if params.perform_spatial_crop:
+	if params.perform_spatial_crop:
+		if params.spatial_crop is not None:
+			roi = params.parse_roistr_to_roi();
+			imp.setRoi(roi);
+		else:
 			IJ.setTool("rect");
 			MyWaitForUser("Crop", "If desired, select an area ROI to crop to...");
 			roi = imp.getRoi();
-	else:
-		if old_params.perform_spatial_crop:
-			roi = old_params.parse_roistr_to_roi();
 	crop_params = None;
 	original_imp = imp.clone();
 	if roi is not None:
@@ -88,16 +88,15 @@ def prompt_for_points(imp, title, message, n_points):
 			imp.killRoi();
 	return [(p.x, p.y) for p in roi.getContainedPoints()];
 
-def time_crop(imp, params, old_params=None):
+def time_crop(imp, params):
 	"""trim a time series based on interactively-defined start and end points"""
 	start_frame = None;
 	end_frame = None;
-	if old_params is not None:
-		if old_params.perform_time_crop:
-			start_frame = old_params.time_crop_start_end[0];
-			end_frame = old_params.time_crop_start_end[1];
-	else:
-		if params.perform_time_crop:
+	if params.perform_time_crop:
+		if params.time_crop_start_end is not None:
+			start_frame = params.time_crop_start_end[0];
+			end_frame = params.time_crop_start_end[1];
+		else:
 			MyWaitForUser("First T...", "Choose first time frame and click OK...");
 			start_frame = imp.getT();
 			MyWaitForUser("Last T...", "Now choose last time frame and click OK...");
