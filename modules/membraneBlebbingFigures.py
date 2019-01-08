@@ -12,7 +12,7 @@ script_path = os.path.dirname(os.path.realpath(__file__))
 sys.path.insert(0, script_path);
 
 from ij import IJ, ImagePlus, ImageStack
-from ij.gui import Plot, GenericDialog, TextRoi, PointRoi
+from ij.gui import Plot, GenericDialog, TextRoi, PointRoi, WaitForUserDialog, Roi
 from ij.io import FileSaver
 from ij.measure import Measurements
 from ij.plugin import RGBStackMerge, Duplicator
@@ -31,10 +31,20 @@ def pause_for_debug():
 def generate_curvature_overlays(curvature_profile, curvature_stack): 
 	"""Generate overlays to display curvature"""
 	w = curvature_stack.getWidth();
-	ip = FloatProcessor(w, curvature_stack.getHeight());
+	h = curvature_stack.getHeight();
+	ip = FloatProcessor(w, h);
 	pix = ip.getPixels();
 	mx = max([c for ((x, y), c) in curvature_profile]);
 	for ((x, y), c) in curvature_profile:
+		# ensure that no rounding issues cause pixels to fall outside image...
+		if x > (w - 1):
+			x = w - 1;
+		if y > (h - 1):
+			y = h - 1;
+		if x < 0:
+			x = 0;
+		if y < 0:
+			y = 0;
 		pix[int(round(y)) * w + int(round(x))] = c;
 	curvature_stack.addSlice(ip);
 	return curvature_stack;
@@ -113,24 +123,33 @@ def overlay_curvatures(imp, curvature_stack, curvature_profiles, membrane_channe
 		cb_fraction = 0.05;
 		overlay_imp = add_colorbar(overlay_imp, limits, cb_fraction);
 	IJ.run(overlay_imp, "RGB Color", "");
-	overlaid_stack = ImageStack(overlay_imp.width, overlay_imp.height);
+	w = overlay_imp.getWidth();
+	h = overlay_imp.getHeight();
+	overlaid_stack = ImageStack(w, h);
 	for fridx in range(1, curvature_stack.getSize()+1):
 		raw_idx = overlay_base_imp.getStackIndex(membrane_channel, 1, fridx);
 		ip = overlay_base_imp.getStack().getProcessor(raw_idx).convertToRGB();
 		pix = overlay_imp.getStack().getProcessor(fridx).getPixels();
 		base_pix = ip.getPixels();
 		for ((x, y), c) in curvature_profiles[fridx-1]:
+			# ensure that no rounding issues cause pixels to fall outside image...
+			if x > (w - 1):
+				x = w - 1;
+			if y > (h - 1):
+				y = h - 1;
+			if x < 0:
+				x = 0;
+			if y < 0:
+				y = 0;
 			if params.filter_negative_curvatures:
 				if (c > 0):
-					base_pix[int(round(y)) * imp.width + int(round(x))] = pix[int(round(y)) * imp.width + int(round(x))];
+					base_pix[int(round(y)) * w + int(round(x))] = pix[int(round(y)) * w + int(round(x))];
 			else: 
-				base_pix[int(round(y)) * imp.width + int(round(x))] = pix[int(round(y)) * imp.width + int(round(x))];
+				base_pix[int(round(y)) * w + int(round(x))] = pix[int(round(y)) * w + int(round(x))];
 		if annotate:
-			w = overlay_base_imp.getWidth();
-			h = overlay_base_imp.getHeight();
 			for x in range(w - int(w * cb_fraction), w):
 				for y in range(0, h):
-					base_pix[int(round(y)) * imp.width + int(round(x))] = pix[int(round(y)) * imp.width + int(round(x))];
+					base_pix[int(round(y)) * w + int(round(x))] = pix[int(round(y)) * w + int(round(x))];
 		overlaid_stack.addSlice(ip);
 	out_imp = ImagePlus("Overlaid curvatures", overlaid_stack);
 	if annotate:
@@ -150,11 +169,13 @@ def generate_plain_kymograph(data_to_plot, colormap_string, title_string):
 	imp.show();
 	return imp;
 
-def generate_kymograph(data_to_plot, colormap_string, title_string):
+def generate_kymograph(data_to_plot, colormap_string, title_string, trim=True):
 	"""Display one-channel kymograph with point furthest from the edges along the middle of the kymograph """
 	kym_height = 2 * max([len(data) for data in data_to_plot]) + 1;
 	ip = FloatProcessor(len(data_to_plot), kym_height);
 	# normalise such that point furthest from the anchors is in the middle of the kymograph
+	maxy = 0; 
+	miny = kym_height;
 	for idx, data in enumerate(data_to_plot):
 		dist = [mb.vector_length(data[0][0], p) *
 				mb.vector_length(data[-1][0], p)
@@ -167,13 +188,29 @@ def generate_kymograph(data_to_plot, colormap_string, title_string):
 		for kidx, didx in zip(range(((kym_height - 1)/2 + 1) - distal_idx, ((kym_height - 1)/2 + 1)), 
 						range(0, distal_idx)):
 			pix[kidx * len(data_to_plot) + idx] = data[didx][1];
+		maxy = ((kym_height - 1)/2 + 1) + len(data) - distal_idx if (((kym_height - 1)/2 + 1) + len(data) - distal_idx) > maxy else maxy;
+		miny = ((kym_height - 1)/2 + 1) - distal_idx if (((kym_height - 1)/2 + 1) - distal_idx) < miny else miny;
 	imp = ImagePlus(title_string, ip);
 	IJ.run(imp, colormap_string, "")
+	if trim:
+		maxtomiddle = maxy - (kym_height - 1)/2 + 1;
+		mintomiddle = (kym_height - 1)/2 + 1 - miny;
+		if maxtomiddle > mintomiddle:
+			miny = (kym_height - 1)/2 + 1 - maxtomiddle;
+		else:
+			maxy = (kym_height - 1)/2 + 1 + mintomiddle;
+		if (maxy - miny)/2 == round((maxy - miny)/2):
+			maxy = maxy - 1;
+		imp.setRoi(Roi(0,miny,imp.getWidth(),(maxy-miny)));
+		imp = imp.crop();
 	imp.show();
 	return imp;
 
 def generate_intensity_weighted_curvature(curvature_overlay, curvature_profiles, intensity_channel_imp, colormap_string):
 	"""Generate intensity-weighted curvature image"""
+	w = intensity_channel_imp.getWidth();
+	h = intensity_channel_imp.getHeight();
+	
 	curv_impRGB = curvature_overlay.clone();
 	IJ.run(curv_impRGB, colormap_string, "");
 	IJ.run(curv_impRGB, "RGB Color", "");
@@ -207,6 +244,15 @@ def generate_intensity_weighted_curvature(curvature_overlay, curvature_profiles,
 			curvBP = curvCP.getChannel(chidx, curvBP);
 			
 			for ((x,y), c) in profile:
+				# ensure that no rounding issues cause pixels to fall outside image...
+				if x > (w - 1):
+					x = w - 1;
+				if y > (h - 1):
+					y = h - 1;
+				if x < 0:
+					x = 0;
+				if y < 0:
+					y = 0;
 				x = int(round(x));
 				y = int(round(y));
 				baseBP.putPixelValue(x, y, int(curvBP.getPixel(x,y) * float(int_imp16.getPixel(x,y)[0])/mx));

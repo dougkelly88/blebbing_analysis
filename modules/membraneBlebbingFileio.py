@@ -6,6 +6,7 @@
 import csv, json, os
 from datetime import datetime
 from ij.io import OpenDialog, DirectoryChooser
+from ij.gui import PolygonRoi, Roi
 from loci.formats import ImageReader, MetadataTools
 from ome.units import UNITS
 
@@ -14,12 +15,7 @@ import membraneBlebbingUi as mbui
 def file_location_chooser(default_directory):
 	"""choose folder locations and prepare output folder"""
 	# input
-	od = OpenDialog('Choose original file...', 
-					default_directory, 
-					'*.tif');
-	file_path = od.getPath();
-	if file_path is None:
-		raise IOError('no input file chosen');
+	file_path = input_file_location_chooser(default_directory);
 	# output
 	DirectoryChooser.setDefaultDirectory(os.path.dirname(file_path));
 	dc = DirectoryChooser('Select the root folder for saving output');
@@ -31,14 +27,44 @@ def file_location_chooser(default_directory):
 	os.mkdir(output_folder);
 	return file_path, output_folder;
 
-def save_profile_as_csv(profiles, file_path, data_name):
+def input_file_location_chooser(default_directory):
+	od = OpenDialog('Choose original file...', 
+					default_directory, 
+					'*.tif');
+	file_path = od.getPath();
+	if file_path is None:
+		raise IOError('no input file chosen');
+	return file_path;
+
+def rerun_location_chooser(default_filepath):
+	"""choose folder containing a previous analysis run to reanalyse"""
+	DirectoryChooser.setDefaultDirectory(os.path.dirname(default_filepath));
+	dc = DirectoryChooser('Select the folder containing the previous analysis output...');
+	old_output_folder = dc.getDirectory();
+	if old_output_folder is None:
+		raise IOError('no input path chosen');
+	# check that chosen folder contains the right files...
+	files_lst = os.listdir(old_output_folder);
+	if not all([f in files_lst for f in ['user_defined_edges.json', 'parameters used.json']]):
+		raise IOError('chosen path isn''t a valid membrane blebbing output folder');
+	timestamp = datetime.strftime(datetime.now(), '%Y-%m-%d %H-%M-%S');
+	new_output_folder = os.path.join(os.path.dirname(os.path.normpath(old_output_folder)), (timestamp + ' output'));
+	os.mkdir(new_output_folder);
+	return old_output_folder, new_output_folder;
+
+def save_profile_as_csv(profiles, file_path, data_name, xname='x', yname='y', tname='Frame', time_list=[]):
 	"""save profiles with 2d independent variable, e.g. curvature profile"""
 	f = open(file_path, 'wb');
 	writer = csv.writer(f);
-	writer.writerow(['Frame', 'x', 'y', data_name]);
+	writer.writerow([tname, xname, yname, data_name]);
+	if not time_list:
+			time_list = [idx for idx in range(0, len(profiles))];
 	for idx, profile in enumerate(profiles):
-		for ((x, y), p) in profile:
-			writer.writerow([idx, x, y, p]);
+		for subidx, ((x, y), p) in enumerate(profile):
+			if len(profiles) == 1:
+				writer.writerow([time_list[subidx], x, y, p]);
+			else:
+				writer.writerow([time_list[idx], x, y, p]);
 	f.close();
 
 def load_csv_as_profile(file_path):
@@ -79,8 +105,24 @@ def save_qcd_edges(edges, output_folder):
 	edge_point_list = [zip(poly.xpoints, poly.ypoints) for poly in [edge.getPolygon() for edge in edges]];
 	file_path = os.path.join(output_folder, "user_defined_edges.json");
 	f = open(file_path, 'w');
-	json.dump(edge_point_list, f);
-	f.close();
+	try:
+		json.dump(edge_point_list, f);
+	finally:
+		f.close();
+
+def load_qcd_edges(input_file_path):
+	"""load edges from JSON"""
+	f = open(input_file_path, 'r');
+	try:
+		edges = json.loads(f.read());
+	finally:
+		f.close();
+	membrane_edges = [];
+	for edge in edges:
+		xs = [pt[0] for pt in edge];
+		ys = [pt[1] for pt in edge];
+		membrane_edges.append(PolygonRoi(xs, ys, Roi.POLYLINE));
+	return membrane_edges;
 
 def get_metadata(params):
 	"""get image metadata, either from the image file or from acquisition-time metadata"""
@@ -112,7 +154,7 @@ def get_metadata(params):
 			raise IOError('no metadata file chosen');
 		acq_metadata_dict = import_iq3_metadata(file_path);
 		params.setFrameInterval(acq_metadata_dict['frame_interval']);
-		params.setIntervalUnit('s');
+		params.setIntervalUnit(acq_metadata_dict['time_unit']);
 		params.setPixelPhysicalSize(acq_metadata_dict['x_physical_size']);
 		params.setPixelSizeUnit(acq_metadata_dict['x_unit']);
 		params.setMetadataSourceFile(file_path);
@@ -124,7 +166,7 @@ def import_iq3_metadata(metadata_path):
 	x_fmt_str = 'x \: (?P<x_pixels>\d+\.?\d*) \* (?P<x_physical_size>\d+\.?\d*) \: (?P<x_unit>\w+)';
 	y_fmt_str = 'y \: (?P<y_pixels>\d+\.?\d*) \* (?P<y_physical_size>\d+\.?\d*) \: (?P<y_unit>\w+)';
 	z_fmt_str = '\s*Repeat Z \- (?P<z_extent>[+-]?\d+\.?\d*) (?P<z_unit>\w+) in (?P<z_pixels>\d+\.?\d*) planes \(centre\)';
-	t_fmt_str = '\s*Repeat T \- (?P<n_frames>\d+\.?\d*) times \((?P<frame_interval>\d+\.?\d*) sec\)'; # check if time is always in seconds (sec)?
+	t_fmt_str = '\s*Repeat T \- (?P<n_frames>\d+\.?\d*) times \((?P<frame_interval>\d+\.?\d*) (?P<time_unit>(min|sec))\)';
 	c_fmt_str = r"\s*Repeat \- Channel \((?P<raw_channels_str>\w.*)\)";
 	format_strings = [x_fmt_str, y_fmt_str, z_fmt_str, t_fmt_str, c_fmt_str];
 	
@@ -137,7 +179,11 @@ def import_iq3_metadata(metadata_path):
 				if (bool(m)):
 					meta_dict.update(m.groupdict())
 		p_num = re.compile('[+-]?\d+\.?\d*')
-		for key, value in meta_dict.iteritems():
+		try:
+			iteritems = meta_dict.iteritems();
+		except:
+			iteritems = meta_dict.items();
+		for key, value in iteritems:
 			if p_num.match(value):
 				try:
 					meta_dict[key] = float(value)

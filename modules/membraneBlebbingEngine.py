@@ -5,13 +5,12 @@
 # imports
 import math
 from ij import IJ, ImagePlus;
-from ij.gui import PolygonRoi, Roi
-from ij.process import FloatPolygon
+from ij.gui import PolygonRoi, Roi, WaitForUserDialog
+from ij.process import FloatPolygon, FloatProcessor
 from ij.plugin import Straightener, Duplicator, ImageCalculator
-from ij.plugin.filter import ParticleAnalyzer
+from ij.plugin.filter import ParticleAnalyzer, GaussianBlur
 from ij.plugin.frame import RoiManager
 from ij.measure import ResultsTable
-from ij.gui import WaitForUserDialog
 
 def make_and_clean_binary(imp, threshold_method):
 	"""convert the membrane identification channel into binary for segmentation"""
@@ -49,51 +48,34 @@ def make_and_clean_binary(imp, threshold_method):
 	if "Edge" in threshold_method:
 		IJ.run(imp, "Erode", "stack");
 		IJ.run(imp, "Erode", "stack");
+	#imp.show();
+	#WaitForUserDialog("Check masks").show();
+	#imp.hide();
 	return imp;
-
-def distances_from_point_along_path(path_roi, point):
-	"""For each point along a line ROI, calculate the distance from a given point"""
-	poly = path_roi.getPolygon();
-	pts = zip(poly.xpoints, poly.ypoints)
-	print(pts)
-	distances = [0] * len(pts);
-	try:
-		pidx = pts.index(point);
-	except ValueError:
-		# point doesn't exist on membrane, find closest point on membrane
-		dsq = [(math.pow((x - point[0]),2) + math.pow((y - point[1]),2)) for (x, y) in pts];
-		pidx = dsq.index(min(dsq));
-	for idx in range(pidx+1, poly.npoints):
-		distances[idx] = distances[idx-1] + vector_length(pts[idx], pts[idx-1]);
-	for idx in range(pidx-1, -1, -1):
-		distances[idx] = distances[idx+1] + vector_length(pts[idx], pts[idx+1]);
-	return distances;
-
-#def check_anchor_distance_and_gradient(old_anchors_list, old_membrane_rois, new_anchors, new_roi, params):
-#	"""check whether latest set of anchors has significant deviation in space and in gradient from last anchors"""
-#	maximum_creep_speed_um_s = 0.2;
-#	position_tolerance_microns = params.frame_interval * maximum_creep_speed_um_s;
-#	gradient_angle_tolerance = 30.0/180 * math.pi;
-#	scale_for_gradient_calc_um = 0.5;
-	
-#	for anc_idx in range(0,2):
-#		dr = vector_length(old_anchors_list[-1][anc_idx], new_anchors[anc_idx]);
-#		if (dr * params.pixel_physical_size) > position_tolerance_microns:
-#			new_anchors[anc_idx] = old_anchors_list[-1][anc_idx];
-#		else:
-
-#	return new_anchors, new_roi;
 
 def fix_anchors_to_membrane(anchors_list, membrane_roi, params):
 	"""move user-defined anchor points onto automatically-segmented membrane. TODO: make more efficient?"""
-	outline = membrane_roi.getPolygon();
-	pts = zip(outline.xpoints, outline.ypoints);
+	outline = membrane_roi.getInterpolatedPolygon(0.25, False);
 	fixed_anchors_set = set();
 	for anchor_idx, anchor in enumerate(anchors_list):
 		fixed_anchor = anchor;
-		dsq = [(math.pow((x - anchor[0]),2) + math.pow((y - anchor[1]),2)) for (x, y) in pts];
-		pidx = dsq.index(min(dsq))
-		fixed_anchors_set.add(pts[pidx]);
+		if params.inner_outer_comparison:
+			pts = [(x, y) for (x, y)  in zip(outline.xpoints, outline.ypoints) if int(round(y))==anchor[1]];
+			if len(pts) < 1:
+				raise ValueError("NO PIXELS ALONG THE MEMBRANE FALL AT THE SAME Y POSITION AS THE ANCHOR!");
+			fixed_anchor = pts[[abs(x-anchor[0]) for (x,y) in pts].index(min([abs(x-anchor[0]) for (x,y) in pts]))];
+			#d2 = x - anchor[0];
+			#if d2 < last_dsq:
+			#	last_dsq = d2;
+			#	fixed_anchor = (x, anchor[1]);
+		else:
+			last_dsq = 100000;
+			for (x,y) in zip(outline.xpoints,outline.ypoints):
+				d2 = math.pow((x - anchor[0]), 2) + math.pow((y - anchor[1]), 2);
+				if d2 < last_dsq:
+					last_dsq = d2;
+					fixed_anchor = (x, y);
+		fixed_anchors_set.add(fixed_anchor);
 	if (len(fixed_anchors_set) < (anchor_idx+1)):
 		raise ValueError('degeneracy between anchor points!');
 	sortlist = list(fixed_anchors_set);
@@ -102,7 +84,7 @@ def fix_anchors_to_membrane(anchors_list, membrane_roi, params):
 
 def get_membrane_edge(roi, fixed_anchors, fixed_midpoint):
 	"""figure out which edge of the roi is the membrane, since IJ might start the roi from anywhere along the perimeter w.r.t. the user defined anchors"""
-	poly = roi.getPolygon();
+	poly = roi.getInterpolatedPolygon(0.25, False);
 	term_index_1 = [(x, y) for x, y in zip(poly.xpoints,poly.ypoints)].index(fixed_anchors[0]);
 	term_index_2 = [(x, y) for x, y in zip(poly.xpoints,poly.ypoints)].index(fixed_anchors[1]);
 	start_idx = min(term_index_1, term_index_2);
@@ -119,12 +101,15 @@ def get_membrane_edge(roi, fixed_anchors, fixed_midpoint):
 	e2_mean = (sum(e2.xpoints)/e2.npoints, sum(e2.ypoints)/e2.npoints);
 	
 	theta_e1 = angle_between_vecs(fixed_anchors[0], fixed_anchors[1], fixed_anchors[0], e1_mean);
+	#print("Angle between anchor line and anchor0 to e1mean pos = " + str(theta_e1));
 	theta_e2 = angle_between_vecs(fixed_anchors[0], fixed_anchors[1], fixed_anchors[0], e2_mean);
+	#print("Angle between anchor line and anchor0 to e2mean pos = " + str(theta_e2));
 	sign = lambda x: (1, -1)[x < 0]
 	if sign(theta_e1) is not sign(theta_e2):
-		#print("using angle to decide on edge ID - vectors linking anchor1 and mean edge position lie on either side of anchor line");
+		#print("using angle to decide on edge ID - vectors linking anchor1 and mean edge positions lie on either side of anchor line");
 		theta_midpoint = angle_between_vecs(fixed_anchors[0], fixed_anchors[1], fixed_anchors[0], fixed_midpoint);
-		use_edge = e2 if (sign(theta_midpoint) == sign(theta_e2)) else e1;
+		#print("Angle between anchor line and anchor0 to manual midpoint pos = " + str(theta_midpoint));
+		(use_edge, other_edge) = (e2, e1) if (sign(theta_midpoint) == sign(theta_e2)) else (e1, e2);
 	else:
 		#print("using distance to decide on edge ID - vectors linking anchor1 and mean edge position lie on same side of anchor line");
 		#print("position anchor midpoint = " + str(anchors_midpoint));
@@ -132,8 +117,14 @@ def get_membrane_edge(roi, fixed_anchors, fixed_midpoint):
 		#print("length anchor midpoint to e1 mean = " + str(vector_length(anchors_midpoint, e1_mean)));
 		#print("position e2 mean = " + str(e2_mean));
 		#print("length anchor midpoint to e2 mean = " + str(vector_length(anchors_midpoint, e2_mean)));
-		use_edge = e1 if (vector_length(anchors_midpoint, e1_mean) > vector_length(anchors_midpoint, e2_mean)) else e2;
-	return 	PolygonRoi(use_edge, Roi.POLYLINE);
+		#if (vector_length(anchors_midpoint, e1_mean) > vector_length(anchors_midpoint, e2_mean)):
+		#	print("Using e1");
+		#else:
+		#	print("Using e2");
+		(use_edge, other_edge) = (e1, e2) if (vector_length(anchors_midpoint, e1_mean) > vector_length(anchors_midpoint, e2_mean)) else (e2, e1);
+	use_roi = PolygonRoi(use_edge, Roi.POLYLINE);
+	other_roi = PolygonRoi(other_edge, Roi.POLYLINE);
+	return use_roi, other_roi;
 
 def angle_between_vecs(u_start, u_end, v_start, v_end):
 	"""return angle between two vectors"""
@@ -188,12 +179,17 @@ def generate_l_spaced_points(roi, l):
 					p2.append((xx, yy));
 	return (p1, cp, p2);
 
-def calculate_curvature_profile(curv_points, roi, remove_negative_curvatures):
+def calculate_curvature_profile(curv_points, roi, remove_negative_curvatures, verbose=False):
 	"""generate a line profile of local curvatures using three-point method and SSS theorem (see http://mathworld.wolfram.com/SSSTheorem.html)"""
 	poly = roi.getInterpolatedPolygon(1.0, True);
 	curvature_profile = [((x,y),0) for (x,y) in zip(poly.xpoints, poly.ypoints)];
 	pos = [p for (p, c) in curvature_profile]
 	for (cp, p1, p2) in zip(curv_points[1], curv_points[0], curv_points[2]):
+		if verbose:
+			print("Edge index = " + str(pos.index(cp)))
+			print("P1 = " + str(p1));
+			print("CP = " + str(cp));
+			print("P2 = " + str(p2));
 		a = math.sqrt( math.pow((cp[0] - p1[0]), 2) + math.pow((cp[1] - p1[1]), 2) );
 		b = math.sqrt( math.pow((cp[0] - p2[0]), 2) + math.pow((cp[1] - p2[1]), 2) );
 		c = math.sqrt( math.pow((p2[0] - p1[0]), 2) + math.pow((p2[1] - p1[1]), 2) );
@@ -215,7 +211,28 @@ def calculate_curvature_profile(curv_points, roi, remove_negative_curvatures):
 			curv = sign * 1/R;
 		if (remove_negative_curvatures and (curv < 0)):
 			curv = 0;
+		if verbose:
+			print("Curvature = " + str(curv));
 		curvature_profile[pos.index(cp)] = (cp, curv);
+	return curvature_profile;
+
+def approx_calculate_curvature_profile(curv_points, roi, remove_negative_curvatures):
+	"""generate a line profile of local curvatures using three-point method and Menger curvature (https://en.wikipedia.org/wiki/Menger_curvature#Definition)"""
+	# also ref https://stackoverflow.com/questions/41144224/calculate-curvature-for-3-points-x-y for signed area
+	poly = roi.getInterpolatedPolygon(1.0, True);
+	curvature_profile = [((x,y),0) for (x,y) in zip(poly.xpoints, poly.ypoints)];
+	pos = [p for (p, c) in curvature_profile]
+	for (p1, cp, p2) in zip(curv_points[0], curv_points[1], curv_points[2]):
+		signedA = (cp[0] - p1[0])*(p2[1] - p1[1]) - (cp[1] - p1[1])*(p2[0] - p1[0]);
+		try:
+			curv = 4 * signedA / (vector_length(p1,cp) * vector_length(cp,p2) * vector_length(p2, p1));
+		except ValueError:
+			curv = 0;
+		if (remove_negative_curvatures and (curv < 0)):
+			curv = 0;
+		curvature_profile[pos.index(cp)] = (cp, -curv);
+	curvs_only = [cv for cp, cv in curvature_profile];
+	#print("Curvature with the max abs value in this profile is: " + str(curvs_only[[abs(cv) for cv in curvs_only].index(max([abs(cv) for cv in curvs_only]))]));
 	return curvature_profile;
 
 def keep_largest_blob(imp):
@@ -245,7 +262,12 @@ def maximum_line_profile(imp, roi, pixel_width):
 	"""return a line profile taking the maximum value over n pixels perpendicular to roi line"""
 	imp.setRoi(roi);
 	IJ.run(imp, "Interpolate", "interval=1.0 smooth adjust");
+	if pixel_width < 1:
+		pixel_width = 1;
+	pixel_width = int(2 * math.ceil(float(pixel_width)/2));
 	ip = Straightener().straightenLine(imp, pixel_width);
+	#imp2 = ImagePlus("Straightened", ip);
+	#imp2.show()
 	width = ip.getWidth();
 	height = ip.getHeight();
 	max_profile = [];
@@ -346,20 +368,169 @@ def calculate_percentile(imp, roi, percentile):
 		npc_percentile = vals[k] + (vals[k+1] - vals[k]) * (1 - percentile);
 	return npc_percentile;
 
-def flip_edge(roi, anchors):
-	"""Check whether the edge is drawn in the expected orientation, and flip if not"""
-	manual_roi_start = (roi.getPolygon().xpoints[0], roi.getPolygon().ypoints[0]);
-	if vector_length(manual_roi_start, anchors[0]) < vector_length(manual_roi_start, anchors[1]):
-		new_anchors = list(reversed(anchors));
-	else:
-		new_anchors = anchors;
-	angle = angle_between_vecs(new_anchors[0], new_anchors[1], 
-								(roi.getPolygon().xpoints[0], roi.getPolygon().ypoints[0]), 
-								(roi.getPolygon().xpoints[-1], roi.getPolygon().ypoints[-1]))
-	if angle < 0:
-		xs = [x for x in roi.getPolygon().xpoints];
-		ys = [y for y in roi.getPolygon().ypoints];
+def evolve_anchors(previous_anchors, new_fixed_anchors):
+	"""use average positions of last <=3 frames to define guess at new anchor position"""
+	previous_anchors.append(new_fixed_anchors);
+	if len(previous_anchors) > 3:
+		previous_anchors.pop(0);
+	new_anchors = [];
+	for a_idx in range(0,len(new_fixed_anchors)):
+		sublist = [anchors[a_idx] for anchors in previous_anchors]
+		new_anchors.append((sum([x for (x, y) in sublist])/len(previous_anchors), 
+						sum([y for (x, y) in sublist])/len(previous_anchors)));
+	return previous_anchors, new_anchors;
+
+#def flip_edge(roi, anchors):
+#	"""Check whether the edge is drawn in the expected orientation, and flip if not"""
+#	manual_roi_start = (roi.getPolygon().xpoints[0], roi.getPolygon().ypoints[0]);
+#	if vector_length(manual_roi_start, anchors[0]) < vector_length(manual_roi_start, anchors[1]):
+#		new_anchors = list(reversed(anchors));
+#	else:
+#		new_anchors = anchors;
+#	angle = angle_between_vecs(new_anchors[0], new_anchors[1], 
+#								(roi.getPolygon().xpoints[0], roi.getPolygon().ypoints[0]), 
+#								(roi.getPolygon().xpoints[-1], roi.getPolygon().ypoints[-1]))
+#	if angle < 0:
+#		xs = [x for x in roi.getPolygon().xpoints];
+#		ys = [y for y in roi.getPolygon().ypoints];
+#		xs.reverse();
+#		ys.reverse();
+#		roi = PolygonRoi(xs, ys, Roi.POLYLINE);
+#	return roi;
+
+def check_edge_order(anchors, edge):
+	"""Check that edge runs from first anchor to second as expected"""
+	poly = edge.getPolygon();
+	start = (poly.xpoints[0], poly.ypoints[0]);
+	if vector_length(start, anchors[0]) > vector_length(start, anchors[1]):
+		xs = [x for x in poly.xpoints];
+		ys = [y for y in poly.ypoints];
 		xs.reverse();
 		ys.reverse();
-		roi = PolygonRoi(xs, ys, Roi.POLYLINE);
+		edge = PolygonRoi(xs, ys, Roi.POLYLINE);
+	return edge;
+
+def order_anchors(anchors, midpoint):
+	"""Ensure that anchor1 -> midpoint -> anchor2 is always clockwise"""
+	angle = angle_between_vecs(anchors[0], anchors[1], anchors[0], midpoint[0]);
+	angle = (math.pi + angle) % (2 * math.pi) - math.pi;
+	if angle < 0:
+		anchors = [anchors[1], anchors[0]];
+	return anchors;
+
+# functions ported from ij.plugin.Selection to implement functionality of 
+# IJ.run("Fit spline...") without updating imp
+# from (https://github.com/imagej/imagej1/blob/master/ij/plugin/Selection.java)
+def selectionInterpolateAndFitSpline(roi, interval=1.0, smooth=True):
+	"""implement IJ.run(imp, "Interpolate", "interval=1.0 smooth adjust");IJ.run(imp, "Fit Spline", "");"""
+	roi = PolygonRoi(roi.getInterpolatedPolygon(-1.0 * interval, smooth), Roi.FREELINE);
+	if roi.subPixelResolution():
+		roi = selectionTrimFloatPolygon(roi, roi.getUncalibratedLength());
+	else:
+		roi = selectionTrimPolygon(roi, roi.getUncalibratedLength());
+	roi.fitSpline();
 	return roi;
+
+def selectionTrimPolygon(roi, length):
+	x = roi.getXCoordinates();
+	y = roi.getYCoordinates();
+	n = roi.getNCoordinates();
+	x = selectionSmooth(x, n);
+	y = selectionSmooth(y, n);
+	curvature = selectionGetCurvature(x, y, n);
+	r = roi.getBounds();
+	threshold = selectionRodbard(length);
+	distance = math.sqrt((x[1]-x[0])*(x[1]-x[0])+(y[1]-y[0])*(y[1]-y[0]));
+	x[0] += r.x; 
+	y[0]+=r.y;
+	i2 = 1;
+	x2=0;
+	y2=0;
+	for i in range(1, n-1): 
+	    x1=x[i]; y1=y[i]; x2=x[i+1]; y2=y[i+1];
+	    distance += math.sqrt((x2-x1)*(x2-x1)+(y2-y1)*(y2-y1)) + 1;
+	    distance += curvature[i]*2;
+	    if (distance>=threshold):
+	        x[i2] = x2 + r.x;
+	        y[i2] = y2 + r.y;
+	        i2+=1;
+	        distance = 0.0;
+	
+	typ = Roi.POLYLINE if roi.getType()==Roi.FREELIN else Roi.POLYGON;
+	if (typ==Roi.POLYLINE and distance>0.0):
+	    x[i2] = x2 + r.x;
+	    y[i2] = y2 + r.y;
+	    i2+=1;
+	p = PolygonRoi(x, y, i2, typ);
+	return p;
+
+def selectionTrimFloatPolygon(roi, length): 
+	poly = roi.getFloatPolygon();
+	x = poly.xpoints;
+	y = poly.ypoints;
+	n = poly.npoints;
+	x = selectionSmooth(x, n);
+	y = selectionSmooth(y, n);
+	curvature = selectionGetCurvature(x, y, n);
+	threshold = selectionRodbard(length);
+	#IJ.log("trim: "+length+" "+threshold);
+	distance = math.sqrt((x[1]-x[0])*(x[1]-x[0])+(y[1]-y[0])*(y[1]-y[0]));
+	i2 = 1;
+	x2=0;
+	y2=0;
+	for i in range(1, n-1):
+	    x1=x[i]; y1=y[i]; x2=x[i+1]; y2=y[i+1];
+	    distance += math.sqrt((x2-x1)*(x2-x1)+(y2-y1)*(y2-y1)) + 1;
+	    distance += curvature[i]*2;
+	    if (distance>=threshold):
+	        x[i2] = float(x2);
+	        y[i2] = float(y2);
+	        i2+=1;
+	        distance = 0.0;
+	    
+	typ = Roi.POLYLINE if roi.getType()==Roi.FREELINE else Roi.POLYGON;
+	if (typ==Roi.POLYLINE and distance>0.0):
+	    x[i2] = float(x2);
+	    y[i2] = float(y2);
+	    i2+=1;
+	p = PolygonRoi(x, y, i2, typ);
+	return p;
+
+def selectionSmooth(a, n):
+    fp = FloatProcessor(n, 1);
+    for i in range(n):
+        fp.setf(i, 0, a[i]);
+    gb = GaussianBlur();
+    gb.blur1Direction(fp, 2.0, 0.01, True, 0);
+    for i in range(n):
+        a[i] = fp.getf(i, 0);
+    return a;
+
+def selectionGetCurvature(x, y, n):
+	kernel = [1, 1, 1, 1, 1];
+	x2 = [];
+	y2 = [];
+	for i in range(n):
+	    x2.append(x[i]);
+	    y2.append(y[i]);
+	ipx = FloatProcessor(n, 1, x, None);
+	ipy = FloatProcessor(n, 1, y, None);
+	ipx.convolve(kernel, len(kernel), 1);
+	ipy.convolve(kernel, len(kernel), 1);
+	indexes = []
+	curvature = [];
+	for i in range(n):
+	    indexes.append(i);
+	    curvature.append(float(math.sqrt((x2[i]-x[i])*(x2[i]-x[i])+(y2[i]-y[i])*(y2[i]-y[i]))));
+	return curvature;
+
+def selectionRodbard(x):
+    # y = (a-d)/(1 + (x/c)^b) + d
+    # a=3.9, b=.88, c=700, d=44.0
+    if (x == 0.0):
+        ex = 5.0;
+    else:
+        ex = math.exp(math.log(x/700.0)*0.88);
+    y = 3.9-44.0;
+    y = y/(1.0+ex);
+    return y+44.0;

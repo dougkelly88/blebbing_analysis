@@ -46,9 +46,10 @@ class TestMbEngine(unittest.TestCase):
 		ypts = [y for y in range(1, 6)];
 		xpts = [2 for y in range(1, 6)];
 		imp.show();
+		params = Parameters(inner_outer_comparison=False);
 		roi = PolygonRoi(xpts, ypts, Roi.POLYLINE);
-		self.assertEqual([(2,4), (2,2)], mb.fix_anchors_to_membrane([(1,2), (3,4)],roi))
-		self.assertRaises(ValueError, mb.fix_anchors_to_membrane, [(1,2), (1,2)], roi)
+		self.assertEqual([(2,4), (2,2)], mb.fix_anchors_to_membrane([(1,2), (3,4)],roi,params))
+		self.assertRaises(ValueError, mb.fix_anchors_to_membrane, [(1,2), (1,2)], roi,params)
 		imp.close();
 
 	def test_generate_l_spaced_points(self):
@@ -94,6 +95,55 @@ class TestMbEngine(unittest.TestCase):
 		ctest4 = cp[int(round(len(cp)/2))][1];
 		self.assertEqual(ctest4, 0);
 		
+	def test2_calculate_curvature_profile(self):
+		"""test that signs attributed to curvatures are correct for different edge orientations"""
+		w = 500; h = 500;
+		R = 200;
+		length_param_pix = 50;
+		x1 = []; y1 = []; c1 = (0, int(float(h)/2));
+		x2 = []; y2 = []; c2 = (int(float(w)/2),  0);
+		x3 = []; y3 = []; c3 = (w, int(float(h)));
+		x4 = []; y4 = []; c4 = (int(float(w)/2), h);
+		thetas = [((float(tidx)/1000) * (2 * math.pi)) - math.pi/4 for tidx in range(1000)]
+		for theta in thetas:
+			if theta < math.pi/4:
+				x1.append(R * math.cos(theta) + c1[0]);
+				y1.append(R * math.sin(theta) + c1[1]);
+			elif theta < 3 * math.pi/4:
+				x2.append(R * math.cos(theta) + c2[0]);
+				y2.append(R * math.sin(theta) + c2[1]);
+			elif theta < 5 * math.pi/4:
+				x3.append(R * math.cos(theta) + c3[0]);
+				y3.append(R * math.sin(theta) + c3[1]);
+			elif theta < 7 * math.pi/4:
+				x4.append(R * math.cos(theta) + c4[0]);
+				y4.append(R * math.sin(theta) + c4[1]);
+		edges = [PolygonRoi(x1, y1, Roi.POLYLINE), 
+			PolygonRoi(x2, y2, Roi.POLYLINE), 
+			PolygonRoi(x3, y3, Roi.POLYLINE), 
+			PolygonRoi(x4, y4, Roi.POLYLINE)];
+		anchorses = [[(x1[0], y1[0]), (x1[-1], y1[-1])], 
+				[(x2[0], y2[0]), (x2[-1], y2[-1])], 
+				[(x3[0], y3[0]), (x3[-1], y3[-1])], 
+				[(x4[0], y4[0]), (x4[-1], y4[-1])]];
+		cs = [c1, c2, c3, c4];
+		for eidx, (edge, c, anchors) in enumerate(zip(edges, cs, anchorses)):
+			for mp_dir in range(2):
+				if not mp_dir:
+					midpoint = c;
+				else:
+					midpoint = (int(float(w)/2), int(float(h)/2));
+				anchors = mb.order_anchors(anchors, [midpoint]);
+				edge = mb.check_edge_order(anchors, edge);
+				curv_pts = mb.generate_l_spaced_points(edge, length_param_pix);
+				curv_profile = mb.calculate_curvature_profile(curv_pts,
+														edge, 
+														False);
+				curvs_only = [cv for cp, cv in curv_profile];
+				mean_curv = sum(curvs_only)/len(curvs_only);
+				self.assertEqual(mean_curv > 0, mp_dir);
+				
+
 	def test_roi_length(self):
 		ypts = [y for y in range(0, 3)];
 		xpts = [1 for y in range(0, 3)];
@@ -105,7 +155,7 @@ class TestMbEngine(unittest.TestCase):
 		xpts = [1, 1, 2, 2, 3, 4, 5, 6, 6, 7, 7];
 		ypts = [2, 1, 1, 3, 3, 3, 3, 3, 1, 1, 2];
 		roi = PolygonRoi(xpts, ypts, Roi.POLYLINE);
-		area, area_roi = mb.bleb_area(roi)
+		length, area, area_roi = mb.bleb_area(roi)
 		self.assertEqual(area, 4);
 
 	def test_keep_largest_blob(self):
@@ -128,6 +178,21 @@ class TestMbEngine(unittest.TestCase):
 		roi = imp.getRoi();
 		self.assertEqual(roi.getStatistics().area, w);
 
+	def test_maximum_line_profile(self):
+		"""test that maximum line profile is generated as expected for straight line"""
+		imp = IJ.createImage("test", 3, 4, 1, 8);
+		ip = imp.getProcessor();
+		pix = ip.getPixels();
+		pix[0] = 10; pix[1] = 20; pix[2] = 30;
+		pix[3] = 60; pix[4] = 40; pix[5] = 50;
+		pix[6] = 80; pix[7] = 90; pix[8] = 70;
+		pix[9] = 100; pix[10] = 110; pix[11] = 120;
+		roi = PolygonRoi([1, 1], [0, 3], Roi.POLYLINE);
+		imp.setRoi(roi);
+		mlp = mb.maximum_line_profile(imp, roi, 3);
+		vals = [i for ((x, y), i) in mlp];
+		self.assertEqual(vals, [30, 60, 90, 120]);
+		
 	def test_apply_photobleach_correction_framewise(self):
 		"""confirm that photobleaching correction equalises mean values across a stack"""
 		# create test images: 

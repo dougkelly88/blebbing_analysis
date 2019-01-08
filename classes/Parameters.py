@@ -2,16 +2,14 @@
 #
 # D. J. Kelly, 2018-10-26, douglas.kelly@riken.jp
 
-import json, os, platform
-from ij import IJ
-from ij.process import AutoThresholder
+import json, os, platform, re
 
 class Parameters:
 	"""Class to hold analysis parameters"""
 
 	_persist_parameters_filename = "IJ_membrane_blebbing_params.json";
 	_persist_parameters_folder = "IJ_membrane_blebbing";
-	_version_string = "1.0.12";
+	_version_string = "1.0.15";
 
 	def __init__(self, load_last_params = False,
 						input_image_path = None, 
@@ -34,9 +32,12 @@ class Parameters:
 						metadata_source_file = None, 
 						photobleaching_correction = False, 
 						perform_user_qc = False, 
-						constrain_anchors = False,
 						intensity_profile_width_um = 0.325, 
-						membrane_channel_number = 2):
+						membrane_channel_number = 2, 
+						use_single_channel = False, 
+						inner_outer_comparison = False, 
+						selected_series_index = 0, 
+						constrain_anchors = False):
 		self.__blebbingparams__ = True;
 
 		success = True;
@@ -64,7 +65,6 @@ class Parameters:
 
 			self.labeled_species = labeled_species;
 			
-			self.constrain_anchors = constrain_anchors;
 			self.perform_user_qc = perform_user_qc;
 			self.photobleaching_correction = photobleaching_correction;
 			self.filter_negative_curvatures = filter_negative_curvatures;
@@ -80,14 +80,29 @@ class Parameters:
 			self.intensity_profile_width_um = intensity_profile_width_um;
 
 			self.membrane_channel_number = membrane_channel_number;
+			self.use_single_channel = use_single_channel;
+
+			self.inner_outer_comparison = inner_outer_comparison;
+			self.selected_series_index = selected_series_index;
+
+			self.constrain_anchors = constrain_anchors;
 
 		self.software_version = Parameters._version_string;
 
 	def toggleConstrainAnchors(self, constrain_anchors):
 		self.constrain_anchors = constrain_anchors;
 
+	def setSelectedSeriesIndex(self, selected_series_index):
+		self.selected_series_index =selected_series_index;
+
 	def setIntensityProfileWidthUm(self, width_um):
 		self.intensity_profile_width_um = width_um;
+
+	def setDoInnerOuterComparison(self, inner_outer_comparison):
+		self.inner_outer_comparison = inner_outer_comparison;
+
+	def setUseSingleChannel(self, use_single_channel):
+		self.use_single_channel = use_single_channel;
 
 	def setMembraneChannelNumber(self, membrane_channel_number):
 		self.membrane_channel_number = membrane_channel_number;
@@ -159,6 +174,7 @@ class Parameters:
 			raise ValueError('Requested threshold methd is not a valid IJ threshold method')
 
 	def listThresholdMethods(self):
+		from ij.process import AutoThresholder
 		threshold_methods = AutoThresholder.getMethods();
 		local_threshold_methods = ["Bernsen", "Contrast", "Mean", "Median", "MidGrey", "Niblack", "Otsu", "Phansalkar", "Sauvola"]; # from https://github.com/fiji/Auto_Local_Threshold/blob/master/src/main/java/fiji/threshold/Auto_Local_Threshold.java (2018-11-02)
 		for meth in local_threshold_methods:
@@ -173,22 +189,60 @@ class Parameters:
 			raise ValueError('Curvature length parameter must be positive');
 
 	def setCurvatureOverlayLUT(self, lut_string):
+		from ij import IJ
 		if lut_string in IJ.getLuts():
 			self.curvature_overlay_lut_string = lut_string;
 		else:
 			raise ValueError('Requested curvature overlay LUT is not a valid IJ LUT');
 			
 	def setCurvatureKymographLUT(self, lut_string):
+		from ij import IJ
 		if lut_string in IJ.getLuts():
 			self.curvature_kymograph_lut_string = lut_string;
 		else:
 			raise ValueError('Requested curvature kymograph LUT is not a valid IJ LUT');
 
 	def setActinKymographLUT(self, lut_string):
+		from ij import IJ
 		if lut_string in IJ.getLuts():
 			self.actin_kymograph_lut_string = lut_string;
 		else:
 			raise ValueError('Requested actin kymograph LUT is not a valid IJ LUT');
+
+	def setIntervalUnit(self, unit_string):
+		"""set interval unit and format for sanity"""
+		if unit_string == "sec":
+			unit_string = "s";
+		self.interval_unit = unit_string;
+
+	def parse_roistr_to_roi(self):
+		"""interpret string saved in parameters JSON as IJ ROI"""
+		from ij.gui import PolygonRoi, Roi;
+		rect_format_str = "java.awt.Rectangle\[x=(?P<x>\d+)\,y=(?P<y>\d+)\,width=(?P<w>\d+)\,height=(?P<h>\d+)\]";
+		m1 = re.match(rect_format_str, self.spatial_crop);
+		if bool(m1):
+			return Roi(int(m1.groupdict()['x']), int(m1.groupdict()['y']), 
+						int(m1.groupdict()['w']), int(m1.groupdict()['h']));
+		else:
+			# if original ROI wasn't a rectangle...
+			if isinstance(self.spatial_crop, str):
+				str_list = self.spatial_crop[2:-2].split('), (');
+				poly_format_str = '(?P<x>\d+)\, (?P<y>\d+)';
+				xs = [];
+				ys = [];
+				for s in str_list:
+					m2 = re.match(poly_format_str, s);
+					if bool(m2):
+						xs.append(float(m2.groupdict()['x']));
+						ys.append(float(m2.groupdict()['y']));
+			else:
+				xs = [x for (x,y) in self.spatial_crop];
+				ys = [y for (x,y) in self.spatial_crop];
+			if len(xs) > 0:
+				return PolygonRoi(xs, ys, Roi.POLYGON);
+			else:
+				return None;
+			
 
 	def saveParametersToJson(self, file_path):
 		try:
@@ -204,14 +258,14 @@ class Parameters:
 			if "__blebbingparams__" in dct:
 				self.setInputImagePath(dct["input_image_path"]);
 				self.setOutputPath(dct["output_path"]);
+				self.pixel_physical_size = float(dct["pixel_physical_size"]);
+				self.pixel_unit = dct["pixel_unit"];
+				self.frame_interval = float(dct["frame_interval"]);
+				self.setIntervalUnit(dct["interval_unit"]);
 				self.setCurvatureLengthUm(dct["curvature_length_um"]);
-				self.setThresholdMethod(dct["threshold_method"])
 				self.setSpatialCrop(dct["spatial_crop"]);
 				self.setManualAnchorPositions(dct["manual_anchor_positions"]);
 				self.setManualAnchorMidpoint(dct["manual_anchor_midpoint"]);
-				self.setCurvatureOverlayLUT(dct["curvature_overlay_lut_string"]);
-				self.setCurvatureKymographLUT(dct["curvature_kymograph_lut_string"]);
-				self.setActinKymographLUT(dct["actin_kymograph_lut_string"]);
 				self.setLabeledSpecies(dct["labeled_species"]);
 				self.setFilterNegativeCurvatures(dct["filter_negative_curvatures"]);
 				self.setTimeCropStartEnd(dct["time_crop_start_end"]);
@@ -222,9 +276,24 @@ class Parameters:
 				self.setMetadataSourceFile(dct["metadata_source_file"]);
 				self.togglePhotobleachingCorrection(dct["photobleaching_correction"]);
 				self.togglePerformUserQC(dct["perform_user_qc"]);
-				self.toggleConstrainAnchors(dct["constrain_anchors"]);
 				self.setIntensityProfileWidthUm(dct["intensity_profile_width_um"]);
 				self.setMembraneChannelNumber(dct["membrane_channel_number"]);
+				self.setUseSingleChannel(dct["use_single_channel"]);
+				self.setDoInnerOuterComparison(dct["inner_outer_comparison"]);
+				self.setSelectedSeriesIndex(dct["selected_series_index"]);
+				self.toggleConstrainAnchors(dct["constrain_anchors"]);
+				try:
+					self.setCurvatureOverlayLUT(dct["curvature_overlay_lut_string"]);
+					self.setCurvatureKymographLUT(dct["curvature_kymograph_lut_string"]);
+					self.setActinKymographLUT(dct["actin_kymograph_lut_string"]);
+					self.setThresholdMethod(dct["threshold_method"]);
+				except:
+					# if outside of IJ environment, OK to load previous software version...
+					self.software_version = dct["software_version"];
+					self.curvature_overlay_lut_string = dct["curvature_overlay_lut_string"];
+					self.curvature_kymograph_lut_string = dct["curvature_kymograph_lut_string"];
+					self.actin_kymograph_lut_string = dct["actin_kymograph_lut_string"];
+					self.threshold_method = dct["threshold_method"];
 			else:
 				raise ValueError("JSON file doesn't translate to membrane blebbing analysis parameters")
 		except IOError:
@@ -244,6 +313,8 @@ class Parameters:
 				temp_params_path = os.path.join(temp_path, Parameters._persist_parameters_filename);
 				if os.path.isfile(temp_params_path):
 					success = self.loadParametersFromJson(temp_params_path);
+					self.spatial_crop = None;
+					self.time_crop_start_end = None;
 				else:
 					success = False;
 			else:
@@ -277,6 +348,10 @@ class Parameters:
 			print("Error: " + e.message);
 			return "";
 		return temp_path;
+
+	def __str__(self):
+		"""return string representation of the Parameters object"""
+		return str(self.__dict__);
 
 #params = Parameters();
 #print(params.__dict__);
