@@ -215,10 +215,10 @@ class Parameters:
 			unit_string = "s";
 		self.interval_unit = unit_string;
 
-	def parse_roistr_to_roi():
+	def parse_roistr_to_roi(self):
 		"""interpret string saved in parameters JSON as IJ ROI"""
 		from ij.gui import PolygonRoi, Roi;
-		rect_format_str = "java.awt.Rectangle[x=(?P<x>\d+),y=(?P<y>\d+),width=(?P<w>\d+),height=(?P<h>\d+)]";
+		rect_format_str = "java.awt.Rectangle\[x=(?P<x>\d+)\,y=(?P<y>\d+)\,width=(?P<w>\d+)\,height=(?P<h>\d+)\]";
 		m1 = re.match(rect_format_str, self.spatial_crop);
 		if bool(m1):
 			return Roi(int(m1.groupdict()['x']), int(m1.groupdict()['y']), 
