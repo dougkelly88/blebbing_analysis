@@ -251,49 +251,53 @@ class Parameters:
 		finally:
 			f.close();
 
+	def populate_parameters_from_dict(self, dct):
+		self.setInputImagePath(dct["input_image_path"]);
+		self.setOutputPath(dct["output_path"]);
+		self.pixel_physical_size = float(dct["pixel_physical_size"]);
+		self.pixel_unit = dct["pixel_unit"];
+		self.frame_interval = float(dct["frame_interval"]);
+		self.setIntervalUnit(dct["interval_unit"]);
+		self.setCurvatureLengthUm(dct["curvature_length_um"]);
+		self.setSpatialCrop(dct["spatial_crop"]);
+		self.setManualAnchorPositions(dct["manual_anchor_positions"]);
+		self.setManualAnchorMidpoint(dct["manual_anchor_midpoint"]);
+		self.setLabeledSpecies(dct["labeled_species"]);
+		self.setFilterNegativeCurvatures(dct["filter_negative_curvatures"]);
+		self.setTimeCropStartEnd(dct["time_crop_start_end"]);
+		self.toggleSpatialCrop(dct["perform_spatial_crop"]);
+		self.toggleTimeCrop(dct["perform_time_crop"]);
+		self.toggleCloseOnCompletion(dct["close_on_completion"]);
+		self.setMetadataSource(dct["metadata_source"]);
+		self.setMetadataSourceFile(dct["metadata_source_file"]);
+		self.togglePhotobleachingCorrection(dct["photobleaching_correction"]);
+		self.togglePerformUserQC(dct["perform_user_qc"]);
+		self.setIntensityProfileWidthUm(dct["intensity_profile_width_um"]);
+		self.setMembraneChannelNumber(dct["membrane_channel_number"]);
+		self.setUseSingleChannel(dct["use_single_channel"]);
+		self.setDoInnerOuterComparison(dct["inner_outer_comparison"]);
+		self.setSelectedSeriesIndex(dct["selected_series_index"]);
+		self.toggleConstrainAnchors(dct["constrain_anchors"]);
+		try:
+			self.setCurvatureOverlayLUT(dct["curvature_overlay_lut_string"]);
+			self.setCurvatureKymographLUT(dct["curvature_kymograph_lut_string"]);
+			self.setActinKymographLUT(dct["actin_kymograph_lut_string"]);
+			self.setThresholdMethod(dct["threshold_method"]);
+		except:
+			# if outside of IJ environment, OK to load previous software version...
+			self.software_version = dct["software_version"];
+			self.curvature_overlay_lut_string = dct["curvature_overlay_lut_string"];
+			self.curvature_kymograph_lut_string = dct["curvature_kymograph_lut_string"];
+			self.actin_kymograph_lut_string = dct["actin_kymograph_lut_string"];
+			self.threshold_method = dct["threshold_method"];
+		return;
+
 	def loadParametersFromJson(self, file_path):
 		try:
 			f = open(file_path, 'r');
 			dct = json.loads(f.read());
 			if "__blebbingparams__" in dct:
-				self.setInputImagePath(dct["input_image_path"]);
-				self.setOutputPath(dct["output_path"]);
-				self.pixel_physical_size = float(dct["pixel_physical_size"]);
-				self.pixel_unit = dct["pixel_unit"];
-				self.frame_interval = float(dct["frame_interval"]);
-				self.setIntervalUnit(dct["interval_unit"]);
-				self.setCurvatureLengthUm(dct["curvature_length_um"]);
-				self.setSpatialCrop(dct["spatial_crop"]);
-				self.setManualAnchorPositions(dct["manual_anchor_positions"]);
-				self.setManualAnchorMidpoint(dct["manual_anchor_midpoint"]);
-				self.setLabeledSpecies(dct["labeled_species"]);
-				self.setFilterNegativeCurvatures(dct["filter_negative_curvatures"]);
-				self.setTimeCropStartEnd(dct["time_crop_start_end"]);
-				self.toggleSpatialCrop(dct["perform_spatial_crop"]);
-				self.toggleTimeCrop(dct["perform_time_crop"]);
-				self.toggleCloseOnCompletion(dct["close_on_completion"]);
-				self.setMetadataSource(dct["metadata_source"]);
-				self.setMetadataSourceFile(dct["metadata_source_file"]);
-				self.togglePhotobleachingCorrection(dct["photobleaching_correction"]);
-				self.togglePerformUserQC(dct["perform_user_qc"]);
-				self.setIntensityProfileWidthUm(dct["intensity_profile_width_um"]);
-				self.setMembraneChannelNumber(dct["membrane_channel_number"]);
-				self.setUseSingleChannel(dct["use_single_channel"]);
-				self.setDoInnerOuterComparison(dct["inner_outer_comparison"]);
-				self.setSelectedSeriesIndex(dct["selected_series_index"]);
-				self.toggleConstrainAnchors(dct["constrain_anchors"]);
-				try:
-					self.setCurvatureOverlayLUT(dct["curvature_overlay_lut_string"]);
-					self.setCurvatureKymographLUT(dct["curvature_kymograph_lut_string"]);
-					self.setActinKymographLUT(dct["actin_kymograph_lut_string"]);
-					self.setThresholdMethod(dct["threshold_method"]);
-				except:
-					# if outside of IJ environment, OK to load previous software version...
-					self.software_version = dct["software_version"];
-					self.curvature_overlay_lut_string = dct["curvature_overlay_lut_string"];
-					self.curvature_kymograph_lut_string = dct["curvature_kymograph_lut_string"];
-					self.actin_kymograph_lut_string = dct["actin_kymograph_lut_string"];
-					self.threshold_method = dct["threshold_method"];
+				self.populate_parameters_from_dict(dct);
 			else:
 				raise ValueError("JSON file doesn't translate to membrane blebbing analysis parameters")
 		except IOError:
