@@ -109,9 +109,13 @@ def generate_limit_labels(imp, limits, cb_fraction, params):
 	FileSaver(imp).saveAsTiffStack(os.path.join(params.output_path, "overlaid curvature.tif"));
 	return imp;
 	
-def overlay_curvatures(imp, curvature_stack, curvature_profiles, membrane_channel, params, limits = None, annotate=True):
+def overlay_curvatures(imp, curvature_profiles, params, limits = None, annotate=True):
 	"""Overlay curvature pixels on membrane image"""
+	membrane_channel = params.membrane_channel_number;
 	overlay_base_imp = imp.clone();
+	curvature_stack = ImageStack(imp.getWidth(), imp.getHeight());
+	for profile in curvature_profiles:
+		curvature_stack = generate_curvature_overlays(profile, curvature_stack);
 	overlay_imp = ImagePlus("Curvature stack", curvature_stack);
 	IJ.run(overlay_imp, params.curvature_overlay_lut_string, "");
 	if limits is None:
