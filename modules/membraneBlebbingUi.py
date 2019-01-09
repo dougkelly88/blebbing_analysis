@@ -5,9 +5,8 @@
 # imports
 import math
 from ij import IJ
-from ij.gui import WaitForUserDialog, GenericDialog, NonBlockingGenericDialog, Roi, PolygonRoi
+from ij.gui import GenericDialog, NonBlockingGenericDialog, Roi, PolygonRoi
 from ij.plugin import Duplicator
-from ij.process import AutoThresholder
 from java.awt import GraphicsEnvironment, Panel, Dimension, Checkbox, CheckboxGroup
 from javax.swing import Box
 from loci.formats import ImageReader, MetadataTools

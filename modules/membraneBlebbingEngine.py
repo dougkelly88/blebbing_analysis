@@ -4,8 +4,8 @@
 
 # imports
 import math
-from ij import IJ, ImagePlus;
-from ij.gui import PolygonRoi, Roi, WaitForUserDialog
+from ij import IJ;
+from ij.gui import PolygonRoi, Roi
 from ij.process import FloatPolygon, FloatProcessor
 from ij.plugin import Straightener, Duplicator, ImageCalculator
 from ij.plugin.filter import ParticleAnalyzer, GaussianBlur
@@ -48,9 +48,6 @@ def make_and_clean_binary(imp, threshold_method):
 	if "Edge" in threshold_method:
 		IJ.run(imp, "Erode", "stack");
 		IJ.run(imp, "Erode", "stack");
-	#imp.show();
-	#WaitForUserDialog("Check masks").show();
-	#imp.hide();
 	return imp;
 
 def fix_anchors_to_membrane(anchors_list, membrane_roi, params):
@@ -266,8 +263,6 @@ def maximum_line_profile(imp, roi, pixel_width):
 		pixel_width = 1;
 	pixel_width = int(2 * math.ceil(float(pixel_width)/2));
 	ip = Straightener().straightenLine(imp, pixel_width);
-	#imp2 = ImagePlus("Straightened", ip);
-	#imp2.show()
 	width = ip.getWidth();
 	height = ip.getHeight();
 	max_profile = [];

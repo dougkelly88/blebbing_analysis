@@ -5,7 +5,7 @@
 
 # imports
 import os, math
-from ij import IJ, ImageStack
+from ij import IJ
 from ij.io import FileSaver
 from ij.plugin import ChannelSplitter, Duplicator
 

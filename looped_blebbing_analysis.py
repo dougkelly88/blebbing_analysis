@@ -8,11 +8,9 @@
 #					to output folders named for parameter name and value
 
 # imports
-import os, sys, math, json
-from ij import IJ, ImageStack
-from ij.io import FileSaver
-from ij.gui import WaitForUserDialog
-from ij.plugin import ChannelSplitter, Duplicator, ZProjector
+import os, sys, json
+from ij import IJ
+from ij.plugin import ZProjector
 from ij import Prefs
 from loci.plugins import BF as bf
 

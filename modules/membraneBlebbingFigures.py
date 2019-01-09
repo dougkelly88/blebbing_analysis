@@ -2,22 +2,19 @@
 #
 # D. J. Kelly, 2018-10-15, douglas.kelly@riken.jp
 
-# TODO?: refactor as a class so that it is trivial to configure whether images should be
-# shown globally, e.g. fig = FigClass(show_figs = False); fig.overlay_curvatures(...)
-# also possibly easier in this case to avoid boilerplate in image saving...
-
 # imports
-import os, sys
-script_path = os.path.dirname(os.path.realpath(__file__))
-sys.path.insert(0, script_path);
+import os
+#import os, sys
+#script_path = os.path.dirname(os.path.realpath(__file__))
+#sys.path.insert(0, script_path);
 
 from ij import IJ, ImagePlus, ImageStack
-from ij.gui import Plot, GenericDialog, TextRoi, PointRoi, WaitForUserDialog, Roi
+from ij.gui import Plot, GenericDialog, TextRoi, PointRoi, Roi
 from ij.io import FileSaver
 from ij.measure import Measurements
 from ij.plugin import RGBStackMerge, Duplicator
 from ij.plugin.frame import RoiManager
-from ij.process import FloatProcessor, ByteProcessor, ColorProcessor
+from ij.process import FloatProcessor, ByteProcessor
 from java.awt import Font, Color
 import membraneBlebbingEngine as mb
 import membraneBlebbingUi as mbui

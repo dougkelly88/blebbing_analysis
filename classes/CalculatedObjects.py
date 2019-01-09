@@ -3,8 +3,6 @@
 #
 # D. J. Kelly, 2019-01-09, douglas.kelly@riken.jp
 
-import json
-from ij.gui import PolygonRoi
 from InnerOuterComparisonData import InnerOuterComparisonData
 
 class CalculatedObjects(object):
