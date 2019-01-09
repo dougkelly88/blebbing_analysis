@@ -247,7 +247,7 @@ class Parameters:
 	def saveParametersToJson(self, file_path):
 		try:
 			f = open(file_path, 'w');
-			json.dump(self.__dict__, f);
+			json.dump(self.__dict__, f, sort_keys=True);
 		finally:
 			f.close();
 
