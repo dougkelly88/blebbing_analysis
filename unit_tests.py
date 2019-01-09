@@ -155,7 +155,7 @@ class TestMbEngine(unittest.TestCase):
 		xpts = [1, 1, 2, 2, 3, 4, 5, 6, 6, 7, 7];
 		ypts = [2, 1, 1, 3, 3, 3, 3, 3, 1, 1, 2];
 		roi = PolygonRoi(xpts, ypts, Roi.POLYLINE);
-		length, area, area_roi = mb.bleb_area(roi)
+		length, area, area_roi = mb.bleb_area(roi, (3, 5))
 		self.assertEqual(area, 4);
 
 	def test_keep_largest_blob(self):
