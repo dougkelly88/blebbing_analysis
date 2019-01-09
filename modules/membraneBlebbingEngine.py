@@ -281,18 +281,19 @@ def roi_length(membrane_edge):
 	"""calculate the length of the drawn membrane"""
 	return membrane_edge.getLength();
 
-def bleb_area(membrane_edge):
+def bleb_area(membrane_edge, midpoint_anchor):
 	"""calculate the area of the drawn bleb, accounting for membrane crossing line joining anchors"""
 	poly = membrane_edge.getFloatPolygon();
 	xs = [x for x in poly.xpoints];
 	ys = [y for y in poly.ypoints];
 	rotangle = membrane_edge.getAngle(int(round(xs[0])), int(round(ys[0])), int(round(xs[-1])), int(round(ys[-1]))) / 180 * math.pi;
 	rotY = [(x * math.sin(rotangle) + y * math.cos(rotangle)) for x, y in zip(xs, ys)];
+	rotYmpa = midpoint_anchor[0] * math.sin(rotangle) + midpoint_anchor[1] * math.cos(rotangle);
 	meanRotY = sum(rotY)/len(rotY);
 	seg1 = rotY[:int(round(len(rotY)/2))];
 	seg1.reverse();
 	seg2 = rotY[int(round(len(rotY)/2)):];
-	if meanRotY > rotY[0]:
+	if rotYmpa > rotY[0]:
 		idx1 = len(seg1) - seg1.index(min(seg1));
 		idx2 = int(round(len(rotY)/2)) + seg2.index(min(seg2));
 	else:
@@ -379,24 +380,6 @@ def evolve_anchors(previous_anchors, new_fixed_anchors):
 		new_anchors.append((sum([x for (x, y) in sublist])/len(previous_anchors), 
 						sum([y for (x, y) in sublist])/len(previous_anchors)));
 	return previous_anchors, new_anchors;
-
-#def flip_edge(roi, anchors):
-#	"""Check whether the edge is drawn in the expected orientation, and flip if not"""
-#	manual_roi_start = (roi.getPolygon().xpoints[0], roi.getPolygon().ypoints[0]);
-#	if vector_length(manual_roi_start, anchors[0]) < vector_length(manual_roi_start, anchors[1]):
-#		new_anchors = list(reversed(anchors));
-#	else:
-#		new_anchors = anchors;
-#	angle = angle_between_vecs(new_anchors[0], new_anchors[1], 
-#								(roi.getPolygon().xpoints[0], roi.getPolygon().ypoints[0]), 
-#								(roi.getPolygon().xpoints[-1], roi.getPolygon().ypoints[-1]))
-#	if angle < 0:
-#		xs = [x for x in roi.getPolygon().xpoints];
-#		ys = [y for y in roi.getPolygon().ypoints];
-#		xs.reverse();
-#		ys.reverse();
-#		roi = PolygonRoi(xs, ys, Roi.POLYLINE);
-#	return roi;
 
 def check_edge_order(anchors, edge):
 	"""Check that edge runs from first anchor to second as expected"""
