@@ -37,3 +37,18 @@ Run software from ImageJ menu Plugins -> blebbing analysis -> membrane blebbing
 *Close images on completion?: toggle whether all input/output images involved in the analysis should be closed at the end of the run (after automatically saving to output folder). 
 
 *Compare inner and outer curvature regions?: If toggled on, loops through edge identification steps twice and saves ratios of inner and outer curvature values, as well as information on the variation of ratios. Results can subsequently be plotted using the scripts in ..\blebbing_analysis\plotting\
+
+
+To re-run analysis on previously analysed data, bypassing the membrane edge definition steps: 
+Run software from ImageJ menu Plugins -> blebbing analysis -> re-run blebbing analysis
+When prompted, select the folder containing the previous analysis output
+If the original image can't be located, software will also prompt for this
+Parameters will be set according to the last analysis; change to taste, or simply run again to get an analysis run with the latest software version. 
+
+To loop analysis over a series of parameter values:
+Prepare a text file with a single line in this format: {"parameter name": [value1, value2, value3, ...]}
+(e.g. {"intensity_profile_width_um": [0.3, 0.5, 1.0, 2.0]}, or see file example_loop_param.txt)
+Run software from ImageJ menu Plugins -> blebbing analysis -> looped blebbing analysis
+When prompted, select the folder containing the previous analysis output
+If the original image can't be located, software will also prompt for this
+Software will then loop over the parameters and perform the analysis as required, saving into the folder above the original output in the form ".\<dated folder>\looped analysis\<loop parameter> = <value>"
