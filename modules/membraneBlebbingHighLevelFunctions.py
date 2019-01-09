@@ -14,6 +14,23 @@ import membraneBlebbingFigures as mbfig
 import membraneBlebbingFileio as mbio
 import membraneBlebbingUi as mbui
 
+def split_image_plus(imp, params):
+	"""split original ImagePlus by channel, and assign an image to segment on"""
+	split_channels = ChannelSplitter.split(imp);
+	membrane_channel_imp = split_channels[params.membrane_channel_number-1];
+	segmentation_channel_imp = Duplicator().run(membrane_channel_imp);
+	if params.use_single_channel:
+		actin_channel = params.membrane_channel_number;
+		actin_channel_imp = Duplicator().run(membrane_channel_imp);
+	else:
+		if imp.getNChannels() >= 2:
+			actin_channel = (params.membrane_channel_number + 1) % imp.getNChannels();
+			actin_channel_imp = split_channels[actin_channel-1];
+		else:
+			actin_channel_imp = None;
+	split_channels = [membrane_channel_imp, actin_channel_imp, segmentation_channel_imp];
+	return split_channels;
+
 def generate_edges(imp, params, calculated_objects, repeat_fraction=1):
 	"""generate edges automatically, then clean up with user step if necessary"""
 	# binarise/segment
@@ -43,23 +60,12 @@ def generate_edges(imp, params, calculated_objects, repeat_fraction=1):
 	anchors = mb.order_anchors(anchors, midpoint);
 	params.setManualAnchorPositions(anchors);
 	
-	split_channels = ChannelSplitter.split(imp);
-	membrane_channel_imp = split_channels[params.membrane_channel_number-1];
-	membrane_test_channel_imp = Duplicator().run(membrane_channel_imp);
-	segmentation_channel_imp = Duplicator().run(membrane_channel_imp);
-	if params.use_single_channel:
-		actin_channel = params.membrane_channel_number;
-		actin_channel_imp = Duplicator().run(membrane_channel_imp);
-	else:
-		if imp.getNChannels() >= 2:
-			actin_channel = (params.membrane_channel_number + 1) % imp.getNChannels();
-			actin_channel_imp = split_channels[actin_channel-1];
-		else:
-			actin_channel_imp = None;
-	split_channels = [membrane_channel_imp, actin_channel_imp, segmentation_channel_imp];
+	split_channels = split_image_plus(imp, params);
+	membrane_test_channel_imp = Duplicator().run(split_channels[0]);
+	segmentation_channel_imp = split_channels[-1];
 	
 	# perform binary manipulations
-	membrane_channel_imp = mb.make_and_clean_binary(segmentation_channel_imp, params.threshold_method);
+	segmentation_channel_imp = mb.make_and_clean_binary(segmentation_channel_imp, params.threshold_method);
 		
 	# generate edge - this needs to be looped over slices
 	membrane_edges = [];
@@ -170,7 +176,8 @@ def generate_and_save_figures(imp, calculated_objects, params, membrane_channel_
 	overlaid_curvature_imp, raw_curvature_imp = mbfig.overlay_curvatures(imp, calculated_objects.curvature_profiles, params, annotate=True);
 	fig_imp_list.append(overlaid_curvature_imp);
 	fig_imp_list.append(raw_curvature_imp);
-	FileSaver(segmentation_channel_imp).saveAsTiffStack(os.path.join(params.output_path, "binary_membrane_stack.tif"));
+	if segmentation_channel_imp is not None:
+		FileSaver(segmentation_channel_imp).saveAsTiffStack(os.path.join(params.output_path, "binary_membrane_stack.tif"));
 	bleb_len_imp, bleb_ls = mbfig.plot_bleb_evolution(calculated_objects.timelist, 
 											calculated_objects.bleb_perimeter_lengths, 
 											"Edge length (" + params.pixel_unit + ")");

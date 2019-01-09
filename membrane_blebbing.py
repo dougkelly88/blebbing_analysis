@@ -25,11 +25,12 @@ if "Fiji.app" in script_path:
 sys.path.insert(0, os.path.join(script_path, 'modules'));
 sys.path.insert(0, os.path.join(script_path, 'classes'));
 
-import membraneBlebbingHighLevelFunctions as mbfs;
 import membraneBlebbingFileio as mbio;
 import membraneBlebbingUi as mbui;
 import membraneBlebbingEngine as mb;
 import membraneBlebbingFigures as mbfig;
+import membraneBlebbingHighLevelFunctions as mbfs;
+
 from Parameters import Parameters
 from InnerOuterComparisonData import InnerOuterComparisonData
 from CalculatedObjects import CalculatedObjects
