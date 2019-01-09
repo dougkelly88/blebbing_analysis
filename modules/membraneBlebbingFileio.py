@@ -27,10 +27,12 @@ def file_location_chooser(default_directory):
 	os.mkdir(output_folder);
 	return file_path, output_folder;
 
-def input_file_location_chooser(default_directory):
-	od = OpenDialog('Choose original file...', 
+def input_file_location_chooser(default_directory, filt='*.tif', message=None):
+	if message==None:
+		message = 'Choose original file...'
+	od = OpenDialog(message, 
 					default_directory, 
-					'*.tif');
+					filt);
 	file_path = od.getPath();
 	if file_path is None:
 		raise IOError('no input file chosen');

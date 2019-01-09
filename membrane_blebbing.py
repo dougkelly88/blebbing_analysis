@@ -147,6 +147,7 @@ def main():
 								yname="outer sd",
 								tname=tname, 
 								time_list=calculated_objects.timelist);
+	return;
 	
 # It's best practice to create a function that contains the code that is executed when running the script.
 # This enables us to stop the script by just calling return.
