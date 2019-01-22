@@ -14,7 +14,7 @@ from ij.plugin import ZProjector
 from ij import Prefs
 from loci.plugins import BF as bf
 
-release = True;
+release = False;
 
 if not release:
 	script_path = os.path.dirname(os.path.realpath(__file__));
