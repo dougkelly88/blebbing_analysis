@@ -3,3 +3,4 @@
 *.tiff
 test data/
 *-checkpoint.ipynb
+*.pyc
