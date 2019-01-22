@@ -111,8 +111,7 @@ def main():
 
 		calculated_objects = mbfs.calculate_outputs(params,
 													calculated_objects, 
-													membrane_channel_imp, 
-													actin_channel_imp, 
+													split_channels, 
 													repeat_fraction=(r+1)/repeats);
 						
 		# output colormapped images and kymographs 

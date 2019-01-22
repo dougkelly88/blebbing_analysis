@@ -116,8 +116,11 @@ def generate_edges(imp, params, calculated_objects, repeat_fraction=1):
 
 	return calculated_objects, params, split_channels;
 
-def calculate_outputs(params, calculated_objects, membrane_channel_imp, actin_channel_imp, inner_outer_intensity_data=None, repeat_fraction=1):
+def calculate_outputs(params, calculated_objects, split_channels, inner_outer_intensity_data=None, repeat_fraction=1):
 	"""generate curvatures, lengths, areas etc."""
+	membrane_channel_imp = split_channels[0];
+	actin_channel_imp = split_channels[1];
+	segmentation_channel_imp = split_channels[2];
 	# do calculations independent of source of edges
 	actin_profiles = [];
 	curvature_profiles = [];
@@ -144,7 +147,7 @@ def calculate_outputs(params, calculated_objects, membrane_channel_imp, actin_ch
 			actin_channel_imp.setPosition(fridx+1);
 			actin_channel_imp, t0_actin_mean = mb.apply_photobleach_correction_framewise(params, 
 																						actin_channel_imp, 
-																						membrane_channel_imp, 
+																						segmentation_channel_imp, 
 																						t0_value=t0_actin_mean);
 			actin_profile = mb.maximum_line_profile(actin_channel_imp, 
 													membrane_edge, 

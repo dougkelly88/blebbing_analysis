@@ -132,12 +132,13 @@ def main():
 		split_channels = mbfs.split_image_plus(imp, params)
 		membrane_channel_imp = split_channels[0];
 		actin_channel_imp = split_channels[1];
-		segmentation_channel_imp = None;
+		segmentation_channel_imp = split_channels[-1];
+		if params.photobleaching_correction:
+			segmentation_channel_imp = mb.make_and_clean_binary(segmentation_channel_imp, params.threshold_method)
 
 		calculated_objects = mbfs.calculate_outputs(params,
 													calculated_objects, 
-													membrane_channel_imp, 
-													actin_channel_imp);
+													split_channels);
 						
 		# output colormapped images and kymographs 
 		fig_imp_list = mbfs.generate_and_save_figures(imp, calculated_objects, params, membrane_channel_imp, segmentation_channel_imp);
