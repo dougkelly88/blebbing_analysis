@@ -143,22 +143,23 @@ def calculate_outputs(params, calculated_objects, split_channels, inner_outer_in
 		curvature_profiles.append(curv_profile);
 			
 		# generate actin-channel line profile if actin channel present
-		if actin_channel_imp is not None:
-			actin_channel_imp.setPosition(fridx+1);
-			actin_channel_imp, t0_actin_mean = mb.apply_photobleach_correction_framewise(params, 
-																						actin_channel_imp, 
-																						segmentation_channel_imp, 
-																						t0_value=t0_actin_mean);
-			actin_profile = mb.maximum_line_profile(actin_channel_imp, 
-													membrane_edge, 
-													int(round(params.intensity_profile_width_um / params.pixel_physical_size)));
-			actin_profiles.append(actin_profile);
+		if actin_channel_imp is None:
+			actin_channel_imp = Duplicator().run(membrane_channel_imp);
+		actin_channel_imp.setPosition(fridx+1);
+		actin_channel_imp, t0_actin_mean = mb.apply_photobleach_correction_framewise(params, 
+																					actin_channel_imp, 
+																					segmentation_channel_imp, 
+																					t0_value=t0_actin_mean);
+		actin_profile = mb.maximum_line_profile(actin_channel_imp, 
+												membrane_edge, 
+												int(round(params.intensity_profile_width_um / params.pixel_physical_size)));
+		actin_profiles.append(actin_profile);
 
-			if params.inner_outer_comparison:
-				mean_intensity = float(sum([a for ((x, y), a) in actin_profile]))/len(actin_profile);
-				calculated_objects.inner_outer_data.outer_means.append(mean_intensity) if repeat_fraction==1 else calculated_objects.inner_outer_data.inner_means.append(mean_intensity);
-				sd = math.sqrt(sum((x - mean_intensity)**2 for ((x, y), a) in actin_profile) / len(actin_profile));
-				calculated_objects.inner_outer_data.outer_sds.append(sd) if repeat_fraction==1 else calculated_objects.inner_outer_data.inner_sds.append(sd);
+		if params.inner_outer_comparison:
+			mean_intensity = float(sum([a for ((x, y), a) in actin_profile]))/len(actin_profile);
+			calculated_objects.inner_outer_data.outer_means.append(mean_intensity) if repeat_fraction==1 else calculated_objects.inner_outer_data.inner_means.append(mean_intensity);
+			sd = math.sqrt(sum((x - mean_intensity)**2 for ((x, y), a) in actin_profile) / len(actin_profile));
+			calculated_objects.inner_outer_data.outer_sds.append(sd) if repeat_fraction==1 else calculated_objects.inner_outer_data.inner_sds.append(sd);
 
 	calculated_objects.curvature_profiles = curvature_profiles;
 	calculated_objects.actin_profiles = actin_profiles;
