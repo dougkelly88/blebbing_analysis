@@ -100,10 +100,26 @@ def main():
 	IJ.run("Enhance Contrast", "saturated=0.35");
 
 	# prompt user to select ROI
-	original_imp, crop_params = mbui.crop_to_ROI(imp, params);
+	original_imp = Duplicator().run(imp);
+	_, crop_params = mbui.crop_to_ROI(imp, params);
+	imp.show();
+
 	if crop_params is not None:
 		params.perform_spatial_crop = True;
 		mbui.autoset_zoom(imp);
+		imp.updateAndDraw();
+		review_crop = mb.check_cropping(output_folder_old, params);
+		keep_crop = not review_crop;
+		if review_crop:
+			keep_crop = mbui.crop_review();
+		if not keep_crop:
+			imp.changes = False;
+			imp.close();
+			imp = original_imp;
+		else:
+			original_imp.close();
+	else:
+		original_imp.close();
 
 	# prompt user to do time cropping
 	imp, start_end_tuple = mbui.time_crop(imp, params);

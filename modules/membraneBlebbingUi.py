@@ -50,7 +50,7 @@ def crop_to_ROI(imp, params):
 			MyWaitForUser("Crop", "If desired, select an area ROI to crop to...");
 			roi = imp.getRoi();
 	crop_params = None;
-	original_imp = imp.clone();
+	original_imp = Duplicator().run(imp);
 	if roi is not None:
 		if not roi.isArea():
 			raise TypeError("selected ROI should be an area");
@@ -65,9 +65,10 @@ def crop_to_ROI(imp, params):
 		else:
 			crop_params = roi.getBounds().toString();
 		IJ.run(imp, "Crop", "");
-		autoset_zoom(imp);
 		imp.killRoi();
 		params.setSpatialCrop(crop_params)
+	else:
+		params.setSpatialCrop(None);
 	return original_imp, crop_params;
 
 def prompt_for_points(imp, title, message, n_points):
@@ -380,3 +381,21 @@ def choose_series(filepath, params):
 				import_opts.setSeriesOn(idx, True) if (idx==selected_index) else import_opts.setSeriesOn(idx, False);
 	reader.close();
 	return import_opts, params
+
+def crop_review():
+	"""handle UI for reviewing cropping"""
+	print("doing crop review...");
+	dialog = NonBlockingGenericDialog("Review cropping")
+	dialog.enableYesNoCancel("Keep this crop", "Revert to uncropped image");
+	dialog.setCancelLabel("Cancel analysis");
+	dialog.addMessage("Please check whether this cropping is as expected, \n" + 
+					"and choose whether to press on or revert to using the \n" + 
+					"full, uncropped image. ");
+	dialog.showDialog();
+	if dialog.wasCanceled():
+		raise KeyboardInterrupt("Run canceled");
+	elif dialog.wasOKed():
+		keep_cropping = True;
+	else:
+		keep_cropping = False;
+	return keep_cropping;

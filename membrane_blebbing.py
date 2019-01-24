@@ -85,6 +85,9 @@ def main():
 	if crop_params is not None:
 		params.perform_spatial_crop = True;
 		mbui.autoset_zoom(imp);
+	else:
+		params.perform_spatial_crop = False;
+
 
 	# prompt user to do time cropping
 	imp, start_end_tuple = mbui.time_crop(imp, params);

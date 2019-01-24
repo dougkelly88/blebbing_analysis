@@ -3,7 +3,7 @@
 # D. J. Kelly, 2018-10-15, douglas.kelly@riken.jp
 
 # imports
-import math
+import math, os
 from ij import IJ;
 from ij.gui import PolygonRoi, Roi
 from ij.process import FloatPolygon, FloatProcessor
@@ -391,6 +391,22 @@ def order_anchors(anchors, midpoint):
 	if angle < 0:
 		anchors = [anchors[1], anchors[0]];
 	return anchors;
+
+def check_cropping(output_folder_old, params):
+	"""try comparing json cropping parameters to output from previous file - return True if cropping needs review"""
+	try:
+		impath = os.path.join(output_folder_old, "overlaid curvature.tif")
+		print(impath);
+		old_imp = IJ.openImage(impath)
+	except:
+		print("unable to open image from previous analysis, " + impath)
+		return True;
+	roi = params.parse_roistr_to_roi();
+	if old_imp.getWidth()==roi.getBounds().width and old_imp.getHeight()==roi.getBounds().height:
+		return False;
+	else:
+		print("previous output image size and cropping parameters do not agree!");
+		return True;
 
 # functions ported from ij.plugin.Selection to implement functionality of 
 # IJ.run("Fit spline...") without updating imp

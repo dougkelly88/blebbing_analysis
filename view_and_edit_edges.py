@@ -6,7 +6,7 @@
 import os, sys, math
 from ij import IJ, ImageStack, ImagePlus
 from ij.io import FileSaver
-from ij.gui import WaitForUserDialog, PointRoi
+from ij.gui import WaitForUserDialog, PointRoi, NonBlockingGenericDialog
 from ij.plugin import ChannelSplitter, Duplicator, ZProjector
 from ij import Prefs
 from loci.plugins import BF as bf
@@ -40,6 +40,7 @@ def main():
 	
 	# get locations for previous and new outputs
 	params = Parameters();
+	params.loadLastParams();
 	output_folder_old, output_folder = mbio.rerun_location_chooser(params.input_image_path);
 	params.loadParametersFromJson(os.path.join(output_folder_old, 'parameters used.json'));
 	params.setOutputPath(output_folder);
@@ -60,6 +61,32 @@ def main():
 							"I will do a maximum projection before proceeding", 
 							"Continue?"]);
 		imp = ZProjector.run(imp,"max all");
+
+	# prompt user to select ROI
+	original_imp = Duplicator().run(imp);
+	_, crop_params = mbui.crop_to_ROI(imp, params);
+	imp.show();
+
+	if crop_params is not None:
+		params.perform_spatial_crop = True;
+		mbui.autoset_zoom(imp);
+		imp.updateAndDraw();
+		review_crop = mb.check_cropping(output_folder_old, params);
+		keep_crop = not review_crop;
+		if review_crop:
+			keep_crop = mbui.crop_review();
+		if not keep_crop:
+			imp.changes = False;
+			imp.close();
+			imp = original_imp;
+		else:
+			original_imp.close();
+	else:
+		original_imp.close();
+
+	# prompt user to do time cropping
+	imp, start_end_tuple = mbui.time_crop(imp, params);
+	params.setTimeCropStartEnd(start_end_tuple);
 
 	params = mbio.get_metadata(params);
 	params.setCurvatureLengthUm(round(params.curvature_length_um / params.pixel_physical_size) * params.pixel_physical_size);
@@ -102,7 +129,7 @@ def main():
 			rgbimp.setRoi(PointRoi(anchor[0], anchor[1]));
 			IJ.run(rgbimp, "Draw", "slice");
 	params.saveParametersToJson(os.path.join(params.output_path, "parameters used.json"));
-	
+	params.persistParameters();	
 	rgbimp.changes = False;
 
 # It's best practice to create a function that contains the code that is executed when running the script.
