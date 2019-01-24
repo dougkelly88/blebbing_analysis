@@ -61,10 +61,6 @@ def fix_anchors_to_membrane(anchors_list, membrane_roi, params):
 			if len(pts) < 1:
 				raise ValueError("NO PIXELS ALONG THE MEMBRANE FALL AT THE SAME Y POSITION AS THE ANCHOR!");
 			fixed_anchor = pts[[abs(x-anchor[0]) for (x,y) in pts].index(min([abs(x-anchor[0]) for (x,y) in pts]))];
-			#d2 = x - anchor[0];
-			#if d2 < last_dsq:
-			#	last_dsq = d2;
-			#	fixed_anchor = (x, anchor[1]);
 		else:
 			last_dsq = 100000;
 			for (x,y) in zip(outline.xpoints,outline.ypoints):
