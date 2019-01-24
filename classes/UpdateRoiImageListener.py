@@ -15,7 +15,10 @@ class UpdateRoiImageListener(ImageListener):
 		roi = imp.getRoi();
 		if roi is not None and not roi.isArea():
 			self.roi_list[self.last_frame - 1] = roi;
-		frame = imp.getT();
+		if imp.getNFrames()>imp.getNSlices():
+			frame = imp.getT();
+		else:
+			frame = imp.getZ();
 		self.last_frame = frame;
 		imp.setRoi(self.roi_list[frame - 1]);
 
