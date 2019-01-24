@@ -4,10 +4,10 @@
 
 # imports
 import math
-from ij import IJ
-from ij.gui import GenericDialog, NonBlockingGenericDialog, Roi, PolygonRoi
+from ij import IJ, ImageStack, ImagePlus
+from ij.gui import GenericDialog, NonBlockingGenericDialog, Roi, PolygonRoi, PointRoi
 from ij.plugin import Duplicator
-from java.awt import GraphicsEnvironment, Panel, Dimension, Checkbox, CheckboxGroup
+from java.awt import GraphicsEnvironment, Panel, Dimension, Checkbox, CheckboxGroup, Color
 from javax.swing import Box
 from loci.formats import ImageReader, MetadataTools
 from loci.formats.gui import BufferedImageReader
@@ -141,10 +141,23 @@ def MyWaitForUser(title, message):
 		raise KeyboardInterrupt("Run canceled");
 	return;
 
-def perform_user_qc(imp, edges, alt_edges, fixed_anchors_list, params):
+def perform_user_qc(in_imp, edges, alt_edges, fixed_anchors_list, params):
 	"""allow the user to intervene to fix erroneously identified membrane edges"""
 	output_folder = params.output_path;
 	current_edges = edges;
+	rgbstack = ImageStack(in_imp.getWidth(), in_imp.getHeight());
+	for tidx in range(in_imp.getNFrames()): 
+		in_imp.setT(tidx+1);
+		ip = in_imp.getProcessor();
+		rgbip = ip.convertToRGB();
+		rgbstack.addSlice(rgbip);
+	imp = ImagePlus(("RGB " + in_imp.getTitle()), rgbstack);
+	IJ.run("Colors...", "foreground=red background=white selection=yellow");
+	for tidx in range(imp.getNSlices()):
+		imp.setSlice(tidx+1);
+		for anchor in params.manual_anchor_positions:
+			imp.setRoi(PointRoi(anchor[0], anchor[1]));
+			IJ.run(imp, "Draw", "slice");
 	imp.show();
 	autoset_zoom(imp);
 	imp.setPosition(1);
@@ -177,12 +190,15 @@ def perform_user_qc(imp, edges, alt_edges, fixed_anchors_list, params):
 
 	last_roi = imp.getRoi();
 	qcd_edges = listener.getRoiList();
-	qcd_edges[imp.getT() - 1] = last_roi;
+	if imp.getNFrames() > imp.getNSlices():
+		qcd_edges[imp.getT() - 1] = last_roi;
+	else:
+		qcd_edges[imp.getZ() - 1] = last_roi;
 	imp.removeImageListener(listener);
 	mbio.save_qcd_edges(qcd_edges, output_folder);
 	for fridx in range(0, imp.getNFrames()):
 		if qcd_edges[fridx].getType() == Roi.FREELINE:
-			if (fridx == 0):
+			if (fridx == 0) or params.constrain_anchors:
 				anchors = params.manual_anchor_positions;
 			else:
 				anchors = fixed_anchors_list[fridx - 1];
@@ -204,6 +220,7 @@ def perform_user_qc(imp, edges, alt_edges, fixed_anchors_list, params):
 			IJ.run(imp, "Fit Spline", "");
 			qcd_edges[fridx] = imp.getRoi();
 	mbio.save_qcd_edges(qcd_edges, output_folder);
+	imp.changes = False;
 	imp.close();
 	return qcd_edges, fixed_anchors_list;
 
