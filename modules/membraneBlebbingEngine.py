@@ -62,12 +62,8 @@ def fix_anchors_to_membrane(anchors_list, membrane_roi, params):
 				raise ValueError("NO PIXELS ALONG THE MEMBRANE FALL AT THE SAME Y POSITION AS THE ANCHOR!");
 			fixed_anchor = pts[[abs(x-anchor[0]) for (x,y) in pts].index(min([abs(x-anchor[0]) for (x,y) in pts]))];
 		else:
-			last_dsq = 100000;
-			for (x,y) in zip(outline.xpoints,outline.ypoints):
-				d2 = math.pow((x - anchor[0]), 2) + math.pow((y - anchor[1]), 2);
-				if d2 < last_dsq:
-					last_dsq = d2;
-					fixed_anchor = (x, y);
+			pts = [(x, y) for (x, y)  in zip(outline.xpoints, outline.ypoints)]
+			fixed_anchor = pts[[vector_length((x, y), (anchor[0], anchor[1]))].index(min(vector_length((x, y), (anchor[0], anchor[1]))))];
 		fixed_anchors_set.add(fixed_anchor);
 	if (len(fixed_anchors_set) < (anchor_idx+1)):
 		raise ValueError('degeneracy between anchor points!');
