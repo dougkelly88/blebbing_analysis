@@ -393,15 +393,21 @@ def check_cropping(output_folder_old, params):
 	try:
 		impath = os.path.join(output_folder_old, "overlaid curvature.tif")
 		print(impath);
+		if not os.path.isfile(impath):
+			print("unable to open image from previous analysis, " + impath);
+			return True;
 		old_imp = IJ.openImage(impath)
+		old_imp.show();
 	except:
 		print("unable to open image from previous analysis, " + impath)
 		return True;
 	roi = params.parse_roistr_to_roi();
 	if old_imp.getWidth()==roi.getBounds().width and old_imp.getHeight()==roi.getBounds().height:
+		old_imp.close();
 		return False;
 	else:
 		print("previous output image size and cropping parameters do not agree!");
+		old_imp.close();
 		return True;
 
 # functions ported from ij.plugin.Selection to implement functionality of 
