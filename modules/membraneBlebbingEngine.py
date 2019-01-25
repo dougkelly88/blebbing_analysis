@@ -63,7 +63,7 @@ def fix_anchors_to_membrane(anchors_list, membrane_roi, params):
 			fixed_anchor = pts[[abs(x-anchor[0]) for (x,y) in pts].index(min([abs(x-anchor[0]) for (x,y) in pts]))];
 		else:
 			pts = [(x, y) for (x, y)  in zip(outline.xpoints, outline.ypoints)]
-			fixed_anchor = pts[[vector_length((x, y), (anchor[0], anchor[1]))].index(min(vector_length((x, y), (anchor[0], anchor[1]))))];
+			fixed_anchor = pts[[vector_length((x, y), (anchor[0], anchor[1])) for (x,y) in pts].index(min([vector_length((x, y), (anchor[0], anchor[1])) for (x,y) in pts]))];
 		fixed_anchors_set.add(fixed_anchor);
 	if (len(fixed_anchors_set) < (anchor_idx+1)):
 		raise ValueError('degeneracy between anchor points!');
