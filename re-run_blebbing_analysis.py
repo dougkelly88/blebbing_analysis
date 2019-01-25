@@ -118,9 +118,11 @@ def main():
 	split_channels = mbfs.split_image_plus(imp, params)
 	membrane_channel_imp = split_channels[0];
 	actin_channel_imp = split_channels[1];
-	segmentation_channel_imp = split_channels[-1];
+	segmentation_channel_imp = None;
 	if params.photobleaching_correction:
-		segmentation_channel_imp = mb.make_and_clean_binary(segmentation_channel_imp, params.threshold_method)
+		segmentation_binary_path = os.path.join(output_folder_old, 'binary_membrane_stack.tif');
+		segmentation_channel_imp = IJ.openImage(segmentation_binary_path);
+		split_channels[2] = segmentation_channel_imp;
 	
 	calculated_objects = mbfs.calculate_outputs(params,
 												calculated_objects, 
