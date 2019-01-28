@@ -196,9 +196,10 @@ def perform_user_qc(in_imp, edges, alt_edges, fixed_anchors_list, params):
 	else:
 		qcd_edges[imp.getZ() - 1] = last_roi;
 	imp.removeImageListener(listener);
-	mbio.save_qcd_edges(qcd_edges, output_folder);
-	for fridx in range(0, imp.getNFrames()):
-		if qcd_edges[fridx].getType() == Roi.FREELINE:
+	mbio.save_qcd_edges2(qcd_edges, output_folder);
+	nframes = imp.getNFrames() if imp.getNFrames()>imp.getNSlices() else imp.getNSlices();
+	for fridx in range(0, nframes):
+		if (qcd_edges[fridx].getType()==Roi.FREELINE) or (qcd_edges[fridx].getType()==Roi.POLYLINE):
 			if (fridx == 0) or params.constrain_anchors:
 				anchors = params.manual_anchor_positions;
 			else:
@@ -220,7 +221,7 @@ def perform_user_qc(in_imp, edges, alt_edges, fixed_anchors_list, params):
 			IJ.run(imp, "Interpolate", "interval=1.0 smooth adjust");
 			IJ.run(imp, "Fit Spline", "");
 			qcd_edges[fridx] = imp.getRoi();
-	mbio.save_qcd_edges(qcd_edges, output_folder);
+	mbio.save_qcd_edges2(qcd_edges, output_folder);
 	imp.changes = False;
 	imp.close();
 	return qcd_edges, fixed_anchors_list;

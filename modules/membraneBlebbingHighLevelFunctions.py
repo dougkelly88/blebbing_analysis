@@ -109,7 +109,7 @@ def generate_edges(imp, params, calculated_objects, repeat_fraction=1):
 		membrane_edges, fixed_anchors_list = mbui.perform_user_qc(membrane_test_channel_imp, membrane_edges, alternate_edges, fixed_anchors_list, params);
 		imp.show();
 	else:
-		mbio.save_qcd_edges(membrane_edges, params.output_path);
+		mbio.save_qcd_edges2(membrane_edges, params.output_path);
 	
 	calculated_objects.membrane_edges = membrane_edges;
 	calculated_objects.fixed_anchors_list = fixed_anchors_list;

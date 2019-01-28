@@ -105,8 +105,8 @@ def main():
 	params.setTimeCropStartEnd(start_end_tuple);
 
 	# import edges
-	membrane_edges = mbio.load_qcd_edges(os.path.join(output_folder_old, "user_defined_edges.json"));
-	mbio.save_qcd_edges(membrane_edges, params.output_path);
+	membrane_edges = mbio.load_qcd_edges2(os.path.join(output_folder_old, "user_defined_edges.zip"));
+	mbio.save_qcd_edges2(membrane_edges, params.output_path);
 	
 	calculated_objects = CalculatedObjects();
 	calculated_objects.membrane_edges = membrane_edges;

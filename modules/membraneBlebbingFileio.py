@@ -8,6 +8,7 @@ from datetime import datetime
 from ij.io import OpenDialog, DirectoryChooser
 from ij.gui import PolygonRoi, Roi
 from loci.formats import ImageReader, MetadataTools
+from ij.plugin.frame import RoiManager
 from ome.units import UNITS
 
 import membraneBlebbingUi as mbui
@@ -47,7 +48,8 @@ def rerun_location_chooser(default_filepath):
 		raise IOError('no input path chosen');
 	# check that chosen folder contains the right files...
 	files_lst = os.listdir(old_output_folder);
-	if not all([f in files_lst for f in ['user_defined_edges.json', 'parameters used.json']]):
+	#if not all([f in files_lst for f in ['user_defined_edges.zip', 'parameters used.json']]):
+	if not 'parameters used.json' in files_lst or not(('user_defined_edges.json' in files_lst) or ('user_defined_edges.zip' in files_lst)):
 		raise IOError('chosen path isn''t a valid membrane blebbing output folder');
 	timestamp = datetime.strftime(datetime.now(), '%Y-%m-%d %H-%M-%S');
 	new_output_folder = os.path.join(os.path.dirname(os.path.normpath(old_output_folder)), (timestamp + ' output'));
@@ -104,13 +106,21 @@ def save_parameters(params, file_path):
 
 def save_qcd_edges(edges, output_folder):
 	"""save JSON describing user-drawn edges"""
-	edge_point_list = [zip(poly.xpoints, poly.ypoints) for poly in [edge.getPolygon() for edge in edges]];
+	edge_point_list = [zip(poly.xpoints, poly.ypoints) for poly in [edge.getInterpolatedPolygon(1.0, False) for edge in edges]];
 	file_path = os.path.join(output_folder, "user_defined_edges.json");
 	f = open(file_path, 'w');
 	try:
 		json.dump(edge_point_list, f);
 	finally:
 		f.close();
+
+def save_qcd_edges2(edges, output_folder):
+	"""save edges as rois to a *.zip file"""
+	roim = RoiManager(False)
+	for edge in edges:
+		roim.addRoi(edge);
+	roim.runCommand("Save", os.path.join(output_folder, "user_defined_edges.zip" ));
+	roim.close();
 
 def load_qcd_edges(input_file_path):
 	"""load edges from JSON"""
@@ -125,6 +135,17 @@ def load_qcd_edges(input_file_path):
 		ys = [pt[1] for pt in edge];
 		membrane_edges.append(PolygonRoi(xs, ys, Roi.POLYLINE));
 	return membrane_edges;
+
+def load_qcd_edges2(input_file_path):
+	"""load edges from roi *.zip file"""
+	if os.path.isfile(input_file_path):
+		roim = RoiManager(False);
+		roim.runCommand("Open", input_file_path);
+		edges = roim.getRoisAsArray();
+		roim.close();
+	else:
+		edges = load_qcd_edges(os.path.splitext(input_file_path)[0] + '.json');
+	return edges;
 
 def get_metadata(params):
 	"""get image metadata, either from the image file or from acquisition-time metadata"""
