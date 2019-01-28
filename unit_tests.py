@@ -23,7 +23,7 @@ import membraneBlebbingFigures as mbfig;
 from Parameters import Parameters;
 
 from ij import ImagePlus, IJ
-from ij.gui import PolygonRoi, Roi
+from ij.gui import PolygonRoi, Roi, WaitForUserDialog
 from ij.process import FloatProcessor, ImageProcessor
 
 class TestMbEngine(unittest.TestCase):
@@ -51,47 +51,54 @@ class TestMbEngine(unittest.TestCase):
 		self.assertEqual([(2,4), (2,2)], mb.fix_anchors_to_membrane([(1,2), (3,4)],roi,params))
 		self.assertRaises(ValueError, mb.fix_anchors_to_membrane, [(1,2), (1,2)], roi,params)
 		imp.close();
-
-	def test_generate_l_spaced_points(self):
-		"""test that start and end of l-spaced points range are as expected"""
-		ypts = [y for y in range(0, 101)];
-		xpts = [2 for y in range(0, 101)];
-		roi = PolygonRoi(xpts, ypts, Roi.POLYLINE);
-		l_spaced_points = mb.generate_l_spaced_points(roi, 5);
-		test_group1 = [l_spaced_points[0][0], l_spaced_points[1][0], l_spaced_points[2][0]];
-		test_group2 = [l_spaced_points[0][-1], l_spaced_points[1][-1], l_spaced_points[2][-1]];
-		self.assertEqual([(2,0),(2,5),(2,10)], test_group1);
-		self.assertEqual([(2,90),(2,95),(2,100)], test_group2);
 		
 	def test_calculate_curvature_profile(self):
 		"""test that flat line returns 0 curvature, r = 1000 curve returns 1/1000 curvature, and that negative curvatures are removed appropriately"""
 		ypts = [y for y in range(0, 3)];
 		xpts = [1 for y in range(0, 3)];
 		roi = PolygonRoi(xpts, ypts, Roi.POLYLINE);
-		cp = mb.calculate_curvature_profile(([(1,0)], [(1,1)], [(1,2)]), roi, True);
+		params = Parameters(curvature_length_um=1, filter_negative_curvatures=True);
+		cp = mb.calculate_curvature_profile(roi, params);
+#		cp = mb.calculate_curvature_profile(([(1,0)], [(1,1)], [(1,2)]), roi, True);
 		ctest1 = [c for ((x,y),c) in cp];
 		self.assertEqual([0,0,0], ctest1);
 
-		theta = [t*math.pi/4 for t in range(0,3)]
+		theta = [t*math.pi/100 for t in range(0,101)]
 		ypts = [1000*math.sin(t) for t in theta];
-		xpts = [-1000*math.cos(t) for t in theta];
+		xpts = [1000-1000*math.cos(t) for t in theta];
 		roi = PolygonRoi(xpts, ypts, Roi.POLYLINE);
+#		imp = IJ.createImage("one", 250, 150, 1, 8);
+#		imp.show();
+#		imp.setRoi(roi);
+#		WaitForUserDialog("pause!").show();
+#		imp.close();
+
 		# N.B this length tends to l = pi * r/4 ~=785.4 as precision/length of theta
 		# vector increases. Gets silly, so just do by inspection...
-		l = 764.5;
-		pts = mb.generate_l_spaced_points(roi, l) 
-		cp = mb.calculate_curvature_profile(pts, roi, True)
-		ctest2 = cp[int(round(len(cp)/2))][1];
+#		params = Parameters(curvature_length_um=764.5, filter_negative_curvatures=True);
+		params = Parameters(curvature_length_um=100, filter_negative_curvatures=False);
+#		pts = mb.generate_l_spaced_points(roi, l) 
+#		cp = mb.calculate_curvature_profile(pts, roi, True)
+		cp = mb.calculate_curvature_profile(roi, params);
+		dum = [c for ((x, y), c) in cp if c != 0];
+		ctest2 = (sum(dum)/len(dum));
 		self.assertAlmostEqual(ctest2, 1.0/1000, 5);
+		
 
+		params.filter_negative_curvatures = False;
 		xpts = [1000*math.cos(t) for t in theta];
 		roi = PolygonRoi(xpts, ypts, Roi.POLYLINE);
-		pts = mb.generate_l_spaced_points(roi, l) 
-		cp = mb.calculate_curvature_profile(pts, roi, False)
-		ctest3 = cp[int(round(len(cp)/2))][1];
+#		pts = mb.generate_l_spaced_points(roi, l) 
+#		cp = mb.calculate_curvature_profile(pts, roi, False)
+		cp = mb.calculate_curvature_profile(roi, params);
+		dum = [c for ((x, y), c) in cp if c != 0];
+		ctest3 = (sum(dum)/len(dum));
 		self.assertAlmostEqual(ctest3, -1.0/1000, 5);
 
-		cp = mb.calculate_curvature_profile(pts, roi, True)
+		params.filter_negative_curvatures = True;
+#		cp = mb.calculate_curvature_profile(pts, roi, True)
+		cp = mb.calculate_curvature_profile(roi, params);
+#		print(cp);
 		ctest4 = cp[int(round(len(cp)/2))][1];
 		self.assertEqual(ctest4, 0);
 		
@@ -100,6 +107,7 @@ class TestMbEngine(unittest.TestCase):
 		w = 500; h = 500;
 		R = 200;
 		length_param_pix = 50;
+		params = Parameters(curvature_length_um=length_param_pix);
 		x1 = []; y1 = []; c1 = (0, int(float(h)/2));
 		x2 = []; y2 = []; c2 = (int(float(w)/2),  0);
 		x3 = []; y3 = []; c3 = (w, int(float(h)));
@@ -135,10 +143,11 @@ class TestMbEngine(unittest.TestCase):
 					midpoint = (int(float(w)/2), int(float(h)/2));
 				anchors = mb.order_anchors(anchors, [midpoint]);
 				edge = mb.check_edge_order(anchors, edge);
-				curv_pts = mb.generate_l_spaced_points(edge, length_param_pix);
-				curv_profile = mb.calculate_curvature_profile(curv_pts,
-														edge, 
-														False);
+#				curv_pts = mb.generate_l_spaced_points(edge, length_param_pix);
+#				curv_profile = mb.calculate_curvature_profile(curv_pts,
+#														edge, 
+#														False);
+				curv_profile = mb.calculate_curvature_profile(edge, params);
 				curvs_only = [cv for cp, cv in curv_profile];
 				mean_curv = sum(curvs_only)/len(curvs_only);
 				self.assertEqual(mean_curv > 0, mp_dir);

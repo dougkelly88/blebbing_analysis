@@ -136,10 +136,7 @@ def calculate_outputs(params, calculated_objects, split_channels, inner_outer_in
 	for fridx in range(membrane_channel_imp.getNFrames()):
 		# generate curvature - this needs to be looped over slices
 		membrane_edge = calculated_objects.membrane_edges[fridx];
-		curv_points = mb.generate_l_spaced_points(membrane_edge, int(round(params.curvature_length_um / params.pixel_physical_size)));
-		curv_profile = mb.calculate_curvature_profile(curv_points,
-														membrane_edge, 
-														params.filter_negative_curvatures);
+		curv_profile = mb.calculate_curvature_profile(membrane_edge, params);
 		curvature_profiles.append(curv_profile);
 			
 		# generate actin-channel line profile if actin channel present

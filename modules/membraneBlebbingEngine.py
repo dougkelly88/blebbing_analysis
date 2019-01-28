@@ -125,55 +125,41 @@ def vector_length(start, end):
 	"""return vector length, given start and end points"""
 	return math.sqrt(math.pow((start[0] - end[0]),2) + math.pow((start[1] - end[1]),2));
 
-def generate_l_spaced_points(roi, l): 
-	"""generate arrays of points along the membrane that are separated by path length l - currently in pixels"""
-	poly = roi.getInterpolatedPolygon(1.0, True);
-	p1, cp, p2 = ([] for i in range(3));
-	for idx,(x,y) in enumerate(zip(poly.xpoints,poly.ypoints)):
-		if ((idx > 0) and (idx < poly.npoints)): # ignore first and last points: by definition these won't have anything useful on either side
-			# look backwards and calculate pathlength at successive points
-			db = 0;
-			iidx = idx - 1;
-			while ((iidx >= 0) and (db < l)):
-				dbnew = db + math.sqrt(math.pow((poly.xpoints[iidx] - poly.xpoints[iidx+1]), 2)  + 
-									math.pow((poly.ypoints[iidx] - poly.ypoints[iidx+1]), 2));
-				if (dbnew >= l):
-					xx = poly.xpoints[iidx+1] + ((l - db)/(dbnew - db))*(poly.xpoints[iidx] - poly.xpoints[iidx+1]);
-					yy = poly.ypoints[iidx+1] + ((l - db)/(dbnew - db))*(poly.ypoints[iidx] - poly.ypoints[iidx+1]);
-					dbnew = db + math.sqrt(math.pow(((l - db)/(dbnew - db))*(poly.xpoints[iidx] - poly.xpoints[iidx+1]), 2)  + 
-									math.pow(((l - db)/(dbnew - db))*(poly.ypoints[iidx] - poly.ypoints[iidx+1]), 2));
-				else:
-					iidx = iidx-1;
-				db = dbnew;
-			if (db == l):
-				pp1 = (xx, yy);
-				pcp = (x, y);
-				# then look forwards ONLY IF backwards search was successful...
-				iidx = idx + 1;
-				df = 0;
-				while ((iidx < poly.npoints) and (df < l)):
-					dfnew = df + math.sqrt(math.pow((poly.xpoints[iidx] - poly.xpoints[iidx-1]), 2)  + 
-									math.pow((poly.ypoints[iidx] - poly.ypoints[iidx-1]), 2));
-					if (dfnew >= l):
-						xx = poly.xpoints[iidx-1] + ((l - df)/(dfnew - df))*(poly.xpoints[iidx] - poly.xpoints[iidx-1]);
-						yy = poly.ypoints[iidx-1] + ((l - df)/(dfnew - df))*(poly.ypoints[iidx] - poly.ypoints[iidx-1]);
-						dfnew = df + math.sqrt(math.pow(((l - df)/(dfnew - df))*(poly.xpoints[iidx] - poly.xpoints[iidx-1]), 2)  + 
-										math.pow(((l - df)/(dfnew - df))*(poly.ypoints[iidx] - poly.ypoints[iidx-1]), 2));
-					else:
-						iidx = iidx+1;
-					df = dfnew;
-				if (df == l):
-					p1.append(pp1);
-					cp.append(pcp);
-					p2.append((xx, yy));
-	return (p1, cp, p2);
+def get_3_points(centre_point, roi_poly, curv_length_pix):
+	"""for a given point along a given roi, find the two flanking points separated by curv_length_pix along the contour"""
+	back_list = roi_poly[0:roi_poly.index(centre_point)+1]
+	back_list.reverse();
+	l = 0;
+	for p, pp in zip(back_list, back_list[1:]):
+		l += vector_length(p, pp);
+		if l>=curv_length_pix:
+			break;
+	if l>=curv_length_pix:
+		p1 = p;
+	else:
+		p1 = None;
+	forward_list = roi_poly[roi_poly.index(centre_point):];
+	l = 0;
+	for p, pp in zip(forward_list, forward_list[1:]):
+		l += vector_length(p, pp);
+		if l>=curv_length_pix:
+			break;
+	if l>=curv_length_pix:
+		p2 = pp;
+	else:
+		p2 = None;
+	return (p1, centre_point, p2);
 
-def calculate_curvature_profile(curv_points, roi, remove_negative_curvatures, verbose=False):
+def calculate_curvature_profile(roi, params, verbose=False):
 	"""generate a line profile of local curvatures using three-point method and SSS theorem (see http://mathworld.wolfram.com/SSSTheorem.html)"""
 	poly = roi.getInterpolatedPolygon(1.0, True);
 	curvature_profile = [((x,y),0) for (x,y) in zip(poly.xpoints, poly.ypoints)];
 	pos = [p for (p, c) in curvature_profile]
-	for (cp, p1, p2) in zip(curv_points[1], curv_points[0], curv_points[2]):
+	curv_length_pix = int(round(params.curvature_length_um / params.pixel_physical_size));
+	for cp in pos:
+		p1, cp, p2 = get_3_points(cp, pos, curv_length_pix);
+		if not all([p1, cp, p2]):
+			continue;
 		if verbose:
 			print("Edge index = " + str(pos.index(cp)))
 			print("P1 = " + str(p1));
@@ -186,11 +172,14 @@ def calculate_curvature_profile(curv_points, roi, remove_negative_curvatures, ve
 		try:
 			K = math.sqrt(s * (s - a) * (s - b) * (s - c));
 		except ValueError:
+			print("(s * (s-a)*(s-b)*(s-c)) is negative")
 			if ((s - a) < 0) | ((s - b) < 0) | ((s - c) < 0):
-				K = 0;
+				K = float('nan');
 			if s < 0:
 				raise ValueError('s < 0!');
 		if (K == 0):
+			curv = 0;
+		elif (math.isnan(K)):
 			curv = 0;
 		else:
 			R = (a * b * c)/(4 * K);
@@ -198,7 +187,7 @@ def calculate_curvature_profile(curv_points, roi, remove_negative_curvatures, ve
 			c_2 = tuple(r2-rc for r2, rc in zip(p2, cp));
 			sign = round((c_1[0]*c_2[1] - c_2[0]*c_1[1]) / (abs(c_1[0]*c_2[1] - c_2[0]*c_1[1]) + 1e-10));
 			curv = sign * 1/R;
-		if (remove_negative_curvatures and (curv < 0)):
+		if (params.filter_negative_curvatures and (curv < 0)):
 			curv = 0;
 		if verbose:
 			print("Curvature = " + str(curv));
