@@ -31,8 +31,10 @@ def generate_curvature_overlays(curvature_profile, curvature_stack):
 	h = curvature_stack.getHeight();
 	ip = FloatProcessor(w, h);
 	pix = ip.getPixels();
-	mx = max([c for ((x, y), c) in curvature_profile]);
-	for ((x, y), c) in curvature_profile:
+	curv = [c for ((x, y), c) in curvature_profile];
+	start_idx = next((i for i, x in enumerate(curv) if x), None);
+	end_idx = next((len(curv) - i for i, x in enumerate(reversed(curv)) if x), None);
+	for ((x, y), c) in curvature_profile[start_idx:end_idx]:
 		# ensure that no rounding issues cause pixels to fall outside image...
 		if x > (w - 1):
 			x = w - 1;
@@ -132,7 +134,10 @@ def overlay_curvatures(imp, curvature_profiles, params, limits = None, annotate=
 		ip = overlay_base_imp.getStack().getProcessor(raw_idx).convertToRGB();
 		pix = overlay_imp.getStack().getProcessor(fridx).getPixels();
 		base_pix = ip.getPixels();
-		for ((x, y), c) in curvature_profiles[fridx-1]:
+		curv = [c for ((x, y), c) in curvature_profiles[fridx-1]];
+		start_idx = next((i for i, x in enumerate(curv) if x), None);
+		end_idx = next((len(curv) - i for i, x in enumerate(reversed(curv)) if x), None);
+		for ((x, y), c) in curvature_profiles[fridx-1][start_idx:end_idx]:
 			# ensure that no rounding issues cause pixels to fall outside image...
 			if x > (w - 1):
 				x = w - 1;
