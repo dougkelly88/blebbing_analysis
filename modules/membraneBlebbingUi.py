@@ -30,7 +30,6 @@ class Listener(ActionListener):
 
 	def actionPerformed(self, event):
 		idx = self.imp.getT() - 1 if (self.imp.getNFrames() > self.imp.getNSlices()) else self.imp.getZ() - 1;
-		print(idx);
 		roi = self.imp.getRoi();
 		if roi==self.edges[idx]:
 			self.imp.setRoi(self.alt_edges[idx]);
