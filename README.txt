@@ -52,3 +52,9 @@ Run software from ImageJ menu Plugins -> blebbing analysis -> looped blebbing an
 When prompted, select the folder containing the previous analysis output
 If the original image can't be located, software will also prompt for this
 Software will then loop over the parameters and perform the analysis as required, saving into the folder above the original output in the form ".\<dated folder>\looped analysis\<loop parameter> = <value>"
+
+To re-draw edges for later re-analysis:
+Run software from ImageJ menu Plugins -> blebbing analysis -> view and edit edges
+When prompted, select the folder containing the previous analysis output
+If the original image can't be located, software will also prompt for this
+Then proceed as normal with membrane quality control. On completion, an image will be be displayed showing the resulting membrane edges overlaid on the image, and membrane edges will be saved to a new (dated) output folder in the same parent folder as the prior data. 
