@@ -7,7 +7,8 @@ import math
 from ij import IJ, ImageStack, ImagePlus
 from ij.gui import GenericDialog, NonBlockingGenericDialog, Roi, PolygonRoi, PointRoi
 from ij.plugin import Duplicator
-from java.awt import GraphicsEnvironment, Panel, Dimension, Checkbox, CheckboxGroup, Color
+from java.awt import GraphicsEnvironment, Panel, Dimension, Checkbox, CheckboxGroup, Color, Button
+from java.awt.event import ActionListener
 from javax.swing import Box
 from loci.formats import ImageReader, MetadataTools
 from loci.formats.gui import BufferedImageReader
@@ -18,6 +19,23 @@ from MyControlDefinition import MyControlDefinition
 from UpdateRoiImageListener import UpdateRoiImageListener
 import membraneBlebbingEngine as mb
 import membraneBlebbingFileio as mbio
+
+class Listener(ActionListener):
+	"""class to listen for and act on "flip this edge" button press"""
+
+	def __init__(self, edges, alt_edges, imp):
+		self.edges = edges;
+		self.alt_edges = alt_edges;
+		self.imp = imp;
+
+	def actionPerformed(self, event):
+		idx = self.imp.getT() - 1 if (self.imp.getNFrames() > self.imp.getNSlices()) else self.imp.getZ() - 1;
+		print(idx);
+		roi = self.imp.getRoi();
+		if roi==self.edges[idx]:
+			self.imp.setRoi(self.alt_edges[idx]);
+		else:
+			self.imp.setRoi(self.edges[idx]);
 
 def autoset_zoom(imp):
 	"""set the zoom of the current imageplus to give a reasonable window size,  based on reasonable guess at screen resolution"""
@@ -174,6 +192,12 @@ def perform_user_qc(in_imp, edges, alt_edges, fixed_anchors_list, params):
 		dialog.addMessage("Please redraw the membrane edges as necessary, \n" + 
 						"making sure to draw beyond anchor points at either end...\n" + 
 						"Click OK when done. ");
+		p = Panel();
+		but = Button("Flip this edge");
+		al = Listener(edges, alt_edges, imp);
+		but.addActionListener(al);
+		p.add(but);
+		dialog.addPanel(p);
 		dialog.showDialog();
 		if dialog.wasCanceled():
 			raise KeyboardInterrupt("Run canceled");
