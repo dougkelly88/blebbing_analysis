@@ -104,7 +104,7 @@ def main():
 
 	# import edges
 	imp.hide();
-	membrane_edges = mbio.load_qcd_edges(os.path.join(output_folder_old, "user_defined_edges.json"));
+	membrane_edges = mbio.load_qcd_edges2(os.path.join(output_folder_old, "user_defined_edges.zip"));
 	dummy_anchors = [params.manual_anchor_positions for _ in membrane_edges]
 	membrane_edges, fixed_anchors = mbui.perform_user_qc(membrane_test_channel_imp, membrane_edges, membrane_edges, dummy_anchors, params);
 	imp.show();
