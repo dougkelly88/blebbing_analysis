@@ -67,38 +67,23 @@ class TestMbEngine(unittest.TestCase):
 		ypts = [1000*math.sin(t) for t in theta];
 		xpts = [1000-1000*math.cos(t) for t in theta];
 		roi = PolygonRoi(xpts, ypts, Roi.POLYLINE);
-#		imp = IJ.createImage("one", 250, 150, 1, 8);
-#		imp.show();
-#		imp.setRoi(roi);
-#		WaitForUserDialog("pause!").show();
-#		imp.close();
 
-		# N.B this length tends to l = pi * r/4 ~=785.4 as precision/length of theta
-		# vector increases. Gets silly, so just do by inspection...
-#		params = Parameters(curvature_length_um=764.5, filter_negative_curvatures=True);
 		params = Parameters(curvature_length_um=100, filter_negative_curvatures=False);
-#		pts = mb.generate_l_spaced_points(roi, l) 
-#		cp = mb.calculate_curvature_profile(pts, roi, True)
 		cp = mb.calculate_curvature_profile(roi, params);
 		dum = [c for ((x, y), c) in cp if c != 0];
 		ctest2 = (sum(dum)/len(dum));
 		self.assertAlmostEqual(ctest2, 1.0/1000, 5);
-		
 
 		params.filter_negative_curvatures = False;
 		xpts = [1000*math.cos(t) for t in theta];
 		roi = PolygonRoi(xpts, ypts, Roi.POLYLINE);
-#		pts = mb.generate_l_spaced_points(roi, l) 
-#		cp = mb.calculate_curvature_profile(pts, roi, False)
 		cp = mb.calculate_curvature_profile(roi, params);
 		dum = [c for ((x, y), c) in cp if c != 0];
 		ctest3 = (sum(dum)/len(dum));
 		self.assertAlmostEqual(ctest3, -1.0/1000, 5);
 
 		params.filter_negative_curvatures = True;
-#		cp = mb.calculate_curvature_profile(pts, roi, True)
 		cp = mb.calculate_curvature_profile(roi, params);
-#		print(cp);
 		ctest4 = cp[int(round(len(cp)/2))][1];
 		self.assertEqual(ctest4, 0);
 		
@@ -143,10 +128,7 @@ class TestMbEngine(unittest.TestCase):
 					midpoint = (int(float(w)/2), int(float(h)/2));
 				anchors = mb.order_anchors(anchors, [midpoint]);
 				edge = mb.check_edge_order(anchors, edge);
-#				curv_pts = mb.generate_l_spaced_points(edge, length_param_pix);
-#				curv_profile = mb.calculate_curvature_profile(curv_pts,
-#														edge, 
-#														False);
+
 				curv_profile = mb.calculate_curvature_profile(edge, params);
 				curvs_only = [cv for cp, cv in curv_profile];
 				mean_curv = sum(curvs_only)/len(curvs_only);
