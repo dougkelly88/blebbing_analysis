@@ -10,7 +10,7 @@
 # imports
 import os, sys, json
 from ij import IJ
-from ij.plugin import ZProjector
+from ij.plugin import ZProjector, Duplicator
 from ij import Prefs
 from loci.plugins import BF as bf
 
