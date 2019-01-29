@@ -150,8 +150,12 @@ def main():
 		actin_channel_imp = split_channels[1];
 		segmentation_channel_imp = None;
 		if params.photobleaching_correction:
-			segmentation_binary_path = os.path.join(output_folder_old, 'binary_membrane_stack.tif');
-			segmentation_channel_imp = IJ.openImage(segmentation_binary_path);
+			if os.path.isfile(os.path.join(output_folder_old, 'binary_membrane_stack.tif')):
+				segmentation_binary_path = os.path.join(output_folder_old, 'binary_membrane_stack.tif');
+				segmentation_channel_imp = IJ.openImage(segmentation_binary_path);
+			else:
+				segmentation_channel_imp = split_channels[2];
+				segmentation_channel_imp = mb.make_and_clean_binary(segmentation_channel_imp, params.threshold_method)
 			split_channels[2] = segmentation_channel_imp;
 
 		calculated_objects = mbfs.calculate_outputs(params,
