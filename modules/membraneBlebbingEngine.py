@@ -182,7 +182,7 @@ def calculate_curvature_profile(roi, params, verbose=False):
 		elif (math.isnan(K)):
 			curv = 0;
 		else:
-			R = (a * b * c)/(4 * K);
+			R = params.pixel_physical_size * (a * b * c)/(4 * K);
 			c_1 = tuple(r1-rc for r1, rc in zip(p1, cp));
 			c_2 = tuple(r2-rc for r2, rc in zip(p2, cp));
 			sign = round((c_1[0]*c_2[1] - c_2[0]*c_1[1]) / (abs(c_1[0]*c_2[1] - c_2[0]*c_1[1]) + 1e-10));

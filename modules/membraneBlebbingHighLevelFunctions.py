@@ -162,6 +162,7 @@ def calculate_outputs(params, calculated_objects, split_channels, inner_outer_in
 	calculated_objects.actin_profiles = actin_profiles;
 	calculated_objects.bleb_perimeter_lengths = mb_lengths;
 	calculated_objects.bleb_areas = mb_areas;
+	params.setPhysicalCurvatureUnit(params.pixel_unit + u'\u02C9' + u'\u00B9');
 	
 	return calculated_objects;
 

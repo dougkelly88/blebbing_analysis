@@ -37,7 +37,8 @@ class Parameters:
 						use_single_channel = False, 
 						inner_outer_comparison = False, 
 						selected_series_index = 0, 
-						constrain_anchors = False):
+						constrain_anchors = False, 
+						physical_curvature_unit = ''):
 		self.__blebbingparams__ = True;
 
 		success = True;
@@ -78,6 +79,7 @@ class Parameters:
 			self.frame_interval = 1.0;
 			self.interval_unit = "s";
 			self.intensity_profile_width_um = intensity_profile_width_um;
+			self.physical_curvature_unit = physical_curvature_unit;
 
 			self.membrane_channel_number = membrane_channel_number;
 			self.use_single_channel = use_single_channel;
@@ -215,6 +217,10 @@ class Parameters:
 			unit_string = "s";
 		self.interval_unit = unit_string;
 
+	def setPhysicalCurvatureUnit(self, unit_string):
+		"""set the physical unit of curvature - dimension = inverse length"""
+		self.physical_curvature_unit = unit_string;
+
 	def parse_roistr_to_roi(self):
 		"""interpret string saved in parameters JSON as IJ ROI"""
 		from ij.gui import PolygonRoi, Roi;
@@ -278,6 +284,10 @@ class Parameters:
 		self.setDoInnerOuterComparison(dct["inner_outer_comparison"]);
 		self.setSelectedSeriesIndex(dct["selected_series_index"]);
 		self.toggleConstrainAnchors(dct["constrain_anchors"]);
+		try:
+			self.setPhysicalCurvatureUnit(dct["physical_curvature_unit"]);
+		except:
+			self.setPhysicalCurvatureUnit("");
 		try:
 			self.setCurvatureOverlayLUT(dct["curvature_overlay_lut_string"]);
 			self.setCurvatureKymographLUT(dct["curvature_kymograph_lut_string"]);
