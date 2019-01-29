@@ -244,6 +244,13 @@ def maximum_line_profile(imp, roi, pixel_width):
 		pixel_width = 1;
 	pixel_width = int(2 * math.ceil(float(pixel_width)/2));
 	ip = Straightener().straightenLine(imp, pixel_width);
+	# debug
+	#from ij import ImagePlus
+	#from ij.gui import WaitForUserDialog
+	#debug_imp = ImagePlus("debug", ip);
+	#debug_imp.show();
+	#WaitForUserDialog("debug").show();
+	#debug_imp.close();
 	width = ip.getWidth();
 	height = ip.getHeight();
 	max_profile = [];
