@@ -127,7 +127,7 @@ def main():
 
 	# import edges
 	membrane_edges = mbio.load_qcd_edges2(os.path.join(output_folder_old, "user_defined_edges.zip"));
-	mbio.save_qcd_edges(membrane_edges, params.output_path);
+	mbio.save_qcd_edges2(membrane_edges, params.output_path);
 	
 	# generate list of Parameters objects to loop over
 	params_list, loop_param_name, loop_param_vals = generate_params_list(loop_file_path, params);
