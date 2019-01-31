@@ -58,9 +58,17 @@ def fix_anchors_to_membrane(anchors_list, membrane_roi, params):
 		fixed_anchor = anchor;
 		if params.inner_outer_comparison:
 			pts = [(x, y) for (x, y)  in zip(outline.xpoints, outline.ypoints) if int(round(y))==anchor[1]];
-			if len(pts) < 1:
-				raise ValueError("NO PIXELS ALONG THE MEMBRANE FALL AT THE SAME Y POSITION AS THE ANCHOR!");
-			fixed_anchor = pts[[abs(x-anchor[0]) for (x,y) in pts].index(min([abs(x-anchor[0]) for (x,y) in pts]))];
+			if len(pts) > 0:
+				fixed_anchor = pts[[abs(x-anchor[0]) for (x,y) in pts].index(min([abs(x-anchor[0]) for (x,y) in pts]))];
+			else:
+				print("NO PIXELS ALONG THE MEMBRANE FALL AT THE SAME Y POSITION AS THE ANCHOR!");
+				pts = [(x, y) for (x, y)  in zip(outline.xpoints, outline.ypoints) if abs(y-anchor[1])<3];
+				if len(pts) > 0:
+					fixed_anchor = pts[[abs(x-anchor[0]) for (x,y) in pts].index(min([abs(x-anchor[0]) for (x,y) in pts]))];
+				else:
+					print("NO PIXELS ALONG THE MEMBRANE FALL WITHIN 3 PIXELS OF THE Y POSITION OF THE ANCHOR!");
+					pts = [(x, y) for (x, y)  in zip(outline.xpoints, outline.ypoints)]
+					fixed_anchor = pts[[vector_length((x, y), (anchor[0], anchor[1])) for (x,y) in pts].index(min([vector_length((x, y), (anchor[0], anchor[1])) for (x,y) in pts]))];
 		else:
 			pts = [(x, y) for (x, y)  in zip(outline.xpoints, outline.ypoints)]
 			fixed_anchor = pts[[vector_length((x, y), (anchor[0], anchor[1])) for (x,y) in pts].index(min([vector_length((x, y), (anchor[0], anchor[1])) for (x,y) in pts]))];
