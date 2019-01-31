@@ -3,7 +3,7 @@ from java.awt import CheckboxGroup, Checkbox, Panel
 class MyControlDefinition:
 	Numeric, String, Checkbox, Choice, RadioButtonGroup = range(5);
 	def __init__(self, label, control_type, default_val, underlying_data_setter, choices=None, enabled=True):
-		self.label = str(label);
+		self.label = label;
 		self.control_type = int(control_type);
 		if self.control_type < 0 or self.control_type > MyControlDefinition.RadioButtonGroup:
 			raise NotImplementedError();

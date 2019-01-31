@@ -260,11 +260,11 @@ def analysis_parameters_gui(rerun_analysis=False, params=None):
 		params.togglePerformUserQC(False);
 		params.setDoInnerOuterComparison(False);
 
-	controls.append(MyControlDefinition("Curvature length parameter (um):", 
+	controls.append(MyControlDefinition(u'Curvature length parameter (\u00b5m): ', 
 									 MyControlDefinition.Numeric, 
 									 round(params.curvature_length_um, 2), 
 									 params.setCurvatureLengthUm));
-	controls.append(MyControlDefinition("Width of region for intensity analysis (um):", 
+	controls.append(MyControlDefinition(u'Width of region for intensity analysis (\u00b5m): ', 
 									MyControlDefinition.Numeric, 
 									round(params.intensity_profile_width_um, 2), 
 									params.setIntensityProfileWidthUm))
