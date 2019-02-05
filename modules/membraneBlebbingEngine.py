@@ -227,7 +227,7 @@ def keep_largest_blob(imp):
 	mxsz = imp.width * imp.height;
 	pa = ParticleAnalyzer(ParticleAnalyzer.ADD_TO_MANAGER, ParticleAnalyzer.AREA | ParticleAnalyzer.SLICE, rt, 0, mxsz);
 
-	roim = RoiManager();
+	roim = RoiManager(False);
 	for idx in range(1, imp.getImageStackSize()+1):
 		roim.reset();
 		rt.reset();
