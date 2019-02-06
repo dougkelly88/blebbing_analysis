@@ -225,9 +225,10 @@ def keep_largest_blob(imp):
 	"""remove all blobs other than the largest by area"""
 	rt = ResultsTable();
 	mxsz = imp.width * imp.height;
+	roim = RoiManager(False);
 	pa = ParticleAnalyzer(ParticleAnalyzer.ADD_TO_MANAGER, ParticleAnalyzer.AREA | ParticleAnalyzer.SLICE, rt, 0, mxsz);
-
-	roim = RoiManager();
+	pa.setRoiManager(roim);
+	
 	for idx in range(1, imp.getImageStackSize()+1):
 		roim.reset();
 		rt.reset();
