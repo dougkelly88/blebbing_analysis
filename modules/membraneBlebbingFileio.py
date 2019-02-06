@@ -114,12 +114,13 @@ def save_qcd_edges(edges, output_folder):
 	finally:
 		f.close();
 
-def save_qcd_edges2(edges, output_folder):
+def save_qcd_edges2(edges, output_folder, filename="user_defined_edges.zip"):
 	"""save edges as rois to a *.zip file"""
 	roim = RoiManager(False)
 	for edge in edges:
-		roim.addRoi(edge);
-	roim.runCommand("Save", os.path.join(output_folder, "user_defined_edges.zip" ));
+		if edge is not None:
+			roim.addRoi(edge);
+	roim.runCommand("Save", os.path.join(output_folder, filename));
 	roim.close();
 
 def load_qcd_edges(input_file_path):

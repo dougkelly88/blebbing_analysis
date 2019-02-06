@@ -38,7 +38,8 @@ class Parameters:
 						inner_outer_comparison = False, 
 						selected_series_index = 0, 
 						constrain_anchors = False, 
-						physical_curvature_unit = ''):
+						physical_curvature_unit = '', 
+						qc_background_rois=False):
 		self.__blebbingparams__ = True;
 
 		success = True;
@@ -67,6 +68,7 @@ class Parameters:
 			self.labeled_species = labeled_species;
 			
 			self.perform_user_qc = perform_user_qc;
+			self.qc_background_rois = qc_background_rois;
 			self.photobleaching_correction = photobleaching_correction;
 			self.filter_negative_curvatures = filter_negative_curvatures;
 			self.perform_spatial_crop = perform_spatial_crop;
@@ -221,6 +223,10 @@ class Parameters:
 		"""set the physical unit of curvature - dimension = inverse length"""
 		self.physical_curvature_unit = unit_string;
 
+	def toggleBackgroundQc(self, qc_background_rois):
+		"""set whether user should intervene to check and correct automatically identified background regions"""
+		self.qc_background_rois = qc_background_rois;
+
 	def parse_roistr_to_roi(self):
 		"""interpret string saved in parameters JSON as IJ ROI"""
 		from ij.gui import PolygonRoi, Roi;
@@ -288,6 +294,10 @@ class Parameters:
 			self.setPhysicalCurvatureUnit(dct["physical_curvature_unit"]);
 		except:
 			self.setPhysicalCurvatureUnit("");
+		try:
+			self.toggleBackgroundQc(dct["qc_background_rois"]);
+		except:
+			self.toggleBackgroundQc(True);
 		try:
 			self.setCurvatureOverlayLUT(dct["curvature_overlay_lut_string"]);
 			self.setCurvatureKymographLUT(dct["curvature_kymograph_lut_string"]);

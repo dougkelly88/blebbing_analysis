@@ -321,6 +321,10 @@ def analysis_parameters_gui(rerun_analysis=False, params=None):
 									 params.perform_user_qc, 
 									 params.togglePerformUserQC, 
 									 enabled=(not rerun_analysis)));
+	controls.append(MyControlDefinition("Perform quality control of background regions?", 
+									 MyControlDefinition.Checkbox, 
+									 params.qc_background_rois, 
+									 params.toggleBackgroundQc));
 	controls.append(MyControlDefinition("Perform spatial cropping?", 
 									 MyControlDefinition.Checkbox, 
 									 params.perform_spatial_crop, 

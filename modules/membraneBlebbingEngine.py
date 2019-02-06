@@ -414,6 +414,79 @@ def check_cropping(output_folder_old, params):
 		old_imp.close();
 		return True;
 
+def generate_background_rois(input_mask_imp, params, membrane_edges, dilations=5,  threshold_method=None, membrane_imp=None):
+	"""automatically identify background region based on auto-thresholded image, existing membrane edges and position of midpoint anchor"""
+	if input_mask_imp is None and membrane_imp is not None:
+		segmentation_imp = Duplicator().run(membrane_imp);
+		# do thresholding using either previous method if threhsold_method is None or using (less conservative?) threshold method
+		if (threshold_method is None or not (threshold_method in params.listThresholdMethods())):
+			mask_imp = make_and_clean_binary(segmentation_imp, params.threshold_method);
+		else:
+			mask_imp = make_and_clean_binary(segmentation_imp, threshold_method);
+		segmentation_imp.close();
+	else:
+		input_mask_imp.killRoi();
+		mask_imp = Duplicator().run(input_mask_imp);
+
+	rois = [];
+	IJ.setForegroundColor(0, 0, 0);
+	roim = RoiManager(True);
+	rt = ResultsTable();
+
+	for fridx in range(mask_imp.getNFrames()):
+		mask_imp.setT(fridx+1);
+		# add extra bit to binary mask from loaded membrane in case user refined edges...
+		# flip midpoint anchor across the line joining the two extremes of the membrane, 
+		# and fill in the triangle made by this new point and those extremes
+		poly = membrane_edges[fridx].getPolygon();
+		l1 = (poly.xpoints[0], poly.ypoints[0]);
+		l2 = (poly.xpoints[-1], poly.ypoints[-1]);
+		M = (0.5*(l1[0] + l2[0]), 0.5*(l1[1] + l2[1]));
+		Mp1 = (params.manual_anchor_midpoint[0][0] - M[0], params.manual_anchor_midpoint[0][1] - M[1]);
+		p2 = (M[0] - Mp1[0], M[1] - Mp1[1]);
+		new_poly_x = list(poly.xpoints);
+		new_poly_x.append(p2[0]);
+		new_poly_y = list(poly.ypoints);
+		new_poly_y.append(p2[1]);
+		mask_imp.setRoi(PolygonRoi(new_poly_x, new_poly_y, PolygonRoi.POLYGON));
+		IJ.run(mask_imp, "Fill", "slice");
+		mask_imp.killRoi();
+		
+		# now dilate the masked image and identify the unmasked region closest to the midpoint anchor
+		ip = mask_imp.getProcessor();
+		dilations = 5;
+		for d in range(dilations):
+			ip.dilate();
+		ip.invert();
+		mask_imp.setProcessor(ip);
+		mxsz = mask_imp.getWidth() * mask_imp.getHeight();
+		pa = ParticleAnalyzer(ParticleAnalyzer.ADD_TO_MANAGER | ParticleAnalyzer.SHOW_PROGRESS, ParticleAnalyzer.CENTROID, rt, 0, mxsz);
+		pa.setRoiManager(roim);
+		pa.analyze(mask_imp);
+		ds_to_anchor = [math.sqrt((x - params.manual_anchor_midpoint[0][0])**2 + (y - params.manual_anchor_midpoint[0][1])**2) 
+				  for x, y in zip(rt.getColumn(rt.getColumnIndex("X")).tolist(), rt.getColumn(rt.getColumnIndex("Y")).tolist())];
+		if len(ds_to_anchor)>0:
+			roi = roim.getRoi(ds_to_anchor.index(min(ds_to_anchor)));
+			rois.append(roi);
+		else:
+			rois.append(None);
+		roim.reset();
+		rt.reset();
+	roim.close();
+	return rois;
+
+def get_stddevs_by_frame_and_region(intensity_imp, rois):
+	"""given pre-identified background regions, return a list of intensity standard deviations within those regions"""
+	std_devs = [];
+	for idx, roi in enumerate(rois):
+		if roi is not None:
+			intensity_imp.setT(idx+1);
+			intensity_imp.setRoi(roi);
+			std_devs.append(intensity_imp.getStatistics().stdDev);
+		else:
+			std_devs.append(0.0);
+	return std_devs;
+
 # functions ported from ij.plugin.Selection to implement functionality of 
 # IJ.run("Fit spline...") without updating imp
 # from (https://github.com/imagej/imagej1/blob/master/ij/plugin/Selection.java)
