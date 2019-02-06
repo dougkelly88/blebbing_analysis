@@ -26,6 +26,7 @@ _um = u'\u00B5m';
 _degrees = u'\u00B0';
 _squared = u'\u00B2';
 _totheminusone = u'\u02C9' + u'\u00B9';
+_sigma = u'\u03C3'
 
 def generate_row_titles(paramses):
 	"""return the titles for each row of the kymograph/time series montage"""
@@ -64,7 +65,7 @@ def generate_average_intensity_plots(actin_kym, curvature_kym, curvature_thresho
     neg_curv_actin_I = neg_curv_actin.mean(0) - all_actin.min();
     return all_actin_I, pos_curv_actin_I, neg_curv_actin_I, all_actin_std;
 
-def load_kymograph_data(experiment_folder, condition_names=None, use_subfolder_as_condition=False):
+def load_kymograph_data(experiment_folder, condition_names=None, use_subfolder_as_condition=False, normalise_intensity_to_std=False):
 	"""load curvature and intensity kymographs, along with image parameters"""
 	actin_kyms = []; 
 	curvature_kyms = [];
@@ -84,20 +85,24 @@ def load_kymograph_data(experiment_folder, condition_names=None, use_subfolder_a
 
 	for idx, subfolder in enumerate(subfolders):
 		if os.path.isdir(os.path.join(experiment_folder, subfolder)):
-			actin_kyms.append(io.imread(os.path.join(experiment_folder, subfolder, "normalised position Actin kymograph.tif")));
-			curvature_kyms.append(io.imread(os.path.join(experiment_folder, subfolder, "normalised position curvature kymograph.tif")));
+			actin_kym = io.imread(os.path.join(experiment_folder, subfolder, "normalised position Actin kymograph.tif"));
+			curvature_kym = io.imread(os.path.join(experiment_folder, subfolder, "normalised position curvature kymograph.tif"));
 			params = Parameters();
 			params.loadParametersFromJson(os.path.join(experiment_folder, subfolder, "parameters used.json"));
 			paramses.append(params);
 			if 'physical_curvature_unit' not in dir(params):
-				curvature_kyms[idx] = curvature_kyms[idx] * (1/paramses[idx].pixel_physical_size);
+				curvature_kym = curvature_kym * (1/paramses[idx].pixel_physical_size);
 			elif params.physical_curvature_unit=='':
-				curvature_kyms[idx] = curvature_kyms[idx] * (1/paramses[idx].pixel_physical_size);
+				curvature_kym = curvature_kym * (1/paramses[idx].pixel_physical_size);
 			try:
 				areas.append(pd.read_csv(os.path.join(experiment_folder, subfolder, "bleb area.csv")));
 			except UnicodeDecodeError as e:
-				print(e);
+				#print(e);
 				areas.append(pd.read_csv(os.path.join(experiment_folder, subfolder, "bleb area.csv"), encoding='cp1252'));
+			if 'qc_background_rois' in dir(params) and normalise_intensity_to_std:
+				bg_stds = pd.read_csv(os.path.join(experiment_folder, subfolder, params.labeled_species + " channel background standard deviations.csv"), encoding='cp1252');
+				bg_std_median = bg_stds[params.labeled_species + " bg std"].median();
+				actin_kym = actin_kym/bg_std_median;
 			if condition_names is None:
 				if use_subfolder_as_condition:
 					subtitles.append(subfolder.replace("um", _um))
@@ -105,6 +110,8 @@ def load_kymograph_data(experiment_folder, condition_names=None, use_subfolder_a
 					subtitles.append(os.path.splitext(os.path.basename(params.input_image_path))[0].replace("um", _um));
 			else:
 				subtitles.append(condition_names[idx].replace("um", _um));
+			actin_kyms.append(actin_kym);
+			curvature_kyms.append(curvature_kym);
 	return actin_kyms, curvature_kyms, paramses, subtitles, areas;   
 
 def curvature_with_intensity(curv_im, actin_im, contrast_enhancement=0):
@@ -215,7 +222,7 @@ def get_normalisation_limits(paramses, actin_kyms, curvature_kyms, make_colorsca
 	intensity_lims = (min([im.min() for im in actin_kyms]), max([im.max() for im in actin_kyms]));
 	return space_lims, time_lims, intensity_lims, curv_lims;
 
-def adjust_kymograph_display(fig, axs, paramses, actin_im, curv_im, make_colorscale_symmetrical, column_titles):
+def adjust_kymograph_display(fig, axs, paramses, actin_im, curv_im, make_colorscale_symmetrical, column_titles, normalise_intensity_to_std=False):
 	"""fine-tune the display properties of kymographs in montages"""
 	row_titles = generate_row_titles(paramses);
 	for idx in range(axs.shape[1]):
@@ -229,7 +236,10 @@ def adjust_kymograph_display(fig, axs, paramses, actin_im, curv_im, make_colorsc
 								0.03, (axs[1][axs.shape[1]-1].get_position().y1 - axs[1][axs.shape[1]-1].get_position().y0)])
 	fig.colorbar(actin_im, cax=cbar_ax1);
 	fig.colorbar(curv_im, cax=cbar_ax2);
-	cbar_ax1.set_ylabel(paramses[0].labeled_species + " intensity, A.U. ");
+	intensity_cbar_label = paramses[0].labeled_species + " intensity, A.U.";
+	if all(['qc_background_rois' in dir(params) for params in paramses]) and normalise_intensity_to_std:
+		intensity_cbar_label = paramses[0].labeled_species + " intensity normalised to background " + _sigma + ", A.U.";
+	cbar_ax1.set_ylabel("\n".join(wrap(intensity_cbar_label, 30)));
 	cbar_ax2.set_ylabel("Local curvature (" + paramses[0].pixel_unit + _totheminusone + ')');
 	for row_idx in range(3):
 		bbox = axs[row_idx][0].get_position();
@@ -284,7 +294,8 @@ def do_space_time_normalisation(axs, paramses, space_lims, time_lims, make_color
 		axs[0][idx].set_facecolor('k');
 		axs[2][idx].set_facecolor('k');
 		if make_colorscale_symmetrical:
-			axs[1][idx].set_facecolor(cm.jet(128))
+			axs[1][idx].set_facecolor(cm.jet(128));
+	return;
 
 def add_arrow_annotations(axs, annotation_arrows):
 	"""Add arrows to annotate points on intensity and curvature kymographs"""
@@ -297,6 +308,7 @@ def add_arrow_annotations(axs, annotation_arrows):
 			axs[1][ann[0]].annotate('', xycoords='axes fraction', xy=ann[1], 
 									xytext=(ann[1][0], ann[1][1] - direction * 0.1), textcoords='axes fraction',
 									arrowprops=dict(facecolor='black', edgecolor='white'));
+	return;
 
 def adjust_overlay_images_display(fig, axs, paramses, curv_lims, experiment_title, row_titles):
 	"""fine-tune the display properties of overlay images in montages"""
@@ -361,6 +373,7 @@ def plot_overlay_images(paramses, fig, axs, ims, raw_curvatures, curv_lims, base
 							color=scale_bar_color, 
 							scale_bar_size_um=scale_bar_size_um);
 				sb_ydata=[0.95 * ims[imidx][0].shape[0], 0.95 * ims[imidx][0].shape[0]]; 
+	return;
 
 # for now, const color scale only. Add ability to toggle consistent length scale later?
 def get_overlay_normalisation_limits(paramses, ims, raw_curvatures, make_colorscale_symmetrical=True):
@@ -381,15 +394,15 @@ def load_data_for_overlay_montage(experiment_folder,
 
 	subfolders = [x for x in os.listdir(experiment_folder) if os.path.isdir(os.path.join(experiment_folder, x))];
 	for idx, subfolder in enumerate(subfolders):
-		ims.append(io.imread(os.path.join(experiment_folder, subfolder, "overlaid curvature.tif")));
-		raw_curvatures.append(io.imread(os.path.join(experiment_folder, subfolder, "raw curvature.tif")));
 		params = Parameters();
 		params.loadParametersFromJson(os.path.join(experiment_folder, subfolder, "parameters used.json"));
 		paramses.append(params);
+		im = io.imread(os.path.join(experiment_folder, subfolder, "overlaid curvature.tif"));
+		raw_curvature = io.imread(os.path.join(experiment_folder, subfolder, "raw curvature.tif"));
 		if 'physical_curvature_unit' not in dir(params):
-				raw_curvatures[idx] = raw_curvatures[idx] * (1/paramses[idx].pixel_physical_size);
+				raw_curvature = raw_curvature * (1/paramses[idx].pixel_physical_size);
 		elif params.physical_curvature_unit=='':
-			raw_curvatures[idx] = raw_curvatures[idx] * (1/paramses[idx].pixel_physical_size);
+			raw_curvature = raw_curvature * (1/paramses[idx].pixel_physical_size);
 		if condition_names is None:
 			if use_subfolder_as_condition:
 				row_titles.append(subfolder)
@@ -397,4 +410,6 @@ def load_data_for_overlay_montage(experiment_folder,
 				row_titles.append(os.path.splitext(os.path.basename(params.input_image_path))[0]);
 		else:
 			row_titles.append(condition_names[idx]);
+		ims.append(im);
+		raw_curvatures.append(raw_curvature);
 	return ims, raw_curvatures, paramses, row_titles;
