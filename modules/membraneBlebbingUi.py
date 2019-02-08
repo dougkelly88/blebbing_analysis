@@ -433,23 +433,30 @@ def qc_background_regions(intensity_imp, bg_rois):
 	imp = Duplicator().run(intensity_imp);
 	imp.setTitle("Background region QC");
 	imp.show();
-	imp.setRoi(bg_rois[0]);
+	imp.setPosition(1);
 	autoset_zoom(imp);
+	imp.setRoi(bg_rois[0]);
 	IJ.setTool("freehand");
 	listener = UpdateRoiImageListener(bg_rois, is_area=True);
 	imp.addImageListener(listener);
 
 	dialog = NonBlockingGenericDialog("Background region quality control");
+	dialog.enableYesNoCancel("Continue", "Use this region for all t");
+	dialog.setCancelLabel("Cancel analysis");
 	dialog.addMessage("Please redraw background regions as necessary...")
 	dialog.showDialog();
 	if dialog.wasCanceled():
 		raise KeyboardInterrupt("Run canceled");
-	last_roi = imp.getRoi();
-	qcd_bg_rois = listener.getRoiList();
-	if imp.getNFrames() > imp.getNSlices():
-		qcd_bg_rois[imp.getT() - 1] = last_roi;
+	elif not(dialog.wasOKed()):
+		this_roi = imp.getRoi();
+		qcd_bg_rois = [this_roi for _ in listener.getRoiList()];
 	else:
-		qcd_bg_rois[imp.getZ() - 1] = last_roi;
+		last_roi = imp.getRoi();
+		qcd_bg_rois = listener.getRoiList();
+		if imp.getNFrames() > imp.getNSlices():
+			qcd_bg_rois[imp.getT() - 1] = last_roi;
+		else:
+			qcd_bg_rois[imp.getZ() - 1] = last_roi;
 	imp.removeImageListener(listener);
 	imp.changes = False;
 	imp.close();
