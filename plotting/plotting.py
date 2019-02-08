@@ -76,12 +76,13 @@ def load_kymograph_data(experiment_folder, condition_names=None, use_subfolder_a
 	subfolders = [x for x in os.listdir(experiment_folder) if os.path.isdir(os.path.join(experiment_folder, x))];
 	num_fmt_str = '\d+\.?\d*';
 	split_str = re.split(num_fmt_str, subfolders[0], maxsplit=1);
-	fmt_str = split_str[0] + num_fmt_str + split_str[1];
-	order_numerically = all([bool(re.match(fmt_str, subfolder)) for subfolder in subfolders]);
-	if order_numerically:
-		numbers = [float(re.search(r'\d+\.?\d*', s).group(0)) for s in subfolders];
-		idxs = [numbers.index(x) for x in sorted(numbers)]
-		subfolders = [subfolders[idx] for idx in idxs];
+	if len(split_str) > 1:
+		fmt_str = split_str[0] + num_fmt_str + split_str[1];
+		order_numerically = all([bool(re.match(fmt_str, subfolder)) for subfolder in subfolders]);
+		if order_numerically:
+			numbers = [float(re.search(r'\d+\.?\d*', s).group(0)) for s in subfolders];
+			idxs = [numbers.index(x) for x in sorted(numbers)]
+			subfolders = [subfolders[idx] for idx in idxs];
 
 	for idx, subfolder in enumerate(subfolders):
 		if os.path.isdir(os.path.join(experiment_folder, subfolder)):
