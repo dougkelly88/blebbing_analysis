@@ -12,7 +12,7 @@ import sys
 # ensure consistent preference settings
 Prefs.blackBackground = False;
 
-release = False;
+release = True;
 
 if not release:
 	script_path = os.path.dirname(os.path.realpath(__file__));
