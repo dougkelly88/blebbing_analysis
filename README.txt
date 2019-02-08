@@ -30,6 +30,8 @@ Run software from ImageJ menu Plugins -> blebbing analysis -> membrane blebbing
 
 *Perform quality control of membrane edges?: toggle whether the software will prompt for user intervention to review membrane edges determined by the automatic segmentation process, and modify membrane edges by drawing freehand lines if necessary. 
 
+* Perform quality control of background regions?: toggle whether the software will prompt for user intervention to review background regions determined by the automatic segmenation process, and modify background regions by drawing freehand areas if necessary. 
+
 *Perform spatial cropping?: toggle whether the software prompts for an ROI at the start of the analysis run. 
 
 *Perform time cropping?: toggle whether the software prompts for start and end frames for a period of interest at the start of the analysis run. 
