@@ -130,7 +130,16 @@ def calculate_outputs(params, calculated_objects, split_channels, inner_outer_in
 	# save membrane channel with original anchors, fixed anchors and membrane edge for assessment of performance
 	if calculated_objects.fixed_anchors_list is not None:
 		mbfig.save_membrane_edge_image(membrane_channel_imp, calculated_objects.fixed_anchors_list, calculated_objects.membrane_edges, mb_area_rois, params);
-		
+	
+	# perform analysis of background regions
+	bg_rois = mb.generate_background_rois(None, params, calculated_objects.membrane_edges, threshold_method='MinError', membrane_imp=membrane_channel_imp); # resegment, allowing more conservative guess at bg region, or...
+	#bg_rois = mb.generate_background_rois(segmentation_channel_imp, params, calculated_objects.membrane_edges); # use existing segmentation
+	# do qc
+	if params.qc_background_rois:
+		bg_rois = mbui.qc_background_regions(actin_channel_imp, bg_rois)
+	mbio.save_qcd_edges2(bg_rois, params.output_path, "background regions.zip")
+	calculated_objects.background_sd_profile = mb.get_stddevs_by_frame_and_region(actin_channel_imp, bg_rois);
+
 	t0_actin_mean = None;
 	for fridx in range(membrane_channel_imp.getNFrames()):
 		# generate curvature - this needs to be looped over slices
@@ -156,15 +165,6 @@ def calculate_outputs(params, calculated_objects, split_channels, inner_outer_in
 			calculated_objects.inner_outer_data.outer_means.append(mean_intensity) if repeat_fraction==1 else calculated_objects.inner_outer_data.inner_means.append(mean_intensity);
 			sd = math.sqrt(sum((x - mean_intensity)**2 for ((x, y), a) in actin_profile) / len(actin_profile));
 			calculated_objects.inner_outer_data.outer_sds.append(sd) if repeat_fraction==1 else calculated_objects.inner_outer_data.inner_sds.append(sd);
-
-	# perform analysis of background regions
-	bg_rois = mb.generate_background_rois(None, params, calculated_objects.membrane_edges, threshold_method='MinError', membrane_imp=membrane_channel_imp); # resegment, allowing more conservative guess at bg region, or...
-	#bg_rois = mb.generate_background_rois(segmentation_channel_imp, params, calculated_objects.membrane_edges); # use existing segmentation
-	# do qc
-	if params.qc_background_rois:
-		bg_rois = mbui.qc_background_regions(actin_channel_imp, bg_rois)
-	mbio.save_qcd_edges2(bg_rois, params.output_path, "background regions.zip")
-	calculated_objects.background_sd_profile = mb.get_stddevs_by_frame_and_region(actin_channel_imp, bg_rois);
 
 	calculated_objects.curvature_profiles = curvature_profiles;
 	calculated_objects.actin_profiles = actin_profiles;
