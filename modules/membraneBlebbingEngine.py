@@ -316,22 +316,25 @@ def apply_photobleach_correction_stack(params, actin_channel_imp):
 		IJ.run(actin_channel_imp, "Multiply...", "value=" + str(factor) + " slice");
 	return actin_channel_imp;
 
-def apply_photobleach_correction_framewise(params, actin_channel_imp, membrane_channel_imp, t0_value=None):
+def apply_photobleach_correction_framewise(params, actin_channel_imp, segmentation_channel_imp, t0_value=None):
 	"""if toggled on, scale the current frame in a stack to have the same mean intensity as the first frame within an ROI"""
 	if not params.photobleaching_correction:
 		return actin_channel_imp, None;
 	else:
 		if (t0_value is None) or (actin_channel_imp.getT() == 1):
-			IJ.run(membrane_channel_imp, "Create Selection", "");
-			roi = membrane_channel_imp.getRoi();
+			IJ.run(segmentation_channel_imp, "Create Selection", "");
+			roi = segmentation_channel_imp.getRoi();
+			segmentation_channel_imp.killRoi();
 			actin_channel_imp.setRoi(roi);
 			t0_value = actin_channel_imp.getStatistics().mean;
 		else:
-			IJ.run(membrane_channel_imp, "Create Selection", "");
-			roi = membrane_channel_imp.getRoi();
+			IJ.run(segmentation_channel_imp, "Create Selection", "");
+			roi = segmentation_channel_imp.getRoi();
+			segmentation_channel_imp.killRoi();
 			actin_channel_imp.setRoi(roi);
 			mean_value = actin_channel_imp.getStatistics().mean;
 			factor = t0_value/mean_value;
+			actin_channel_imp.killRoi();
 			IJ.run(actin_channel_imp, "Multiply...", "value=" + str(factor) + " slice");
 		return actin_channel_imp, t0_value;
 
@@ -474,6 +477,7 @@ def generate_background_rois(input_mask_imp, params, membrane_edges, dilations=5
 		roim.reset();
 		rt.reset();
 	roim.close();
+	mask_imp.close();
 	return rois;
 
 def get_stddevs_by_frame_and_region(intensity_imp, rois):
