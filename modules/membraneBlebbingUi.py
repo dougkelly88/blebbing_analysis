@@ -427,3 +427,31 @@ def crop_review():
 	else:
 		keep_cropping = False;
 	return keep_cropping;
+
+def qc_background_regions(intensity_imp, bg_rois):
+	"""allow the user to view and correct automatically-determined background regions"""
+	imp = Duplicator().run(intensity_imp);
+	imp.setTitle("Background region QC");
+	imp.show();
+	imp.setRoi(bg_rois[0]);
+	autoset_zoom(imp);
+	IJ.setTool("freehand");
+	listener = UpdateRoiImageListener(bg_rois, is_area=True);
+	imp.addImageListener(listener);
+
+	dialog = NonBlockingGenericDialog("Background region quality control");
+	dialog.addMessage("Please redraw background regions as necessary...")
+	dialog.showDialog();
+	if dialog.wasCanceled():
+		raise KeyboardInterrupt("Run canceled");
+	last_roi = imp.getRoi();
+	qcd_bg_rois = listener.getRoiList();
+	if imp.getNFrames() > imp.getNSlices():
+		qcd_bg_rois[imp.getT() - 1] = last_roi;
+	else:
+		qcd_bg_rois[imp.getZ() - 1] = last_roi;
+	imp.removeImageListener(listener);
+	imp.changes = False;
+	imp.close();
+	
+	return qcd_bg_rois;

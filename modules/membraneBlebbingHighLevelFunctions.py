@@ -162,7 +162,7 @@ def calculate_outputs(params, calculated_objects, split_channels, inner_outer_in
 	#bg_rois = mb.generate_background_rois(segmentation_channel_imp, params, calculated_objects.membrane_edges); # use existing segmentation
 	# do qc
 	if params.qc_background_rois:
-		pass;
+		bg_rois = mbui.qc_background_regions(actin_channel_imp, bg_rois)
 	mbio.save_qcd_edges2(bg_rois, params.output_path, "background regions.zip")
 	calculated_objects.background_sd_profile = mb.get_stddevs_by_frame_and_region(actin_channel_imp, bg_rois);
 

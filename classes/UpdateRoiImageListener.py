@@ -6,14 +6,15 @@ from ij import ImageListener
 
 class UpdateRoiImageListener(ImageListener):
 	"""class to support updating ROI from list upon change of frame"""
-	def __init__(self, roi_list):
+	def __init__(self, roi_list, is_area=False):
 		self.last_frame = 1;
 		self.roi_list = roi_list;
+		self.is_area = is_area;
 		print("UpdateRoiImageListener started");
 
 	def imageUpdated(self, imp):
 		roi = imp.getRoi();
-		if roi is not None and not roi.isArea():
+		if roi is not None and roi.isArea()==self.is_area:
 			self.roi_list[self.last_frame - 1] = roi;
 		if imp.getNFrames()>imp.getNSlices():
 			frame = imp.getT();
