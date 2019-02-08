@@ -291,43 +291,37 @@ def save_membrane_edge_image(membrane_channel_imp, fixed_anchors_list, membrane_
 	IJ.run(membrane_channel_imp, "RGB Color", "");
 	anchors = params.manual_anchor_positions;
 	midpoint = params.manual_anchor_midpoint[0];
-	#w = membrane_channel_imp.getWidth();
-	#h = membrane_channel_imp.getHeight();
-	for fridx in range(0, membrane_channel_imp.getNFrames()):
-		membrane_channel_imp.setPosition(fridx + 1);
-		#framep = membrane_channel_imp.getProcessor();
-		#rpix = framep.toFloat(0,None).getPixels();
-		#bpix = framep.toFloat(2,None).getPixels();
-		#float_poly = area_rois[fridx].getContainedFloatPoints();
-		#for x, y in zip(float_poly.xpoints, float_poly.ypoints):
-		#	xidx = int(round(x));
-		#	yidx = int(round(y));
-		#	rpix[(yidx + 1) * w + (xidx + 1)] = 0;
-		#	bpix[(yidx + 1) * w + (xidx + 1)] = 0;
-		#framep.setPixels(0, FloatProcessor(w, h, rpix));
-		#framep.setPixels(2, FloatProcessor(w, h, bpix));
-		membrane_channel_imp.setRoi(membrane_edges[fridx]);
-		IJ.setForegroundColor(0, 255, 255);
-		IJ.run(membrane_channel_imp, "Draw", "slice");
-		membrane_channel_imp.setRoi(area_rois[fridx]);
-		IJ.setForegroundColor(0, 255, 0);
-		IJ.run(membrane_channel_imp, "Draw", "slice");
-		for p in anchors:
-			roi = PointRoi(p[0], p[1]);
+	#print("membrane_edges = " + str(len(membrane_edges)));
+	#print("membrane_channel_imp = " + str(membrane_channel_imp));
+	#print("fixed_anchors_list = " + str(len(fixed_anchors_list)));
+	#print("area_rois = " + str(len(area_rois)));
+	try:
+		for fridx in range(0, membrane_channel_imp.getNFrames()):
+			membrane_channel_imp.setPosition(fridx + 1);
+			membrane_channel_imp.setRoi(membrane_edges[fridx]);
+			IJ.setForegroundColor(0, 255, 255);
+			IJ.run(membrane_channel_imp, "Draw", "slice");
+			membrane_channel_imp.setRoi(area_rois[fridx]);
+			IJ.setForegroundColor(0, 255, 0);
+			IJ.run(membrane_channel_imp, "Draw", "slice");
+			for p in anchors:
+				roi = PointRoi(p[0], p[1]);
+				membrane_channel_imp.setRoi(roi);
+				IJ.setForegroundColor(255, 0, 0);
+				IJ.run(membrane_channel_imp, "Draw", "slice");
+			roi = PointRoi(midpoint[0], midpoint[1]);
 			membrane_channel_imp.setRoi(roi);
 			IJ.setForegroundColor(255, 0, 0);
 			IJ.run(membrane_channel_imp, "Draw", "slice");
-		roi = PointRoi(midpoint[0], midpoint[1]);
-		membrane_channel_imp.setRoi(roi);
-		IJ.setForegroundColor(255, 0, 0);
-		IJ.run(membrane_channel_imp, "Draw", "slice");
-		for p in fixed_anchors_list[fridx]:
-			roi = PointRoi(p[0], p[1]);
-			membrane_channel_imp.setRoi(roi);
-			IJ.setForegroundColor(255, 255, 0);
-			IJ.run(membrane_channel_imp, "Draw", "slice");
-		# TODO: if coincidence between anchors and fixed anchors, or indeed with edge, consider 
-		# rendering in secondary colours (magenta = (255,0,255), orange = (255,200,0), green = (0,255,0)?
+			for p in fixed_anchors_list[fridx]:
+				roi = PointRoi(p[0], p[1]);
+				membrane_channel_imp.setRoi(roi);
+				IJ.setForegroundColor(255, 255, 0);
+				IJ.run(membrane_channel_imp, "Draw", "slice");
+			# TODO: if coincidence between anchors and fixed anchors, or indeed with edge, consider 
+			# rendering in secondary colours (magenta = (255,0,255), orange = (255,200,0), green = (0,255,0)?
+	except:
+		pass;
 	FileSaver(membrane_channel_imp).saveAsTiffStack(os.path.join(params.output_path, "membrane identification check.tif"));
 	IJ.setForegroundColor(255, 255, 255);
 
