@@ -27,7 +27,8 @@ def split_image_plus(imp, params):
 			actin_channel = (params.membrane_channel_number + 1) % imp.getNChannels();
 			actin_channel_imp = split_channels[actin_channel-1];
 		else:
-			actin_channel_imp = None;
+			actin_channel = params.membrane_channel_number;
+			actin_channel_imp = Duplicator().run(membrane_channel_imp);
 	split_channels = [membrane_channel_imp, actin_channel_imp, segmentation_channel_imp];
 	return split_channels;
 
