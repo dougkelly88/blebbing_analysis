@@ -129,8 +129,7 @@ def calculate_outputs(params, calculated_objects, split_channels, inner_outer_in
 	mb_areas =[laaroi[1] * math.pow(params.pixel_physical_size,2) for laaroi in lengths_areas_and_arearois];
 	mb_area_rois =[laaroi[2] for laaroi in lengths_areas_and_arearois];
 	# save membrane channel with original anchors, fixed anchors and membrane edge for assessment of performance
-	if calculated_objects.fixed_anchors_list is not None:
-		mbfig.save_membrane_edge_image(membrane_channel_imp, calculated_objects.fixed_anchors_list, calculated_objects.membrane_edges, mb_area_rois, params);
+	mbfig.save_membrane_edge_image(membrane_channel_imp, calculated_objects.fixed_anchors_list, calculated_objects.membrane_edges, mb_area_rois, params);
 	
 	# perform analysis of background regions
 	bg_rois = mb.generate_background_rois(None, params, calculated_objects.membrane_edges, threshold_method='MinError', membrane_imp=membrane_channel_imp); # resegment, allowing more conservative guess at bg region, or...

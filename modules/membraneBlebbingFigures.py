@@ -295,6 +295,13 @@ def save_membrane_edge_image(membrane_channel_imp, fixed_anchors_list, membrane_
 	#print("membrane_channel_imp = " + str(membrane_channel_imp));
 	#print("fixed_anchors_list = " + str(len(fixed_anchors_list)));
 	#print("area_rois = " + str(len(area_rois)));
+	if fixed_anchors_list is None:
+		fixed_anchors_list = [] # not pythonic, but never mind...
+		for edge in membrane_edges:
+			poly = edge.getPolygon();
+			xs = poly.xpoints;
+			ys = poly.ypoints;
+			fixed_anchors_list.append([(xs[0], ys[0]), (xs[-1], ys[-1])])
 	try:
 		for fridx in range(0, membrane_channel_imp.getNFrames()):
 			membrane_channel_imp.setPosition(fridx + 1);
