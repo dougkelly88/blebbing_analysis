@@ -16,7 +16,8 @@ class CalculatedObjects(object):
 				 bleb_perimeter_lengths=None,
 				 bleb_areas=None, 
 				 timelist=None,
-				 background_sd_profile=None):
+				 background_sd_profile=None, 
+				 full_membrane_lengths=None):
 		self.membrane_edges = membrane_edges;
 		self.inner_outer_data = inner_outer_data;
 		self.fixed_anchors_list = fixed_anchors_list;
@@ -26,3 +27,4 @@ class CalculatedObjects(object):
 		self.bleb_areas = bleb_areas;
 		self.timelist = timelist
 		self.background_sd_profile = background_sd_profile;
+		self.full_membrane_lengths = full_membrane_lengths;

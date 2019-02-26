@@ -126,6 +126,7 @@ def calculate_outputs(params, calculated_objects, split_channels, inner_outer_in
 	curvature_profiles = [];
 	lengths_areas_and_arearois = [mb.bleb_area(medge, params.manual_anchor_midpoint[0]) for medge in calculated_objects.membrane_edges];
 	mb_lengths = [laaroi[0] * params.pixel_physical_size for laaroi in lengths_areas_and_arearois]
+	full_membrane_lengths = [params.pixel_physical_size * edge.getLength() for edge in calculated_objects.membrane_edges];
 	mb_areas =[laaroi[1] * math.pow(params.pixel_physical_size,2) for laaroi in lengths_areas_and_arearois];
 	mb_area_rois =[laaroi[2] for laaroi in lengths_areas_and_arearois];
 	# save membrane channel with original anchors, fixed anchors and membrane edge for assessment of performance
@@ -170,6 +171,7 @@ def calculate_outputs(params, calculated_objects, split_channels, inner_outer_in
 	calculated_objects.actin_profiles = actin_profiles;
 	calculated_objects.bleb_perimeter_lengths = mb_lengths;
 	calculated_objects.bleb_areas = mb_areas;
+	calculated_objects.full_membrane_lengths = full_membrane_lengths;
 	params.setPhysicalCurvatureUnit(params.pixel_unit + u'\u02C9' + u'\u00B9');
 	
 	return calculated_objects;
@@ -200,6 +202,9 @@ def generate_and_save_figures(imp, calculated_objects, params, membrane_channel_
 	FileSaver(bleb_a_imp).saveAsTiff(os.path.join(params.output_path, "bleb area.tif"));
 	mbio.save_1d_profile_as_csv([(t, l) for t, l in zip(calculated_objects.timelist, calculated_objects.bleb_perimeter_lengths)], 
 							 os.path.join(params.output_path, "bleb perimeter length.csv"), 
+							 [("Time, " + params.interval_unit), "Length, " + params.pixel_unit]);
+	mbio.save_1d_profile_as_csv([(t, l) for t, l in zip(calculated_objects.timelist, calculated_objects.full_membrane_lengths)], 
+							 os.path.join(params.output_path, "full membrane length.csv"), 
 							 [("Time, " + params.interval_unit), "Length, " + params.pixel_unit]);
 	mbio.save_1d_profile_as_csv([(t, a) for t, a in zip(calculated_objects.timelist, calculated_objects.bleb_areas)], 
 							 os.path.join(params.output_path, "bleb area.csv"), 
