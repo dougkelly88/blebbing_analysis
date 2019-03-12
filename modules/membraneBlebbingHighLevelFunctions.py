@@ -127,6 +127,8 @@ def calculate_outputs(params, calculated_objects, split_channels, inner_outer_in
 	lengths_areas_and_arearois = [mb.bleb_area(medge, params.manual_anchor_midpoint[0]) for medge in calculated_objects.membrane_edges];
 	mb_lengths = [laaroi[0] * params.pixel_physical_size for laaroi in lengths_areas_and_arearois]
 	full_membrane_lengths = [params.pixel_physical_size * edge.getLength() for edge in calculated_objects.membrane_edges];
+	euclidean_membrane_lengths = [params.pixel_physical_size * mb.vector_length((edge.getPolygon().xpoints[0], edge.getPolygon().ypoints[0]), 
+																			 (edge.getPolygon().xpoints[-1], edge.getPolygon().ypoints[-1])) for edge in calculated_objects.membrane_edges];
 	mb_areas =[laaroi[1] * math.pow(params.pixel_physical_size,2) for laaroi in lengths_areas_and_arearois];
 	mb_area_rois =[laaroi[2] for laaroi in lengths_areas_and_arearois];
 	# save membrane channel with original anchors, fixed anchors and membrane edge for assessment of performance
@@ -172,6 +174,7 @@ def calculate_outputs(params, calculated_objects, split_channels, inner_outer_in
 	calculated_objects.bleb_perimeter_lengths = mb_lengths;
 	calculated_objects.bleb_areas = mb_areas;
 	calculated_objects.full_membrane_lengths = full_membrane_lengths;
+	calculated_objects.euclidean_membrane_lengths = euclidean_membrane_lengths;
 	params.setPhysicalCurvatureUnit(params.pixel_unit + u'\u02C9' + u'\u00B9');
 	
 	return calculated_objects;
@@ -209,6 +212,9 @@ def generate_and_save_figures(imp, calculated_objects, params, membrane_channel_
 	mbio.save_1d_profile_as_csv([(t, a) for t, a in zip(calculated_objects.timelist, calculated_objects.bleb_areas)], 
 							 os.path.join(params.output_path, "bleb area.csv"), 
 							 [("Time, " + params.interval_unit), "Area, " + params.pixel_unit + "^2"]);
+	mbio.save_1d_profile_as_csv([(t, euc) for t, euc in zip(calculated_objects.timelist, calculated_objects.euclidean_membrane_lengths)], 
+								 os.path.join(params.output_path, "full membrane euclidean length.csv"), 
+								 ["Time, " + params.interval_unit, "Membrane euclidean length, " + params.pixel_unit])
 		
 	# actin channel
 	if calculated_objects.actin_profiles is not None:
@@ -235,7 +241,11 @@ def save_csvs(calculated_objects, params):
 									(params.labeled_species + " intensity"), 
 									tname=tname, 
 									time_list=calculated_objects.timelist);
+	pixel_unit_for_encoding = "um" if u'\xb5m' in params.pixel_unit else params.pixel_unit;
 	mbio.save_1d_profile_as_csv([(t, std) for t, std in zip(calculated_objects.timelist, calculated_objects.background_sd_profile)], 
 								 os.path.join(params.output_path, (params.labeled_species + " channel background standard deviations.csv")), 
 								 ["Time, " + params.interval_unit, params.labeled_species + " bg std"]);
+	#mbio.save_1d_profile_as_csv([(t, flen) for t, flen in zip(calculated_objects.timelist, calculated_objects.full_membrane_lengths)], 
+	#							 os.path.join(params.output_path, "full membrane perimeter lengths.csv"), 
+	#							 ["Time, " + params.interval_unit, "Membrane perimeter length, {}".format(pixel_unit_for_encoding)])
 	return;

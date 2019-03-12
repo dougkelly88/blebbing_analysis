@@ -19,6 +19,7 @@ sys.path.insert(0, os.path.join(script_path, 'classes'));
 
 import membraneBlebbingFileio as mbio;
 import membraneBlebbingFigures as mbfig;
+import membraneBlebbingEngine as mb;
 
 from Parameters import Parameters
 
@@ -30,6 +31,7 @@ use_folders = [];
 
 for root, _, files in os.walk(basefolder):
 	if "user_defined_edges.zip" in files and "bleb perimeter length.csv" in files and "parameters used.json" in files:
+		print("Working in root = {}".format(root));
 		times = [];
 		params = Parameters();
 		params.loadParametersFromJson(os.path.join(root, "parameters used.json"));
@@ -45,8 +47,13 @@ for root, _, files in os.walk(basefolder):
 #		for edge in edges:
 #			lengths.append(params.pixel_physical_size * edge.getLength());
 		lengths = [params.pixel_physical_size * edge.getLength() for edge in edges];
-		print(headers);
-		print(times)
+		euclidean_membrane_lengths = [params.pixel_physical_size * mb.vector_length((edge.getPolygon().xpoints[0], edge.getPolygon().ypoints[0]), 
+																			 (edge.getPolygon().xpoints[-1], edge.getPolygon().ypoints[-1])) for edge in edges];
+		#print(headers);
+		#print(times)
 		mbio.save_1d_profile_as_csv([(t, l) for t, l in zip(times, lengths)], 
-							 os.path.join(root, "full membrane perimeter length.csv"), 
+							 os.path.join(root, "full membrane length.csv"), 
+							 [("Time, " + params.interval_unit), "Length, " + params.pixel_unit]);
+		mbio.save_1d_profile_as_csv([(t, l) for t, el in zip(times, euclidean_membrane_lengths)], 
+							 os.path.join(root, "full membrane euclidean length.csv"), 
 							 [("Time, " + params.interval_unit), "Length, " + params.pixel_unit]);
