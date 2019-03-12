@@ -86,11 +86,13 @@ def load_kymograph_data(experiment_folder, condition_names=None, use_subfolder_a
 
 	for idx, subfolder in enumerate(subfolders):
 		if os.path.isdir(os.path.join(experiment_folder, subfolder)):
-			actin_kym = io.imread(os.path.join(experiment_folder, subfolder, "normalised position Actin kymograph.tif"));
-			curvature_kym = io.imread(os.path.join(experiment_folder, subfolder, "normalised position curvature kymograph.tif"));
 			params = Parameters();
 			params.loadParametersFromJson(os.path.join(experiment_folder, subfolder, "parameters used.json"));
 			paramses.append(params);
+
+			actin_kym = io.imread(os.path.join(experiment_folder, subfolder, "normalised position {} kymograph.tif".format(params.labeled_species)));
+			curvature_kym = io.imread(os.path.join(experiment_folder, subfolder, "normalised position curvature kymograph.tif"));
+			
 			if 'physical_curvature_unit' not in dir(params):
 				curvature_kym = curvature_kym * (1/paramses[idx].pixel_physical_size);
 			elif params.physical_curvature_unit=='':
@@ -113,7 +115,7 @@ def load_kymograph_data(experiment_folder, condition_names=None, use_subfolder_a
 				subtitles.append(condition_names[idx].replace("um", _um));
 			actin_kyms.append(actin_kym);
 			curvature_kyms.append(curvature_kym);
-	return actin_kyms, curvature_kyms, paramses, subtitles, areas;   
+	return actin_kyms, curvature_kyms, paramses, subtitles, areas;  
 
 def curvature_with_intensity(curv_im, actin_im, contrast_enhancement=0):
     """taking imshow results as inputs, return an rgb image of curvature weighted by intensity scaled by a contrast enhancement parameter"""
