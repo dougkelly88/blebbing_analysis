@@ -130,22 +130,26 @@ def curvature_with_intensity(curv_im, actin_im, contrast_enhancement=0):
     merged_im = np.stack([rgb_curv * norm_i for rgb_curv in vf(norm_curv)[:3]], 2)
     return merged_im;
 
-def add_scalebar(params, ax, fig, color='w', scale_bar_size_um=1, vertical_scale_bar=False):
-    """add a scalebar to the provided axes"""
-    scalebar_len_pix = round(float(scale_bar_size_um) / params.pixel_physical_size);
-    if vertical_scale_bar:
-        axis_height_pt = ax.get_window_extent().transformed(fig.dpi_scale_trans.inverted()).width*fig.dpi;
-        sb_xdata=[0.95 * max(ax.get_xlim()), 0.95 * max(ax.get_xlim())]
-        sb_ydata=[0.025 * max(ax.get_ylim()) + scalebar_len_pix, 0.025 * max(ax.get_ylim())];
-    else:
-        axis_height_pt = ax.get_window_extent().transformed(fig.dpi_scale_trans.inverted()).height*fig.dpi;
-        sb_xdata=[0.9 * max(ax.get_xlim()) - scalebar_len_pix, 0.9 * max(ax.get_xlim())];
-        sb_ydata=[0.95 * max(ax.get_ylim()), 0.95 * max(ax.get_ylim())];
-    scalebar = Line2D(color=color, 
-                      xdata=sb_xdata, 
-                      ydata=sb_ydata,
-                     linewidth=axis_height_pt/25);
-    ax.add_artist(scalebar);
+def add_scalebar(params, ax, fig, color='w', scale_bar_size_um=1, vertical_scale_bar=False, prenormalised=True):
+	"""add a scalebar to the provided axes"""
+	if not prenormalised:
+		scalebar_len_pix = round(float(scale_bar_size_um) / params.pixel_physical_size);
+	else:
+		scalebar_len_pix = scale_bar_size_um;
+	if vertical_scale_bar:
+		axis_height_pt = ax.get_window_extent().transformed(fig.dpi_scale_trans.inverted()).width*fig.dpi;
+		sb_xdata=[0.95 * max(ax.get_xlim()), 0.95 * max(ax.get_xlim())]
+		anchor = min(ax.get_ylim()) + 0.025 * (max(ax.get_ylim()) - min(ax.get_ylim()));
+		sb_ydata=[anchor + scalebar_len_pix, anchor];
+	else:
+		axis_height_pt = ax.get_window_extent().transformed(fig.dpi_scale_trans.inverted()).height*fig.dpi;
+		sb_xdata=[0.9 * max(ax.get_xlim()) - scalebar_len_pix, 0.9 * max(ax.get_xlim())];
+		sb_ydata=[0.95 * max(ax.get_ylim()), 0.95 * max(ax.get_ylim())];
+	scalebar = Line2D(color=color, 
+						xdata=sb_xdata, 
+						ydata=sb_ydata,
+						linewidth=axis_height_pt/25);
+	ax.add_artist(scalebar);
 
 def plot_kymographs(paramses, actin_kyms, curvature_kyms, axs, intensity_lims, curv_lims, contrast_enhancement=0.35):
 	"""from loaded kymograph images, show kymographs in the notebook"""
