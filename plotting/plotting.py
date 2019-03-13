@@ -480,7 +480,7 @@ def plot_ml_el_sd_boxplots(ml_el_time_sds, column_titles, ax, title="Membrane le
 	"""plot a box/scatter plot to compare control to experimental conditions"""
 	category = [];
 	for v, cond in zip(ml_el_time_sds, column_titles):
-		if "ontrol" in cond:
+		if "control" in cond.lower() or 'wt' in cond.lower():
 			category.append("Control");
 		else:
 			category.append("Experiment");
