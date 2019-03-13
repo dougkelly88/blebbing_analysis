@@ -36,7 +36,8 @@ def generate_row_titles(paramses):
              'Average ' + paramses[0].labeled_species + ' intensity', 
              paramses[0].labeled_species + ' intensity standard deviation', 
              'Ratio +/- curvature intensities', 
-             'Bleb area, ' + _um + _squared];
+             'Bleb area, ' + _um + _squared, 
+			 'ML/EL ratio'];
 
 def set_font_sizes(title_size=28, subtitle_size=14, axis_label_size=12, tick_label_size=12):
 	"""control all font sizes in the notebook"""
@@ -71,6 +72,7 @@ def load_kymograph_data(experiment_folder, condition_names=None, use_subfolder_a
 	curvature_kyms = [];
 	paramses = [];
 	areas = [];
+	ml_el_ratios = [];
 	subtitles = [];
 
 	subfolders = [x for x in os.listdir(experiment_folder) if os.path.isdir(os.path.join(experiment_folder, x))];
@@ -100,8 +102,21 @@ def load_kymograph_data(experiment_folder, condition_names=None, use_subfolder_a
 			try:
 				areas.append(pd.read_csv(os.path.join(experiment_folder, subfolder, "bleb area.csv")));
 			except UnicodeDecodeError as e:
-				#print(e);
 				areas.append(pd.read_csv(os.path.join(experiment_folder, subfolder, "bleb area.csv"), encoding='cp1252'));
+			try:
+				full_membrane_lengths = pd.read_csv(os.path.join(experiment_folder, subfolder, "full membrane length.csv"));
+			except UnicodeDecodeError as e:
+				full_membrane_lengths = pd.read_csv(os.path.join(experiment_folder, subfolder, "full membrane length.csv"), encoding='cp1252');
+			try:
+				full_membrane_euclideans = pd.read_csv(os.path.join(experiment_folder, subfolder, "full membrane euclidean length.csv"));
+			except UnicodeDecodeError as e:
+				full_membrane_euclideans = pd.read_csv(os.path.join(experiment_folder, subfolder, "full membrane euclidean length.csv"), encoding='cp1252');
+			ml_el_ratio = full_membrane_euclideans;
+			fml_length_key = [s for s in full_membrane_lengths.columns if "Length" in s][0];
+			fme_length_key = [s for s in full_membrane_euclideans.columns if "Length" in s][0];
+			ml_el_ratio["Accumulated/Euclidean distance ratio"] = full_membrane_lengths[fml_length_key]/full_membrane_euclideans[fme_length_key];
+			ml_el_ratio.drop(fme_length_key, axis=1, inplace=True);
+			ml_el_ratios.append(ml_el_ratio);
 			if 'qc_background_rois' in dir(params) and normalise_intensity_to_std:
 				bg_stds = pd.read_csv(os.path.join(experiment_folder, subfolder, params.labeled_species + " channel background standard deviations.csv"), encoding='cp1252');
 				bg_std_median = bg_stds[params.labeled_species + " bg std"].median();
@@ -115,7 +130,7 @@ def load_kymograph_data(experiment_folder, condition_names=None, use_subfolder_a
 				subtitles.append(condition_names[idx].replace("um", _um));
 			actin_kyms.append(actin_kym);
 			curvature_kyms.append(curvature_kym);
-	return actin_kyms, curvature_kyms, paramses, subtitles, areas;  
+	return actin_kyms, curvature_kyms, paramses, subtitles, areas, ml_el_ratios;  
 
 def curvature_with_intensity(curv_im, actin_im, contrast_enhancement=0):
     """taking imshow results as inputs, return an rgb image of curvature weighted by intensity scaled by a contrast enhancement parameter"""
@@ -188,11 +203,12 @@ def plot_kymographs(paramses, actin_kyms, curvature_kyms, axs, intensity_lims, c
 									actin_kyms[idx].shape[0] * paramses[idx].pixel_physical_size/2]);
 	return actin_im, curv_im;
 
-def plot_timeseries(paramses, axs, actin_kyms, curvature_kyms, areas, curvature_threshold=0):
+def plot_timeseries(paramses, axs, actin_kyms, curvature_kyms, areas, ml_el_ratios, curvature_threshold=0):
 	"""show 1D plots of different parameters against time"""
 	average_nonzero_intensities = [];
 	std_nonzero_intensities = [];
 	intensity_ratios = [];
+	ml_el_time_variances = [];
 	for idx in range(len(actin_kyms)):
 		t_offs = 0;
 		if paramses[idx].time_crop_start_end is not None:
@@ -203,11 +219,14 @@ def plot_timeseries(paramses, axs, actin_kyms, curvature_kyms, areas, curvature_
 		avgIplt = axs[3][idx].plot(t, average_nonzero_intensity, 'b-');
 		varIplt = axs[4][idx].plot(t, std_nzi, 'c-');
 		ratioIplt = axs[5][idx].plot(t, avg_nzi_pos_curv/avg_nzi_neg_curv, 'r-');
+		axs[5][idx].plot(axs[5][idx].get_xlim(), [1, 1], 'k--');
 		areaplt = axs[6][idx].plot(t, areas[idx].iloc[:,1], 'g-');
+		mlelplt = axs[7][idx].plot(t, ml_el_ratios[idx]['Accumulated/Euclidean distance ratio'], 'm-');
+		ml_el_time_variances.append(ml_el_ratios[idx]['Accumulated/Euclidean distance ratio'].var())
 		average_nonzero_intensities.append(average_nonzero_intensity);
 		std_nonzero_intensities.append(std_nzi);
 		intensity_ratios.append(avg_nzi_pos_curv/avg_nzi_neg_curv);
-	return average_nonzero_intensities, std_nonzero_intensities, intensity_ratios;
+	return average_nonzero_intensities, std_nonzero_intensities, intensity_ratios, ml_el_time_variances;
 
 def get_normalisation_limits(paramses, actin_kyms, curvature_kyms, make_colorscale_symmetrical=True):
 	"""generate limits based on range of membrane lengths, analysis durations, intensities and curvatures for normalising plots"""
@@ -258,7 +277,7 @@ def adjust_kymograph_display(fig, axs, paramses, actin_im, curv_im, make_colorsc
 					fontsize=plt.rcParams['axes.labelsize']);
 		fig.add_artist(txt);
 
-def adjust_time_series_plot_display(fig, axs, paramses, average_nonzero_intensities, std_nonzero_intensities, intensity_ratios, areas):
+def adjust_time_series_plot_display(fig, axs, paramses, average_nonzero_intensities, std_nonzero_intensities, intensity_ratios, areas, ml_el_ratios):
 	"""fine-tune the display properties of time series in montages"""
 	row_titles = generate_row_titles(paramses);
 	avgd_intensity_lims = [10*np.floor(np.min([i.min() for i in average_nonzero_intensities])/10), 
@@ -266,8 +285,9 @@ def adjust_time_series_plot_display(fig, axs, paramses, average_nonzero_intensit
 	std_intensity_lims = [10*np.floor(np.min([i.min() for i in std_nonzero_intensities])/10), 
 						   10*np.ceil(max([i.max() for i in std_nonzero_intensities])/10)];
 	ratio_lims = [np.min([r.min() for r in intensity_ratios]), 
-				  max([r.max() for r in intensity_ratios])];
+				  np.max([r.max() for r in intensity_ratios])];
 	area_lims = [min([a.iloc[:,1].min() for a in areas]), max([a.iloc[:,1].max() for a in areas])];
+	ml_el_ratio_lims = [min([aer.iloc[:,1].min() for aer in ml_el_ratios]), max([aer.iloc[:,1].max() for aer in ml_el_ratios])];
 	n_y_ticks = 4;
 	for idx in range(axs.shape[1]):
 		axs[3][idx].set_yticks([int(avgd_intensity_lims[0] + yidx*(avgd_intensity_lims[1] - avgd_intensity_lims[0])/(n_y_ticks-1)) 
@@ -281,8 +301,9 @@ def adjust_time_series_plot_display(fig, axs, paramses, average_nonzero_intensit
 		axs[4][idx].set_ylim(std_intensity_lims)
 		axs[5][idx].set_ylim(ratio_lims);
 		axs[6][idx].set_ylim(area_lims);
-		axs[6][idx].set_xlabel("Time, " + paramses[idx].interval_unit);
-	for row_idx in range(4):
+		axs[7][idx].set_ylim([1, ml_el_ratio_lims[1]]);
+		axs[7][idx].set_xlabel("Time, " + paramses[idx].interval_unit);
+	for row_idx in range(5):
 		axs[row_idx+3][0].set_ylabel("\n".join(wrap(row_titles[row_idx+3], int(200.0/plt.rcParams['axes.labelsize']))))
 
 def do_space_time_normalisation(axs, paramses, space_lims, time_lims, make_colorscale_symmetrical):

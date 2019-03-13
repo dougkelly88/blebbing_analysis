@@ -20,6 +20,7 @@ sys.path.insert(0, os.path.join(script_path, 'classes'));
 import membraneBlebbingFileio as mbio;
 import membraneBlebbingFigures as mbfig;
 import membraneBlebbingEngine as mb;
+import membraneBlebbingUi as mbui;
 
 from Parameters import Parameters
 
@@ -44,16 +45,28 @@ for root, _, files in os.walk(basefolder):
 				times.append(float(row[0]));
 		f.close();
 		edges = mbio.load_qcd_edges2(os.path.join(root, "user_defined_edges.zip"));
-#		for edge in edges:
-#			lengths.append(params.pixel_physical_size * edge.getLength());
+#		if "Retracting bleb" in root:
+#			lim = imp.getNSlices() if imp.getNSlices() > imp.getNFrames() else imp.getNFrames();
+#			for idx in range(lim):
+#				imp.setPosition(idx+1);
+#				edge = edges[idx];
+#				imp.setRoi(edge);
+#				print("frame = {}".format(idx));
+#				print("(x1, y1) = ({}, {})".format(edge.getPolygon().xpoints[0], edge.getPolygon().ypoints[0]));
+#				print("(x2, y2) = ({}, {})".format(edge.getPolygon().xpoints[-1], edge.getPolygon().ypoints[-1]));
+#				print("euc length pix = {}".format(mb.vector_length((edge.getPolygon().xpoints[0], edge.getPolygon().ypoints[0]), 
+#																			 (edge.getPolygon().xpoints[-1], edge.getPolygon().ypoints[-1]))));
+#				print("euc length um = {}".format(params.pixel_physical_size * mb.vector_length((edge.getPolygon().xpoints[0], edge.getPolygon().ypoints[0]), 
+#																			 (edge.getPolygon().xpoints[-1], edge.getPolygon().ypoints[-1]))));																			 
+#				print("ad length um  = {}".format(params.pixel_physical_size * edge.getLength()));
+#				mbui.MyWaitForUser("pause to check roi", "pause to check roi");
 		lengths = [params.pixel_physical_size * edge.getLength() for edge in edges];
 		euclidean_membrane_lengths = [params.pixel_physical_size * mb.vector_length((edge.getPolygon().xpoints[0], edge.getPolygon().ypoints[0]), 
 																			 (edge.getPolygon().xpoints[-1], edge.getPolygon().ypoints[-1])) for edge in edges];
-		#print(headers);
-		#print(times)
+		
 		mbio.save_1d_profile_as_csv([(t, l) for t, l in zip(times, lengths)], 
 							 os.path.join(root, "full membrane length.csv"), 
 							 [("Time, " + params.interval_unit), "Length, " + params.pixel_unit]);
-		mbio.save_1d_profile_as_csv([(t, l) for t, el in zip(times, euclidean_membrane_lengths)], 
+		mbio.save_1d_profile_as_csv([(t, el) for t, el in zip(times, euclidean_membrane_lengths)], 
 							 os.path.join(root, "full membrane euclidean length.csv"), 
 							 [("Time, " + params.interval_unit), "Length, " + params.pixel_unit]);
