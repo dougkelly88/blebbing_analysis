@@ -17,6 +17,8 @@ from textwrap import wrap
 import math
 import numpy as np
 import pandas as pd
+import seaborn as sns
+from scipy.stats import ttest_rel, ttest_ind
 
 sys.path.insert(0, os.path.join(os.path.split(os.getcwd())[0], "classes"))
 from Parameters import Parameters
@@ -208,7 +210,7 @@ def plot_timeseries(paramses, axs, actin_kyms, curvature_kyms, areas, ml_el_rati
 	average_nonzero_intensities = [];
 	std_nonzero_intensities = [];
 	intensity_ratios = [];
-	ml_el_time_variances = [];
+	ml_el_time_sds = [];
 	for idx in range(len(actin_kyms)):
 		t_offs = 0;
 		if paramses[idx].time_crop_start_end is not None:
@@ -222,11 +224,11 @@ def plot_timeseries(paramses, axs, actin_kyms, curvature_kyms, areas, ml_el_rati
 		axs[5][idx].plot(axs[5][idx].get_xlim(), [1, 1], 'k--');
 		areaplt = axs[6][idx].plot(t, areas[idx].iloc[:,1], 'g-');
 		mlelplt = axs[7][idx].plot(t, ml_el_ratios[idx]['Accumulated/Euclidean distance ratio'], 'm-');
-		ml_el_time_variances.append(ml_el_ratios[idx]['Accumulated/Euclidean distance ratio'].var())
+		ml_el_time_sds.append(np.sqrt(ml_el_ratios[idx]['Accumulated/Euclidean distance ratio'].var()))
 		average_nonzero_intensities.append(average_nonzero_intensity);
 		std_nonzero_intensities.append(std_nzi);
 		intensity_ratios.append(avg_nzi_pos_curv/avg_nzi_neg_curv);
-	return average_nonzero_intensities, std_nonzero_intensities, intensity_ratios, ml_el_time_variances;
+	return average_nonzero_intensities, std_nonzero_intensities, intensity_ratios, ml_el_time_sds;
 
 def get_normalisation_limits(paramses, actin_kyms, curvature_kyms, make_colorscale_symmetrical=True):
 	"""generate limits based on range of membrane lengths, analysis durations, intensities and curvatures for normalising plots"""
@@ -445,17 +447,17 @@ def load_data_for_overlay_montage(experiment_folder,
 		raw_curvatures.append(raw_curvature);
 	return ims, raw_curvatures, paramses, row_titles;
 
-def plot_ml_el_ratio_variances(ml_el_time_variances, ax, conditions=None, log_yscale=False):
-	"""plot a bar chart showing the time-variances of membrane length:euclidean length ratio"""
+def plot_ml_el_ratio_sds(ml_el_time_sds, ax, conditions=None, log_yscale=False):
+	"""plot a bar chart showing the time-standard deviations of membrane length:euclidean length ratio"""
 	if conditions is None:
-		conditions = [x+1 for x in range(len(ml_el_time_variances))];
-	bar_container = ax.bar([x+1 for x in range(len(ml_el_time_variances))], ml_el_time_variances, tick_label=conditions);
+		conditions = [x+1 for x in range(len(ml_el_time_sds))];
+	bar_container = ax.bar([x+1 for x in range(len(ml_el_time_sds))], ml_el_time_sds, tick_label=conditions);
 	if log_yscale:
 		ax.set_yscale("log");
 	else:
 		ax.set_yscale("linear");
-	ax.set_title("Membrane length/euclidean length time variance");
-	ax.set_ylabel("ML/EL time variance");
+	ax.set_title("Membrane length/euclidean length time standard deviation");
+	ax.set_ylabel("ML/EL time SD");
 
 	for rect in bar_container:
 		height = rect.get_height();
@@ -466,4 +468,56 @@ def plot_ml_el_ratio_variances(ml_el_time_variances, ax, conditions=None, log_ys
 		ax.text(rect.get_x() + rect.get_width()/2., 1.05*height,
 				fmt_str.format(height),
 				ha='center', va='bottom')
-	plt.tight_layout()
+	plt.tight_layout();
+
+def plot_ml_el_sd_boxplots(ml_el_time_sds, column_titles, ax, title="Membrane length/euclidean length time standard deviation", ylabel="ML/EL time SD", ttest=True):
+	"""plot a box/scatter plot to compare control to experimental conditions"""
+	category = [];
+	for v, cond in zip(ml_el_time_sds, column_titles):
+		if "ontrol" in cond:
+			category.append("Control");
+		else:
+			category.append("Experiment");
+	category = np.array(category);
+	vs = np.array(ml_el_time_sds);
+	sns.stripplot(x=category, y=vs, jitter=True);
+	sns.boxplot(x=category, y=vs, whis=np.inf);
+	ax.set_ylabel(ylabel);
+	ax.set_title(title);
+	if ttest:
+		p = do_ttest(ax, category, vs);
+	else:
+		p = None;
+	return p;
+
+def do_ttest(ax, category, vs):
+	"""add t-test to plot"""
+	controls = np.array([v for v, cat in zip(vs, category) if "ontrol" in cat]);
+	experiments = np.array([v for v, cat in zip(vs, category) if not "ontrol" in cat])
+	p = ttest_ind(controls, experiments).pvalue;
+	start_ylims = ax.get_ylim();
+	start_plot_height = ax.get_ylim()[1] - ax.get_ylim()[0];
+	height_per_comparison = 0.1 * (start_ylims[1] - start_ylims[0]);
+	ax.set_ylim(start_ylims[0], start_ylims[1] +  height_per_comparison);
+	lx = ax.get_xticks()[0];
+	rx = ax.get_xticks()[1];
+	mid = lx/2 + rx/2;
+	lry = start_ylims[1] + 0.5 * height_per_comparison;
+	h = height_per_comparison/4;
+
+	barx = [lx, lx, rx, rx];
+	bary = [(lry-h), lry, lry, (lry-h)];
+	ax.plot(barx, bary, c='black');
+	ax.text(mid, lry + h/2, p_to_stars(p), horizontalalignment='center', fontsize=12);
+	return p;
+
+def p_to_stars(p):
+    """map p-values to stars to display on graphs"""
+    if p > 0.05:
+        return 'n.s.';
+    elif p > 0.01:
+        return '*';
+    elif p > 0.005:
+        return '**';
+    else:
+        return '***';
