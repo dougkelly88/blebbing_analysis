@@ -394,13 +394,16 @@ def plot_overlay_images(paramses, fig, axs, ims, raw_curvatures, curv_lims, base
 				axs[imidx][fridx].set_visible(False);
 			axs[imidx][fridx].set_xticks([]);
 			axs[imidx][fridx].set_yticks([]);
-			if fridx == chosen_frames.index(max([f for f in chosen_frames if not np.isnan(f)])):
-				add_scalebar(paramses[imidx], 
-							axs[imidx][fridx], 
-							fig, 
-							color=scale_bar_color, 
-							scale_bar_size_um=scale_bar_size_um);
-				sb_ydata=[0.95 * ims[imidx][0].shape[0], 0.95 * ims[imidx][0].shape[0]]; 
+			try: # todo: find out why this throws an error in at least one case and deal with properly rather than just (essentially) ignoring
+				if fridx == chosen_frames.index(max([f for f in chosen_frames if not np.isnan(f)])):
+					add_scalebar(paramses[imidx], 
+								axs[imidx][fridx], 
+								fig, 
+								color=scale_bar_color, 
+								scale_bar_size_um=scale_bar_size_um);
+					sb_ydata=[0.95 * ims[imidx][0].shape[0], 0.95 * ims[imidx][0].shape[0]]; 
+			except:
+				pass;
 	return;
 
 # for now, const color scale only. Add ability to toggle consistent length scale later?
@@ -441,3 +444,26 @@ def load_data_for_overlay_montage(experiment_folder,
 		ims.append(im);
 		raw_curvatures.append(raw_curvature);
 	return ims, raw_curvatures, paramses, row_titles;
+
+def plot_ml_el_ratio_variances(ml_el_time_variances, ax, conditions=None, log_yscale=False):
+	"""plot a bar chart showing the time-variances of membrane length:euclidean length ratio"""
+	if conditions is None:
+		conditions = [x+1 for x in range(len(ml_el_time_variances))];
+	bar_container = ax.bar([x+1 for x in range(len(ml_el_time_variances))], ml_el_time_variances, tick_label=conditions);
+	if log_yscale:
+		ax.set_yscale("log");
+	else:
+		ax.set_yscale("linear");
+	ax.set_title("Membrane length/euclidean length time variance");
+	ax.set_ylabel("ML/EL time variance");
+
+	for rect in bar_container:
+		height = rect.get_height();
+		if height < 0.01:
+			fmt_str = "{0:.2e}";
+		else:
+			fmt_str = "{0:.3f}";
+		ax.text(rect.get_x() + rect.get_width()/2., 1.05*height,
+				fmt_str.format(height),
+				ha='center', va='bottom')
+	plt.tight_layout()
