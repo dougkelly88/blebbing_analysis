@@ -230,7 +230,7 @@ def plot_timeseries(paramses, axs, actin_kyms, curvature_kyms, areas, ml_el_rati
 		axs[5][idx].plot(axs[5][idx].get_xlim(), [1, 1], 'k--');
 		areaplt = axs[6][idx].plot(t, areas[idx].iloc[:,1], 'g-');
 		mlelplt = axs[7][idx].plot(t, ml_el_ratios[idx]['Accumulated/Euclidean distance ratio'], 'm-');
-		ml_el_time_sds.append(np.sqrt(ml_el_ratios[idx]['Accumulated/Euclidean distance ratio'].var()))
+		ml_el_time_sds.append(ml_el_ratios[idx]['Accumulated/Euclidean distance ratio'].std());
 		average_nonzero_intensities.append(average_nonzero_intensity);
 		std_nonzero_intensities.append(std_nzi);
 		intensity_ratios.append(avg_nzi_pos_curv/avg_nzi_neg_curv);
@@ -453,53 +453,75 @@ def load_data_for_overlay_montage(experiment_folder,
 		raw_curvatures.append(raw_curvature);
 	return ims, raw_curvatures, paramses, row_titles;
 
-def plot_ml_el_ratio_sds(ml_el_time_sds, ax, conditions=None, log_yscale=False):
+def plot_ml_el_ratio_sds(ml_el_ratios, axs, conditions=None, log_yscale=False):
 	"""plot a bar chart showing the time-standard deviations of membrane length:euclidean length ratio"""
 	if conditions is None:
 		conditions = [x+1 for x in range(len(ml_el_time_sds))];
-	bar_container = ax.bar([x+1 for x in range(len(ml_el_time_sds))], ml_el_time_sds, tick_label=conditions);
-	if log_yscale:
-		ax.set_yscale("log");
-	else:
-		ax.set_yscale("linear");
-	ax.set_title("Membrane length/euclidean length time standard deviation");
-	ax.set_ylabel("ML/EL time SD");
-
-	for rect in bar_container:
-		height = rect.get_height();
-		if height < 0.01:
-			fmt_str = "{0:.2e}";
+	for idx, ax in enumerate(axs):
+		if idx==0:
+			ml_el_time_sds = [ml_el_ratio['Accumulated/Euclidean distance ratio'].std() for ml_el_ratio in ml_el_ratios]
 		else:
-			fmt_str = "{0:.3f}";
-		ax.text(rect.get_x() + rect.get_width()/2., 1.05*height,
-				fmt_str.format(height),
-				ha='center', va='bottom')
+			ml_el_time_sds = [ml_el_ratio['Accumulated/Euclidean distance ratio'].diff(periods=idx).std() for ml_el_ratio in ml_el_ratios];
+		bar_container = ax.bar([x+1 for x in range(len(ml_el_time_sds))], ml_el_time_sds, tick_label=conditions);
+		if log_yscale:
+			ax.set_yscale("log");
+		else:
+			ax.set_yscale("linear");
+		if idx==0:
+			extra_text = "";
+		else:
+			extra_text = ", {}-frame differenced".format(idx);
+		ax.set_title("Membrane length/euclidean length time standard deviation" + extra_text);
+		ax.set_ylabel("ML/EL time SD");
+		#ax.tick_params(axis='x', labelrotation=45);
+		ax.set_xticklabels([t.get_text() for t in ax.get_xticklabels()], rotation = 45, ha="right")
+
+		for rect in bar_container:
+			height = rect.get_height();
+			if height < 0.01:
+				fmt_str = "{0:.2e}";
+			else:
+				fmt_str = "{0:.3f}";
+			ax.text(rect.get_x() + rect.get_width()/2., 1.05*height,
+					fmt_str.format(height),
+					ha='center', va='bottom')
 	plt.tight_layout();
 
-def plot_ml_el_sd_boxplots(ml_el_time_sds, column_titles, ax, title="Membrane length/euclidean length time standard deviation", ylabel="ML/EL time SD", ttest=True):
+def plot_ml_el_sd_boxplots(ml_el_ratios, column_titles, axs, title="Membrane length/euclidean length time standard deviation", ylabel="ML/EL time SD", ttest=True):
 	"""plot a box/scatter plot to compare control to experimental conditions"""
 	category = [];
-	for v, cond in zip(ml_el_time_sds, column_titles):
+	ps = [];
+	for cond in column_titles:
 		if "control" in cond.lower() or 'wt' in cond.lower():
 			category.append("Control");
 		else:
 			category.append("Experiment");
 	category = np.array(category);
-	vs = np.array(ml_el_time_sds);
-	sns.stripplot(x=category, y=vs, jitter=True);
-	sns.boxplot(x=category, y=vs, whis=np.inf);
-	ax.set_ylabel(ylabel);
-	ax.set_title(title);
-	if ttest:
-		p = do_ttest(ax, category, vs);
-	else:
-		p = None;
-	return p;
+	for idx, ax in enumerate(axs):
+		if idx==0:
+			ml_el_time_sds = [ml_el_ratio['Accumulated/Euclidean distance ratio'].std() for ml_el_ratio in ml_el_ratios]
+		else:
+			ml_el_time_sds = [ml_el_ratio['Accumulated/Euclidean distance ratio'].diff(periods=idx).std() for ml_el_ratio in ml_el_ratios];
+		vs = np.array(ml_el_time_sds);
+		sns.stripplot(x=category, y=vs, jitter=True, ax=ax, edgecolor='k');
+		sns.boxplot(x=category, y=vs, whis=np.inf, ax=ax);
+		ax.set_ylabel(ylabel);
+		if idx==0:
+			extra_text = "";
+		else:
+			extra_text = ", {}-frame differenced".format(idx);
+		ax.set_title("\n".join(wrap(title + extra_text, 30)));
+		if ttest:
+			p = do_ttest(ax, category, vs);
+		else:
+			p = None;
+		ps.append(p);
+	return ps;
 
 def do_ttest(ax, category, vs):
 	"""add t-test to plot"""
-	controls = np.array([v for v, cat in zip(vs, category) if "ontrol" in cat]);
-	experiments = np.array([v for v, cat in zip(vs, category) if not "ontrol" in cat])
+	controls = np.array([v for v, cat in zip(vs, category) if ("control" in cat.lower() or "wt" in cat.lower())]);
+	experiments = np.array([v for v, cat in zip(vs, category) if not ("control" in cat.lower() or "wt" in cat.lower())])
 	p = ttest_ind(controls, experiments).pvalue;
 	start_ylims = ax.get_ylim();
 	start_plot_height = ax.get_ylim()[1] - ax.get_ylim()[0];
