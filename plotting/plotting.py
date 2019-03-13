@@ -19,6 +19,7 @@ import numpy as np
 import pandas as pd
 import seaborn as sns
 from scipy.stats import ttest_rel, ttest_ind
+from scipy.fftpack import fft
 
 sys.path.insert(0, os.path.join(os.path.split(os.getcwd())[0], "classes"))
 from Parameters import Parameters
@@ -549,3 +550,33 @@ def p_to_stars(p):
         return '**';
     else:
         return '***';
+
+def easyfft(t, y):
+    yf = fft(y);
+    yf = 2.0/len(t) * np.abs(yf[0:len(t)//2]);
+    tf = np.linspace(0.0, 2.0/(2*(t[1]-t[0])), len(t)//2);
+    return tf, yf
+
+def plot_ft(ml_el_ratios, axs, column_titles):
+	"""plot fourier transform of time series data"""
+	tfs = [];
+	yfs = [];
+	for idx, ml_el_r in enumerate(ml_el_ratios):
+		ax = axs[idx];
+		y = ml_el_r['Accumulated/Euclidean distance ratio'];
+		t = ml_el_r['Time, s'];
+		tf, yf = easyfft(t, y);
+		tfs.append(tf);
+		yfs.append(yf);
+		ax.plot(tf, yf, "C{0:d}-".format(idx%10), label=column_titles[idx]);
+		ax.set_yscale("log");
+		ax.set_xlabel("Frequency");
+		if idx==0:
+			ax.set_ylabel("Power spectrum");
+		#plt.legend();
+	plt.show();
+
+	
+
+
+
