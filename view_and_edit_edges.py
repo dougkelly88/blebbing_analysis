@@ -12,7 +12,7 @@ from ij import Prefs
 from loci.plugins import BF as bf
 from java.awt import Color
 
-release = False;
+release = True;
 
 if not release:
 	script_path = os.path.dirname(os.path.realpath(__file__));
