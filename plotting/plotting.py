@@ -68,7 +68,7 @@ def generate_average_intensity_plots(actin_kym, curvature_kym, curvature_thresho
     neg_curv_actin_I = neg_curv_actin.mean(0) - all_actin.min();
     return all_actin_I, pos_curv_actin_I, neg_curv_actin_I, all_actin_std;
 
-def load_kymograph_data(experiment_folder, condition_names=None, use_subfolder_as_condition=False, normalise_intensity_to_std=False):
+def load_kymograph_data(experiment_folder, condition_names=None, use_subfolder_as_condition=False, normalise_intensity_to_std=False, labeled_species=None):
 	"""load curvature and intensity kymographs, along with image parameters"""
 	actin_kyms = []; 
 	curvature_kyms = [];
@@ -94,7 +94,10 @@ def load_kymograph_data(experiment_folder, condition_names=None, use_subfolder_a
 			params.loadParametersFromJson(os.path.join(experiment_folder, subfolder, "parameters used.json"));
 			paramses.append(params);
 
-			actin_kym = io.imread(os.path.join(experiment_folder, subfolder, "normalised position {} kymograph.tif".format(params.labeled_species)));
+			if labeled_species is None:
+				labeled_species = params.labeled_species;
+
+			actin_kym = io.imread(os.path.join(experiment_folder, subfolder, "normalised position {} kymograph.tif".format(labeled_species)));
 			curvature_kym = io.imread(os.path.join(experiment_folder, subfolder, "normalised position curvature kymograph.tif"));
 			
 			if 'physical_curvature_unit' not in dir(params):
@@ -120,8 +123,11 @@ def load_kymograph_data(experiment_folder, condition_names=None, use_subfolder_a
 			ml_el_ratio.drop(fme_length_key, axis=1, inplace=True);
 			ml_el_ratios.append(ml_el_ratio);
 			if 'qc_background_rois' in dir(params) and normalise_intensity_to_std:
-				bg_stds = pd.read_csv(os.path.join(experiment_folder, subfolder, params.labeled_species + " channel background standard deviations.csv"), encoding='cp1252');
-				bg_std_median = bg_stds[params.labeled_species + " bg std"].median();
+				bg_stds = pd.read_csv(os.path.join(experiment_folder, subfolder, labeled_species + " channel background standard deviations.csv"), encoding='cp1252');
+				try:
+					bg_std_median = bg_stds[labeled_species + " bg std"].median();
+				except KeyError:
+					bg_std_median = bg_stds[params.labeled_species + " bg std"].median();
 				actin_kym = actin_kym/bg_std_median;
 			if condition_names is None:
 				if use_subfolder_as_condition:
