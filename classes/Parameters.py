@@ -23,7 +23,7 @@ class Parameters:
 						curvature_kymograph_lut_string = 'physics', 
 						actin_kymograph_lut_string = 'Grays', 
 						labeled_species = 'Actin', 
-						filter_negative_curvatures = True, 
+						filter_negative_curvatures = False, 
 						perform_spatial_crop = False, 
 						perform_time_crop = False, 
 						time_crop_start_end = None, 
