@@ -177,8 +177,14 @@ def get_metadata(params):
 		if file_path is None:
 			raise IOError('no metadata file chosen');
 		acq_metadata_dict = import_iq3_metadata(file_path);
-		params.setFrameInterval(acq_metadata_dict['frame_interval']);
-		params.setIntervalUnit(acq_metadata_dict['time_unit']);
+		try:
+			params.setFrameInterval(acq_metadata_dict['frame_interval']);
+		except KeyError:
+			params.setFrameInterval(1.0);
+		try:
+			params.setIntervalUnit(acq_metadata_dict['time_unit']);
+		except KeyError:
+			params.setIntervalUnit('frames')
 		params.setPixelPhysicalSize(acq_metadata_dict['x_physical_size']);
 		params.setPixelSizeUnit(acq_metadata_dict['x_unit']);
 		params.setMetadataSourceFile(file_path);
