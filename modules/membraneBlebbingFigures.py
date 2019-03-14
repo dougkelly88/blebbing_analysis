@@ -89,7 +89,7 @@ def generate_limit_labels(imp, limits, cb_fraction, params):
 		imp.setRoi(roi_ll);
 		roim.addRoi(roi_ll);
 	roim.runCommand("Show All");
-	FileSaver(imp).saveAsTiffStack(os.path.join(params.output_path, "overlaid curvature nudged labels.tif"));
+	FileSaver(imp).saveAsTiff(os.path.join(params.output_path, "overlaid curvature nudged labels.tif"));
 	# nudge positions
 	roim.reset();
 	imp.killRoi();
@@ -105,7 +105,7 @@ def generate_limit_labels(imp, limits, cb_fraction, params):
 		imp.setRoi(roi_ll);
 		roim.addRoi(roi_ll);
 	roim.runCommand("Show All");
-	FileSaver(imp).saveAsTiffStack(os.path.join(params.output_path, "overlaid curvature.tif"));
+	FileSaver(imp).saveAsTiff(os.path.join(params.output_path, "overlaid curvature.tif"));
 	return imp;
 	
 def overlay_curvatures(imp, curvature_profiles, params, limits = None, annotate=True):
@@ -160,7 +160,7 @@ def overlay_curvatures(imp, curvature_profiles, params, limits = None, annotate=
 	out_imp = ImagePlus("Overlaid curvatures", overlaid_stack);
 	if annotate:
 		out_imp = generate_limit_labels(out_imp, limits, cb_fraction, params)
-	FileSaver(raw_overlay).saveAsTiffStack(os.path.join(params.output_path, "raw curvature.tif"));
+	FileSaver(raw_overlay).saveAsTiff(os.path.join(params.output_path, "raw curvature.tif"));
 	return out_imp, raw_overlay;
 
 def generate_plain_kymograph(data_to_plot, colormap_string, title_string):
@@ -329,7 +329,7 @@ def save_membrane_edge_image(membrane_channel_imp, fixed_anchors_list, membrane_
 			# rendering in secondary colours (magenta = (255,0,255), orange = (255,200,0), green = (0,255,0)?
 	except:
 		pass;
-	FileSaver(membrane_channel_imp).saveAsTiffStack(os.path.join(params.output_path, "membrane identification check.tif"));
+	FileSaver(membrane_channel_imp).saveAsTiff(os.path.join(params.output_path, "membrane identification check.tif"));
 	IJ.setForegroundColor(255, 255, 255);
 
 #from ij import WindowManager as WM

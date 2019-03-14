@@ -192,7 +192,7 @@ def generate_and_save_figures(imp, calculated_objects, params, membrane_channel_
 	fig_imp_list.append(overlaid_curvature_imp);
 	fig_imp_list.append(raw_curvature_imp);
 	if segmentation_channel_imp is not None:
-		FileSaver(segmentation_channel_imp).saveAsTiffStack(os.path.join(params.output_path, "binary_membrane_stack.tif"));
+		FileSaver(segmentation_channel_imp).saveAsTiff(os.path.join(params.output_path, "binary_membrane_stack.tif"));
 	bleb_len_imp, bleb_ls = mbfig.plot_bleb_evolution(calculated_objects.timelist, 
 											calculated_objects.bleb_perimeter_lengths, 
 											"Edge length (" + params.pixel_unit + ")");

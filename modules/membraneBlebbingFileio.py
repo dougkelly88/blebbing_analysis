@@ -63,12 +63,16 @@ def save_profile_as_csv(profiles, file_path, data_name, xname='x', yname='y', tn
 	writer.writerow([tname, xname, yname, data_name]);
 	if not time_list:
 			time_list = [idx for idx in range(0, len(profiles))];
-	for idx, profile in enumerate(profiles):
-		for subidx, ((x, y), p) in enumerate(profile):
-			if len(profiles) == 1:
-				writer.writerow([time_list[subidx], x, y, p]);
-			else:
-				writer.writerow([time_list[idx], x, y, p]);
+	if len(time_list)>1:
+		for idx, profile in enumerate(profiles):
+			for subidx, ((x, y), p) in enumerate(profile):
+				if len(profiles) == 1:
+					writer.writerow([time_list[subidx], x, y, p]);
+				else:
+					writer.writerow([time_list[idx], x, y, p]);
+	else:
+		for idx, ((x,y), p) in enumerate(profiles[0]):
+			writer.writerow([time_list[0], x, y, p])
 	f.close();
 
 def load_csv_as_profile(file_path):
