@@ -161,14 +161,23 @@ def MyWaitForUser(title, message):
 
 def perform_user_qc(in_imp, edges, alt_edges, fixed_anchors_list, params):
 	"""allow the user to intervene to fix erroneously identified membrane edges"""
+	n_frames = in_imp.getNFrames();
+	n_channels = in_imp.getNChannels();
 	output_folder = params.output_path;
 	current_edges = edges;
 	rgbstack = ImageStack(in_imp.getWidth(), in_imp.getHeight());
-	for tidx in range(in_imp.getNFrames()): 
-		in_imp.setT(tidx+1);
-		ip = in_imp.getProcessor();
-		rgbip = ip.convertToRGB();
-		rgbstack.addSlice(rgbip);
+	if n_frames > 1:
+		for tidx in range(n_frames): 
+			in_imp.setT(tidx+1);
+			ip = in_imp.getProcessor();
+			rgbip = ip.convertToRGB();
+			rgbstack.addSlice(rgbip);
+	else:
+		for cidx in range(n_channels):
+			in_imp.setC(cidx+1);
+			ip = in_imp.getProcessor();
+			rgbip = ip.convertToRGB();
+			rgbstack.addSlice(rgbip);
 	imp = ImagePlus(("RGB " + in_imp.getTitle()), rgbstack);
 	IJ.run("Colors...", "foreground=red background=white selection=yellow");
 	for tidx in range(imp.getNSlices()):
@@ -180,8 +189,9 @@ def perform_user_qc(in_imp, edges, alt_edges, fixed_anchors_list, params):
 	autoset_zoom(imp);
 	imp.setPosition(1);
 	imp.setRoi(current_edges[0]);
-	listener = UpdateRoiImageListener(current_edges);
-	imp.addImageListener(listener);
+	if n_frames > 1:
+		listener = UpdateRoiImageListener(current_edges);
+		imp.addImageListener(listener);
 	IJ.setTool("freeline");
 	do_flip = True;
 	while do_flip:
@@ -205,22 +215,31 @@ def perform_user_qc(in_imp, edges, alt_edges, fixed_anchors_list, params):
 		else:
 			print("flip edges");
 			do_flip = True;
-			imp.removeImageListener(listener);
+			if n_frames > 1:
+				imp.removeImageListener(listener);
 			current_edges = alt_edges if (current_edges == edges) else edges;
 			imp.setPosition(1);
 			imp.setRoi(current_edges[0]);
-			listener = UpdateRoiImageListener(current_edges);
-			imp.addImageListener(listener);
+			if n_frames > 1:
+				listener = UpdateRoiImageListener(current_edges);
+				imp.addImageListener(listener);
 
 	last_roi = imp.getRoi();
-	qcd_edges = listener.getRoiList();
-	if imp.getNFrames() > imp.getNSlices():
-		qcd_edges[imp.getT() - 1] = last_roi;
+	if n_frames > 1:
+		qcd_edges = listener.getRoiList();
+		if imp.getNFrames() > imp.getNSlices():
+			qcd_edges[imp.getT() - 1] = last_roi;
+		else:
+			qcd_edges[imp.getZ() - 1] = last_roi;
+		imp.removeImageListener(listener);
 	else:
-		qcd_edges[imp.getZ() - 1] = last_roi;
-	imp.removeImageListener(listener);
+		qcd_edges = [last_roi];
 	mbio.save_qcd_edges2(qcd_edges, output_folder);
-	nframes = imp.getNFrames() if imp.getNFrames()>imp.getNSlices() else imp.getNSlices();
+	# next four lines are a quick and dirty hack...
+	if n_frames > 1:
+		nframes = imp.getNFrames() if imp.getNFrames()>imp.getNSlices() else imp.getNSlices();
+	else:
+		nframes = n_frames;
 	for fridx in range(0, nframes):
 		if (qcd_edges[fridx].getType()==Roi.FREELINE) or (qcd_edges[fridx].getType()==Roi.POLYLINE):
 			if (fridx == 0) or params.constrain_anchors:
