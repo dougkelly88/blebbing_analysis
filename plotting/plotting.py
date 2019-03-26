@@ -501,15 +501,16 @@ def plot_ml_el_sd_boxplots(ml_el_ratios, column_titles, axs, title="Membrane len
 	for idx, ax in enumerate(axs):
 		if idx==0:
 			ml_el_time_sds = [ml_el_ratio['Accumulated/Euclidean distance ratio'].std() for ml_el_ratio in ml_el_ratios]
-		else:
+			vs = np.array(ml_el_time_sds);
+		elif idx==1:
 			ml_el_time_sds = [ml_el_ratio['Accumulated/Euclidean distance ratio'].diff(periods=idx).std() for ml_el_ratio in ml_el_ratios];
-		vs = np.array(ml_el_time_sds);
+			vs = np.array(ml_el_time_sds);
 		sns.stripplot(x=category, y=vs, jitter=True, ax=ax, edgecolor='k');
 		sns.boxplot(x=category, y=vs, whis=np.inf, ax=ax);
 		ax.set_ylabel(ylabel);
 		if idx==0:
 			extra_text = "";
-		else:
+		elif idx==1:
 			extra_text = ", {}-frame differenced".format(idx);
 		ax.set_title("\n".join(wrap(title + extra_text, 30)));
 		if ttest:
@@ -517,6 +518,28 @@ def plot_ml_el_sd_boxplots(ml_el_ratios, column_titles, axs, title="Membrane len
 		else:
 			p = None;
 		ps.append(p);
+	return ps;
+
+def plot_ml_el_ft_boxplot(filtered_average_powers, column_titles, ax, title="Membrane length/euclidean fourier analysis", ylabel="Spectral power", ttest=True):
+	"""plot a box/scatter plot to compare control to experimental conditions"""
+	category = [];
+	ps = [];
+	for cond in column_titles:
+		if "control" in cond.lower() or 'wt' in cond.lower():
+			category.append("Control");
+		else:
+			category.append("Experiment");
+	category = np.array(category);
+	vs = np.array(filtered_average_powers);
+	sns.stripplot(x=category, y=vs, jitter=True, ax=ax, edgecolor='k');
+	sns.boxplot(x=category, y=vs, whis=np.inf, ax=ax);
+	ax.set_ylabel(ylabel);
+	ax.set_title("\n".join(wrap(title, 30)));
+	if ttest:
+		p = do_ttest(ax, category, vs);
+	else:
+		p = None;
+	ps.append(p);
 	return ps;
 
 def do_ttest(ax, category, vs):
@@ -557,15 +580,22 @@ def easyfft(t, y):
     tf = np.linspace(0.0, 2.0/(2*(t[1]-t[0])), len(t)//2);
     return tf, yf
 
-def plot_ft(ml_el_ratios, axs, column_titles):
+def plot_ft(ml_el_ratios, axs, column_titles, min_freq=None, max_freq=None):
 	"""plot fourier transform of time series data"""
 	tfs = [];
 	yfs = [];
+	filtered_average_powers = [];
 	for idx, ml_el_r in enumerate(ml_el_ratios):
 		ax = axs[idx];
 		y = ml_el_r['Accumulated/Euclidean distance ratio'];
 		t = ml_el_r['Time, s'];
 		tf, yf = easyfft(t, y);
+		if min_freq is not None and max_freq is not None:
+			filt_yf = [y for y, f in zip(yf, tf) if f <= max_freq and f > min_freq];
+			filtered_average_power = sum(filt_yf)/len(filt_yf);
+		else:
+			filtered_average_power = 0;
+		filtered_average_powers.append(filtered_average_power);
 		tfs.append(tf);
 		yfs.append(yf);
 		ax.plot(tf, yf, "C{0:d}-".format(idx%10), label=column_titles[idx]);
@@ -575,6 +605,7 @@ def plot_ft(ml_el_ratios, axs, column_titles):
 			ax.set_ylabel("Power spectrum");
 		#plt.legend();
 	plt.show();
+	return filtered_average_powers;
 
 	
 
