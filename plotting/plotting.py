@@ -541,6 +541,7 @@ def plot_ml_el_ft_plots(tfs, yfs, column_titles, axs, title="Membrane length/euc
 	axs[0].set_yscale('log');
 	axs[0].legend(lines, labels)
 	axs[0].set_ylabel('Power spectrum');
+	axs[0].set_xlabel('Frequency, Hz');
 	axs[0].set_title(title)
 	if min_freq is not None and max_freq is not None:
 		axs[0].axvspan(min_freq, max_freq, color='green', alpha=0.5);
