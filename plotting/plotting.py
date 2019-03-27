@@ -490,6 +490,7 @@ def plot_ml_el_ratio_sds(ml_el_ratios, axs, conditions=None, log_yscale=False):
 
 def plot_ml_el_sd_boxplots(ml_el_ratios, column_titles, axs, title="Membrane length/euclidean length time standard deviation", ylabel="ML/EL time SD", ttest=True):
 	"""plot a box/scatter plot to compare control to experimental conditions"""
+	# note that reversing order of arrays is a quick hack for current input; better to actually sort on condition...
 	category = [];
 	ps = [];
 	for cond in column_titles:
@@ -497,14 +498,14 @@ def plot_ml_el_sd_boxplots(ml_el_ratios, column_titles, axs, title="Membrane len
 			category.append("Control");
 		else:
 			category.append("Experiment");
-	category = np.array(category);
+	category = np.array(list(reversed(category)));
 	for idx, ax in enumerate(axs):
 		if idx==0:
 			ml_el_time_sds = [ml_el_ratio['Accumulated/Euclidean distance ratio'].std() for ml_el_ratio in ml_el_ratios]
-			vs = np.array(ml_el_time_sds);
+			vs = np.array(list(reversed(ml_el_time_sds)));
 		elif idx==1:
 			ml_el_time_sds = [ml_el_ratio['Accumulated/Euclidean distance ratio'].diff(periods=idx).std() for ml_el_ratio in ml_el_ratios];
-			vs = np.array(ml_el_time_sds);
+			vs = np.array(list(reversed(ml_el_time_sds)));
 		sns.stripplot(x=category, y=vs, jitter=True, ax=ax, edgecolor='k');
 		sns.boxplot(x=category, y=vs, whis=np.inf, ax=ax);
 		ax.set_ylabel(ylabel);
@@ -520,7 +521,7 @@ def plot_ml_el_sd_boxplots(ml_el_ratios, column_titles, axs, title="Membrane len
 		ps.append(p);
 	return ps;
 
-def plot_ml_el_ft_boxplot(filtered_average_powers, column_titles, ax, title="Membrane length/euclidean fourier analysis", ylabel="Spectral power", ttest=True):
+def plot_ml_el_ft_plots(tfs, yfs, column_titles, axs, title="Membrane length/euclidean fourier analysis", ylabel="Spectral power", ttest=True, min_freq=None, max_freq=None):
 	"""plot a box/scatter plot to compare control to experimental conditions"""
 	category = [];
 	ps = [];
@@ -529,14 +530,44 @@ def plot_ml_el_ft_boxplot(filtered_average_powers, column_titles, ax, title="Mem
 			category.append("Control");
 		else:
 			category.append("Experiment");
+	# conditionwise lines
+	lines = [];
+	labels = [];
+	for cat, tf, yf in zip(category, tfs, yfs):
+		l, = axs[0].plot(tf, yf, color="C{}".format(np.where(np.unique(category)==cat)[0][0]), label=cat)
+		if cat not in labels:
+			labels.insert(0, cat); # hack to get ordering right rather than using append...
+			lines.insert(0, l);
+	axs[0].set_yscale('log');
+	axs[0].legend(lines, labels)
+	axs[0].set_ylabel('Power spectrum');
+	axs[0].set_title(title)
+	if min_freq is not None and max_freq is not None:
+		axs[0].axvspan(min_freq, max_freq, color='green', alpha=0.5);
+	# boxplots
+	tfs = list(reversed(tfs));
+	yfs = list(reversed(yfs));
+	category = list(reversed(category));
+	filtered_average_powers = [];
+	for tf, yf in zip(tfs, yfs):
+		if min_freq is not None and max_freq is not None:
+			filt_yf = [y for y, f in zip(yf, tf) if f <= max_freq and f > min_freq];
+			filtered_average_power = sum(filt_yf)/len(filt_yf);
+		else:
+			filtered_average_power = 0;
+		filtered_average_powers.append(filtered_average_power);
 	category = np.array(category);
 	vs = np.array(filtered_average_powers);
-	sns.stripplot(x=category, y=vs, jitter=True, ax=ax, edgecolor='k');
-	sns.boxplot(x=category, y=vs, whis=np.inf, ax=ax);
-	ax.set_ylabel(ylabel);
-	ax.set_title("\n".join(wrap(title, 30)));
+	sns.stripplot(x=category, y=vs, jitter=True, ax=axs[1], edgecolor='k');
+	sns.boxplot(x=category, y=vs, whis=np.inf, ax=axs[1]);
+	axs[1].set_ylabel(ylabel);
+	if min_freq is not None and max_freq is not None:
+		add_text = " in frequency range {}-{} Hz".format(min_freq, max_freq);
+	else:
+		add_text = "";
+	axs[1].set_title("\n".join(wrap((title + add_text), 30)));
 	if ttest:
-		p = do_ttest(ax, category, vs);
+		p = do_ttest(axs[1], category, vs);
 	else:
 		p = None;
 	ps.append(p);
@@ -580,34 +611,22 @@ def easyfft(t, y):
     tf = np.linspace(0.0, 2.0/(2*(t[1]-t[0])), len(t)//2);
     return tf, yf
 
-def plot_ft(ml_el_ratios, axs, column_titles, min_freq=None, max_freq=None):
+def plot_ft(ml_el_ratios, axs, column_titles):
 	"""plot fourier transform of time series data"""
 	tfs = [];
 	yfs = [];
 	filtered_average_powers = [];
 	for idx, ml_el_r in enumerate(ml_el_ratios):
-		ax = axs[idx];
 		y = ml_el_r['Accumulated/Euclidean distance ratio'];
 		t = ml_el_r['Time, s'];
 		tf, yf = easyfft(t, y);
-		if min_freq is not None and max_freq is not None:
-			filt_yf = [y for y, f in zip(yf, tf) if f <= max_freq and f > min_freq];
-			filtered_average_power = sum(filt_yf)/len(filt_yf);
-		else:
-			filtered_average_power = 0;
-		filtered_average_powers.append(filtered_average_power);
 		tfs.append(tf);
 		yfs.append(yf);
-		ax.plot(tf, yf, "C{0:d}-".format(idx%10), label=column_titles[idx]);
-		ax.set_yscale("log");
-		ax.set_xlabel("Frequency");
-		if idx==0:
-			ax.set_ylabel("Power spectrum");
-		#plt.legend();
-	plt.show();
-	return filtered_average_powers;
-
-	
-
-
-
+		if axs is not None:
+			ax = axs[idx];
+			ax.plot(tf, yf, "C{0:d}-".format(idx%10), label=column_titles[idx]);
+			ax.set_yscale("log");
+			ax.set_xlabel("Frequency");
+			if idx==0:
+				ax.set_ylabel("Power spectrum");
+	return tfs, yfs;
