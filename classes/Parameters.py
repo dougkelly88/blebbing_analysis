@@ -39,7 +39,9 @@ class Parameters:
 						selected_series_index = 0, 
 						constrain_anchors = False, 
 						physical_curvature_unit = '', 
-						qc_background_rois=False):
+						qc_background_rois=False, 
+						two_channel_I=False, 
+						membrane_channel_labeled_species=None):
 		self.__blebbingparams__ = True;
 
 		success = True;
@@ -85,6 +87,8 @@ class Parameters:
 
 			self.membrane_channel_number = membrane_channel_number;
 			self.use_single_channel = use_single_channel;
+			self.two_channel_I = two_channel_I;
+			self.membrane_channel_labeled_species = membrane_channel_labeled_species;
 
 			self.inner_outer_comparison = inner_outer_comparison;
 			self.selected_series_index = selected_series_index;
@@ -92,6 +96,12 @@ class Parameters:
 			self.constrain_anchors = constrain_anchors;
 
 		self.software_version = Parameters._version_string;
+
+	def setMembraneChannelLabeledSpecies(self, membrane_channel_labeled_species):
+		self.membrane_channel_labeled_species = membrane_channel_labeled_species;
+
+	def setTwoChannelI(self, two_channel_I):
+		self.two_channel_I = two_channel_I;
 
 	def toggleConstrainAnchors(self, constrain_anchors):
 		self.constrain_anchors = constrain_anchors;
@@ -298,6 +308,12 @@ class Parameters:
 			self.toggleBackgroundQc(dct["qc_background_rois"]);
 		except:
 			self.toggleBackgroundQc(True);
+		try:
+			self.setTwoChannelI(dct["two_channel_I"]);
+			self.setMembraneChannelLabeledSpecies(dct["membrane_channel_labeled_species"]);
+		except:
+			self.setTwoChannelI(False);
+			self.setMembraneChannelLabeledSpecies(None);
 		try:
 			self.setCurvatureOverlayLUT(dct["curvature_overlay_lut_string"]);
 			self.setCurvatureKymographLUT(dct["curvature_kymograph_lut_string"]);

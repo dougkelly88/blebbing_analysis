@@ -317,6 +317,16 @@ def analysis_parameters_gui(rerun_analysis=False, params=None):
 									 params.use_single_channel, 
 									 params.setUseSingleChannel, 
 									 enabled=(not rerun_analysis)));
+	controls.append(MyControlDefinition("Get intensity from both channels?", 
+									 MyControlDefinition.Checkbox, 
+									 params.two_channel_I, 
+									 params.setTwoChannelI, 
+									 enabled=True));
+	controls.append(MyControlDefinition("Name of ""membrane"" channel labeled species:", 
+									 MyControlDefinition.String, 
+									 params.membrane_channel_labeled_species, 
+									 params.setMembraneChannelLabeledSpecies, 
+									 enabled=True));
 	controls.append(MyControlDefinition("Metadata source: ", 
 									 MyControlDefinition.RadioButtonGroup, 
 									 params.metadata_source, 
