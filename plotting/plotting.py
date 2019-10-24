@@ -118,8 +118,8 @@ def load_kymograph_data(experiment_folder, condition_names=None, use_subfolder_a
 			except UnicodeDecodeError as e:
 				full_membrane_euclideans = pd.read_csv(os.path.join(experiment_folder, subfolder, "full membrane euclidean length.csv"), encoding='cp1252');
 			ml_el_ratio = full_membrane_euclideans;
-			fml_length_key = [s for s in full_membrane_lengths.columns if "Length" in s][0];
-			fme_length_key = [s for s in full_membrane_euclideans.columns if "Length" in s][0];
+			fml_length_key = [s for s in full_membrane_lengths.columns if "length" in s.lower()][0];
+			fme_length_key = [s for s in full_membrane_euclideans.columns if "length" in s.lower()][0];
 			ml_el_ratio["Accumulated/Euclidean distance ratio"] = full_membrane_lengths[fml_length_key]/full_membrane_euclideans[fme_length_key];
 			ml_el_ratio.drop(fme_length_key, axis=1, inplace=True);
 			ml_el_ratios.append(ml_el_ratio);
