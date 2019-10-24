@@ -177,11 +177,14 @@ def add_scalebar(params, ax, fig, color='w', scale_bar_size_um=1, vertical_scale
 
 def plot_kymographs(paramses, actin_kyms, curvature_kyms, axs, intensity_lims, curv_lims, contrast_enhancement=0.35):
 	"""from loaded kymograph images, show kymographs in the notebook"""
+	axs = np.array(axs)
+	if axs.ndim == 1:
+		axs = axs.reshape(8, 1)
 	for idx in range(len(curvature_kyms)):
-		t_offs = 0;
+		t_offs = 0
 		if paramses[idx].time_crop_start_end is not None:
 			if paramses[idx].time_crop_start_end[0] is not None:
-				t_offs = float(paramses[idx].time_crop_start_end[0] * paramses[idx].frame_interval);
+				t_offs = float(paramses[idx].time_crop_start_end[0] * paramses[idx].frame_interval)
 		actin_im=axs[0][idx].imshow(actin_kyms[idx], 
 							   plt.cm.gray, 
 							   vmin=intensity_lims[0], 
@@ -191,7 +194,7 @@ def plot_kymographs(paramses, actin_kyms, curvature_kyms, axs, intensity_lims, c
 							   extent=[t_offs, 
 									  paramses[idx].frame_interval*actin_kyms[idx].shape[1]+t_offs, 
 									  -actin_kyms[idx].shape[0] * paramses[idx].pixel_physical_size/2, 
-									  actin_kyms[idx].shape[0] * paramses[idx].pixel_physical_size/2]);
+									  actin_kyms[idx].shape[0] * paramses[idx].pixel_physical_size/2])
 		curv_im=axs[1][idx].imshow(curvature_kyms[idx], 
                            plt.cm.jet, 
                            vmin=curv_lims[0], 
@@ -201,16 +204,16 @@ def plot_kymographs(paramses, actin_kyms, curvature_kyms, axs, intensity_lims, c
                            extent=[t_offs,
                                    paramses[idx].frame_interval*actin_kyms[idx].shape[1]+t_offs, 
                                    -actin_kyms[idx].shape[0] * paramses[idx].pixel_physical_size/2, 
-                                   actin_kyms[idx].shape[0] * paramses[idx].pixel_physical_size/2]);
-		merged_im = curvature_with_intensity(curv_im, actin_im, contrast_enhancement=contrast_enhancement);
+                                   actin_kyms[idx].shape[0] * paramses[idx].pixel_physical_size/2])
+		merged_im = curvature_with_intensity(curv_im, actin_im, contrast_enhancement=contrast_enhancement)
 		axs[2][idx].imshow(merged_im, 
 							aspect='auto', 
 							interpolation=None, 
 							extent=[t_offs, 
 									paramses[idx].frame_interval*actin_kyms[idx].shape[1]+t_offs, 
 									-actin_kyms[idx].shape[0] * paramses[idx].pixel_physical_size/2, 
-									actin_kyms[idx].shape[0] * paramses[idx].pixel_physical_size/2]);
-	return actin_im, curv_im;
+									actin_kyms[idx].shape[0] * paramses[idx].pixel_physical_size/2])
+	return actin_im, curv_im
 
 def plot_timeseries(paramses, axs, actin_kyms, curvature_kyms, areas, ml_el_ratios, curvature_threshold=0):
 	"""show 1D plots of different parameters against time"""
